@@ -1,0 +1,14 @@
+{
+	"manifest_version": 2,
+	"name": "Open Screen Monitor",
+	"description": "An open-source screen monitoring tool for Chrome.",
+	"version": "0.2.0",
+	"incognito": "split",
+	"permissions": ["alarms","identity","identity.email","<all_urls>","tabs","enterprise.deviceAttributes","webNavigation"],
+	"background": { "scripts": ["background.js"] },
+	"browser_action":{
+		"default_popup":"browseraction.html",
+		"default_icon":"icon.png"
+	},
+	"externally_connectable":{"matches":["*://*.FIXME-URL/*"]}
+}
