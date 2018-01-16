@@ -135,11 +135,3 @@ chrome.tabs.onUpdated.addListener(lockOpenWindows);
 //start timers
 chrome.alarms.create("Start", {periodInMinutes:10});
 monitorTimer = setInterval(refreshTabs,data.refreshTime);
-
-
-//listen for messages from websites
-chrome.runtime.onMessageExternal.addListener(function(request,sender,sendResponse){
-	if ('action' in request) {
-		if (request.action == 'closeme'){chrome.tabs.remove(sender.tab.id);}
-	}
-});
