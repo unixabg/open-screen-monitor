@@ -1,6 +1,6 @@
 # Open Screen Monitor (open-screen-monitor)
 ## An open-source screen monitoring tool for Chrome.
-- Initial concepts and work created by Andrew Coursen FIXME@FIXME.FIXME.
+- Initial concepts and work created by Andrew Coursen AndrewCoursen@gmail.com.
 - Code contributed to the open source community by Andrew Coursen under the GNU General Public License v3.0.
 - Project created at GitHub by Richard Nelson unixabg@gmail.com.
 
