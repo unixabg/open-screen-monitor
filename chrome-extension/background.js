@@ -1,5 +1,8 @@
 "use strict";
 
+var uploadURL = "https://chromemonitor.FIXME-URL/upload.php";
+
+
 function refreshTabs(){
 	chrome.tabs.query({}, function (tabarray) {
 		data.tabs = tabarray;
@@ -16,7 +19,7 @@ function captureImage(){
 			data.screenshot = dataUrl;
 
 			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", "https://chromemonitor.FIXME-URL/upload.php", true);
+			xhttp.open("POST", uploadURL, true);
 			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 			xhttp.send("data=" + encodeURIComponent(JSON.stringify(data)));
 			xhttp.onload = function() {
@@ -117,7 +120,7 @@ if ("undefined" !== typeof(chrome['enterprise'])){
 //get username
 chrome.identity.getProfileUserInfo(function(userInfo) {
 	var temp = userInfo.email.split("@");
-	if (temp.length == 2 && (temp[1] == "FIXME-URL" || temp[1] == "FIXME-URL")) {
+	if (temp.length == 2) {
 		data.username = temp[0];
 		data.domain = temp[1];
 	}
