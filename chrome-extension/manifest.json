@@ -10,5 +10,4 @@
 		"default_popup":"browseraction.html",
 		"default_icon":"icon.png"
 	},
-	"externally_connectable":{"matches":["*://*.FIXME-URL/*"]}
 }
