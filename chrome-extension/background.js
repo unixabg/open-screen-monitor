@@ -107,7 +107,6 @@ var data = {
 	refreshTime:5000,
 	sessionID:'',
 }
-var monitorTimer = null;
 
 //get deviceID
 if ("undefined" !== typeof(chrome['enterprise'])){
@@ -133,5 +132,5 @@ chrome.tabs.onActivated.addListener(lockOpenWindows);
 chrome.tabs.onUpdated.addListener(lockOpenWindows);
 
 //start timers
-chrome.alarms.create("Start", {periodInMinutes:10});
+var monitorTimer = null;
 monitorTimer = setInterval(refreshTabs,data.refreshTime);
