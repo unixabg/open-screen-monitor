@@ -1,5 +1,16 @@
 <?php
 
+if (isset($_POST['filter']) && isset($_POST['filtergroup']) && isset($_POST['username'])) {
+	//TODO: add more logic to block websites here
+	if ($_POST['filter'] == 'https://www.msn.com/block') {
+		//to block a website sent a http 403
+		http_response_code(403);
+		//a redirect url is optional
+		die('https://google.com');
+	}
+	die('OK');
+}
+
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
 	if (isset($data['deviceID'])){

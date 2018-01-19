@@ -3,6 +3,30 @@
 var uploadURL = "https://chromemonitor.FIXME-URL/upload.php";
 
 
+function filterPage(nextPageDetails){
+	//a filter group must be set to waste bandwidth on filtering
+	if (data.filtergroup != ""){
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST",uploadURL,true);
+		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xhttp.send("filter=" + encodeURIComponent(nextPageDetails.url) + "&filtergroup="+encodeURIComponent(data.filtergroup) + "&username=" + encodeURIComponent(data.username));
+
+		xhttp.onload = function(){
+			//if we get a 403 and the response text looks like a url, then it is blocked
+			//and we need to redirect the tab to the returned url
+			if (this.status == 403){
+				if (this.responseText.slice(0,8) == 'https://') {
+					//if we were given a redirect url, use it
+					chrome.tabs.update(nextPageDetails.tabId,{url:this.responseText});
+				} else {
+					//otherwise just kill it
+					chrome.tabs.remove(nextPageDetails.tabId);
+				}
+			}
+		}
+	}
+};
+
 function refreshTabs(){
 	chrome.tabs.query({}, function (tabarray) {
 		data.tabs = tabarray;
@@ -64,8 +88,11 @@ function captureImage(){
 										console.log('Timer updated to: ' + data.refreshTime);
 									}
 									break;
-								case 'setSessionID':
-									data.sessionID = command['sessionID'];
+								case 'setData':
+									//this allows for setting any properties in the data object
+									//it also allows for the server to set dynamic properties that stay with the client's login session
+									//that aren't defined in the extention
+									data[command['key']] = command['value'];
 									break;
 							}
 						} catch (e) {console.log(e);}
@@ -100,6 +127,7 @@ var data = {
 	deviceID:"",
 	username:"",
 	domain:"",
+	filtergroup:"",
 	screenshot:"",
 	tabs:[],
 	lock:false,
@@ -125,6 +153,8 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 	}
 });
 
+//setup the content filter
+chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
 
 //setup the window lock
 chrome.windows.onFocusChanged.addListener(lockOpenWindows);
