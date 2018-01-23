@@ -7,7 +7,7 @@ if (isset($_POST['data'])) {
 
 		if ($deviceID != "") {
 			//make sure folder exists
-			$folder = '../data/'.$deviceID;
+			$folder = '../../osm-data/'.$deviceID;
 			if (!file_exists($folder)) mkdir($folder);
 
 			//ping file for status

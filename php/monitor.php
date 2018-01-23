@@ -4,7 +4,7 @@ session_start();
 //Authenticate here FIXME
 
 //show all devices
-$folders = glob('../data/*', GLOB_ONLYDIR);
+$folders = glob('../../osm-data/*', GLOB_ONLYDIR);
 foreach ($folders as $folder) {
 	$folder = basename($folder);
 	$_SESSION['alloweddevices'][$folder] = $folder;
@@ -16,7 +16,7 @@ if (isset($_GET['images'])) {
 	$toReturn = array();
 
 	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = '../data/'.$device.'/';
+		$folder = '../../osm-data/'.$device.'/';
 		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
 
 		// Assure who needs access here FIXME
@@ -33,18 +33,18 @@ if (isset($_GET['images'])) {
 }
 
 // Make sure lock key is in alloweddevices array FIXME reformat
-if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])){touch('../data/'.$_POST['lock'].'/lock');die();}
-if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])){touch('../data/'.$_POST['unlock'].'/unlock');die();}
+if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])){touch('../../osm-data/'.$_POST['lock'].'/lock');die();}
+if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])){touch('../../osm-data/'.$_POST['unlock'].'/unlock');die();}
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)){
-	file_put_contents('../data/'.$_POST['openurl'].'/openurl',$_POST['url']);
+	file_put_contents('../../osm-data/'.$_POST['openurl'].'/openurl',$_POST['url']);
 	die();
 }
-if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])){file_put_contents('../data/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);die();}
+if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])){file_put_contents('../../osm-data/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);die();}
 
 if (isset($_GET['update'])){
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = '../data/'.$device.'/';
+		$folder = '../../osm-data/'.$device.'/';
 		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
 
 		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30){
