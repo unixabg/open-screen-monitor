@@ -33,25 +33,37 @@ if (isset($_GET['images'])) {
 }
 
 // Make sure lock key is in alloweddevices array FIXME reformat
-if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])){touch('../../osm-data/'.$_POST['lock'].'/lock');die();}
-if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])){touch('../../osm-data/'.$_POST['unlock'].'/unlock');die();}
-if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)){
+if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
+	touch('../../osm-data/'.$_POST['lock'].'/lock');
+	die();
+}
+
+if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
+	touch('../../osm-data/'.$_POST['unlock'].'/unlock');
+	die();
+}
+
+if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
 	file_put_contents('../../osm-data/'.$_POST['openurl'].'/openurl',$_POST['url']);
 	die();
 }
-if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])){file_put_contents('../../osm-data/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);die();}
 
-if (isset($_GET['update'])){
+if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
+	file_put_contents('../../osm-data/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	die();
+}
+
+if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
 		$folder = '../../osm-data/'.$device.'/';
 		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
 
-		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30){
+		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
 			$data[$device]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
 			$data[$device]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
 			$data[$device]['tabs'] = "";
-			if (file_exists($folder.'tabs')){
+			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach($temp as $tab) {
 					$data[$device]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$device."','".$tab['id']."');return false;\">X</a> ".htmlspecialchars($tab['title']).'<br /><br />'.substr(htmlspecialchars($tab['url']),0,500).'<br /><br /><br />';
