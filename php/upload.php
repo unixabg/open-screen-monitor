@@ -2,7 +2,7 @@
 
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
-	if (isset($data['deviceID'])){
+	if (isset($data['deviceID'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 
 		if ($deviceID != "") {
@@ -26,17 +26,23 @@ if (isset($_POST['data'])) {
 			}
 			if ($screenshot != "") {
 				file_put_contents($folder.'/screenshot.jpg',$screenshot);
-			}elseif(file_exists($folder.'/screenshot.jpg')) {
+			} elseif (file_exists($folder.'/screenshot.jpg')) {
 				unlink($folder.'/screenshot.jpg');
 			}
 
-			foreach (array('username','version','domain') as $field){
-				if (isset($data[$field]) && $data[$field] != "") {file_put_contents($folder.'/'.$field,$data[$field]);}
-				elseif(file_exists($folder.'/'.$field)) {unlink($folder.'/'.$field);}
+			foreach (array('username','version','domain') as $field) {
+				if (isset($data[$field]) && $data[$field] != "") {
+					file_put_contents($folder.'/'.$field,$data[$field]);
+				} elseif (file_exists($folder.'/'.$field)) {
+					unlink($folder.'/'.$field);
+				}
 			}
 
-			if (isset($data['tabs'])) {file_put_contents($folder.'/tabs',json_encode($data['tabs']));}
-			elseif(file_exists($folder.'/tabs')) {unlink($folder.'/tabs');}
+			if (isset($data['tabs'])) {
+				file_put_contents($folder.'/tabs',json_encode($data['tabs']));
+			} elseif (file_exists($folder.'/tabs')) {
+				unlink($folder.'/tabs');
+			}
 
 
 			//send commands back
