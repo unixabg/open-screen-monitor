@@ -7,10 +7,17 @@ session_start();
 $dataDir='../../osm-data';
 
 //show all devices
-$folders = glob("$dataDir/*", GLOB_ONLYDIR);
-foreach ($folders as $folder) {
-	$folder = basename($folder);
-	$_SESSION['alloweddevices'][$folder] = $folder;
+$groups = glob($dataDir.'/*', GLOB_ONLYDIR);
+if(count($groups) > 0) {
+	foreach ($groups as $_group) {
+		$_group = basename($_group);
+		$devices = glob($dataDir.'/'.$_group.'/*', GLOB_ONLYDIR);
+		foreach ($devices as $_device) {
+			$_device = basename($_device);
+			//set deviceID=>device data path
+			$_SESSION['alloweddevices'][$_device] = $_group.'/'.$_device;
+		}
+	}
 }
 
 //return all images after ctime
@@ -18,9 +25,9 @@ if (isset($_GET['images'])) {
 	ini_set('memory_limit','256M');
 	$toReturn = array();
 
-	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = $dataDir.'/'.$device.'/';
-		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
 
 		// Assure who needs access here FIXME
 		if (is_readable($folder.'screenshot.jpg') && filemtime($folder.'screenshot.jpg') >= time() - 10 ) {
@@ -58,9 +65,9 @@ if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['allo
 
 if (isset($_GET['update'])) {
 	$data = array();
-	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = $dataDir.'/'.$device.'/';
-		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
 
 		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
 			$data[$device]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
