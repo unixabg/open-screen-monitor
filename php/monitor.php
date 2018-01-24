@@ -3,8 +3,11 @@ session_start();
 
 //Authenticate here FIXME
 
+//set data path
+$dataDir='../../osm-data';
+
 //show all devices
-$folders = glob('../../osm-data/*', GLOB_ONLYDIR);
+$folders = glob("$dataDir/*", GLOB_ONLYDIR);
 foreach ($folders as $folder) {
 	$folder = basename($folder);
 	$_SESSION['alloweddevices'][$folder] = $folder;
