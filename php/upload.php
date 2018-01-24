@@ -8,10 +8,9 @@ if (isset($_POST['data'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		if ($deviceID != "") {
 			//first glob in the groups which have a full path
-			$group = glob("$dataDir/*", GLOB_ONLYDIR);
-			$groupCount = count($group);
-			for ($g=0; $g < $groupCount; $g++) {
-				$deviceFolder="$group[$g]/$deviceID";
+			$groups = glob("$dataDir/*", GLOB_ONLYDIR);
+			foreach ($groups as $_group ) {
+				$deviceFolder="$_group/$deviceID";
 				if (file_exists($deviceFolder)) {
 					//ping file for status
 					touch($deviceFolder.'/ping');
@@ -46,7 +45,7 @@ if (isset($_POST['data'])) {
 					//set the refresh time
 					$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
 					//override a few things for devices which are waiting in enroll group
-					if (basename($group[$g])=='enroll') {
+					if (basename($_group)=='enroll') {
 						file_put_contents($deviceFolder.'/openurl',"$osmURL/enroll.html");
 						//prompt the user to enroll every 10 min
 						$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>600000);
