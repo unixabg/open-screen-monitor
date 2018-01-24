@@ -1,7 +1,6 @@
 "use strict";
 
-var uploadURL = "https://chromemonitor.FIXME-URL/upload.php";
-
+var uploadURL = "https://osm/osm/upload.php";
 
 function refreshTabs(){
 	chrome.tabs.query({}, function (tabarray) {

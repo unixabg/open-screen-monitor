@@ -1,5 +1,7 @@
 <?php
 
+$dataDir='../../osm-data';
+$osmURL='https://osm/osm';
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
 	if (isset($data['deviceID'])) {
