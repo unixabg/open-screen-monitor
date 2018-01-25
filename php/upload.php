@@ -8,7 +8,7 @@ if (isset($_POST['data'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		if ($deviceID != "") {
 			//first glob in the groups which have a full path
-			$groups = glob("$dataDir/*", GLOB_ONLYDIR);
+			$groups = glob($dataDir.'/*', GLOB_ONLYDIR);
 			foreach ($groups as $_group ) {
 				$deviceFolder="$_group/$deviceID";
 				if (file_exists($deviceFolder)) {
@@ -43,12 +43,13 @@ if (isset($_POST['data'])) {
 					//send commands back
 					$toReturn = array();
 					//set the refresh time
-					$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
-					//override a few things for devices which are waiting in enroll group
 					if (basename($_group)=='enroll') {
-						file_put_contents($deviceFolder.'/openurl',"$osmURL/enroll.html");
+						//override a few things for devices which are waiting in enroll group
+						file_put_contents($deviceFolder.'/openurl',$osmURL.'/enroll.html');
 						//prompt the user to enroll every 10 min
-						$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>600000);
+						$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>60000);
+					} else {
+						$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
 					}
 					if (file_exists($deviceFolder.'/openurl')) {
 						$urls = file_get_contents($deviceFolder.'/openurl');
@@ -89,8 +90,11 @@ if (isset($_POST['data'])) {
 			//if we get here then we need to enroll the device
 			//make sure the enrollment folder and the device folder exists
 			//first submitt we create the deviceFolder and on next run it will be populated
-			$deviceFolder = "$dataDir/enroll/$deviceID";
-			if (!file_exists($deviceFolder)) mkdir($deviceFolder);
+			$deviceFolder = $dataDir.'/enroll/'.$deviceID;
+			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
+			header('Content-Type: application/json');
+			$toReturn = array();
+			die(json_encode($toReturn));
 		}
 	}
 }
