@@ -97,6 +97,18 @@ if (isset($_GET['update'])) {
 	die(json_encode($data));
 }
 
+if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny'))) {
+	//only allow printable characters and new lines
+	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
+
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		file_put_contents($folder.'filtermode',$_POST['filtermode']);
+		file_put_contents($folder.'filterlist',$_POST['filterlist']);
+	}
+	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
+}
+
 ?><html>
 <head>
 	<title>Open Screen Monitor</title>
@@ -110,8 +122,6 @@ if (isset($_GET['update'])) {
 			img.attr("id","img_" + dev);
 			img.attr("alt",name);
 			img.attr("src","unavailable.jpg");
-			//img.load(function(){setTimeout(function(){refreshImg(dev);},4000+Math.random()*2000);});
-			//img.error(function(){setTimeout(function(){refreshImg(dev);},4000+Math.random()*2000);});
 			img.css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 			img.on('contextmenu',function(){return false;});
 
@@ -124,7 +134,7 @@ if (isset($_GET['update'])) {
 				return false;
 			});
 
-			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\">Lock</a> <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\">Unlock</a> <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\">Open Url</a> <h2>Tabs</h2><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\">Lock</a> <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\">Unlock</a> <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\">Open Url</a> <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\">Send Message</a> <h2>Tabs</h2><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
@@ -133,8 +143,6 @@ if (isset($_GET['update'])) {
 			div.append(info);
 
 			$('#activedevs').append(div);
-			//start the auto update cycle
-			//refreshImg(dev);
 		}
 
 		function updateAllImages() {
@@ -153,11 +161,6 @@ if (isset($_GET['update'])) {
 			}).fail(function(){
 				setTimeout(updateAllImages,4000);
 			});
-		}
-
-		function refreshImg(deviceindex) {
-			var url = "?device=" + deviceindex  + "&time=" + (new Date()).getTime();
-			$('#img_'+deviceindex).attr("src",url);
 		}
 
 		function closeTab(dev,id) {
@@ -211,14 +214,14 @@ if (isset($_GET['update'])) {
 							}
 
 							//update username
-							$('#div_'+dev+' h1').html(data[dev].name+' ('+data[dev].username+')');
+							$('#div_'+dev+' h1').html(data[dev].username+' ('+data[dev].name+')');
 							$('#div_'+dev+' div.tabs').html(data[dev].tabs);
 							$('#div_'+dev).data('name',data[dev].name);
 
-							URLdata = URLdata + "<hr /><b>"+data[dev].name+' ('+data[dev].username +' - '+data[dev].ip +')</b><br /><br />'+$('#div_'+dev+' div.info').html();
+							URLdata = URLdata + "<hr /><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br /><br />'+$('#div_'+dev+' div.info').html();
 						}
 					} else if (thisdiv.first().hasClass('hidden')){
-						thisdiv.html('*'+data[dev].name+'*<br />('+data[dev].username+')');
+						thisdiv.html('*'+data[dev].username+'*<br />('+data[dev].name+')');
 					}
 				}
 
@@ -266,6 +269,12 @@ if (isset($_GET['update'])) {
 				var url1 = prompt("Please enter an URL", "http://");
 				if (url1 != '')
 					$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{openurl:id,url:url1});});
+			});
+
+			$('#massSendmessage').click(function(){
+				var message1 = prompt("Please enter a message", "");
+				if (message1 != '')
+					$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{sendmessage:id,message:message1});});
 			});
 
 			$('#massHide').click(function(){
@@ -384,11 +393,33 @@ if (isset($_GET['update'])) {
 		<input type="button" id="massLock" value="Lock All" />
 		<input type="button" id="massUnlock" value="Unlock All" />
 		<input type="button" id="massOpenurl" value="Open Url on All" />
+		<input type="button" id="massSendmessage" value="Send Message to All" />
 		|
 		<input type="button" id="massHide" value="Hide All" />
 		<input type="button" id="massShow" value="Show All" />
 	</div>
 	<div id="menu">
+	<?php
+	//get the filter list from first device ... not the best method but this is beta
+	$device = array_keys($_SESSION['alloweddevices'])[0];
+	$filtermode = "";
+	$filterlist = "";
+
+	if (file_exists('../data/'.$device.'/filtermode') && file_exists('../data/'.$device.'/filterlist')){
+		$filtermode = file_get_contents('../data/'.$device.'/filtermode');
+		$filterlist = file_get_contents('../data/'.$device.'/filterlist');
+	}
+	?>
+	<h2>Filter Setup (Beta)</h2>
+	<form id="filter" method="post" target="_blank" action="?filter">
+		Mode:
+		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Block these sites
+		<br /><input type="radio" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />Allow these sites
+
+		Sites (one per line):
+		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
+		<br /><input type="submit">
+	</form>
 	<h2>URLs</h2>
 	<div id="urls"></div>
 	</div>
