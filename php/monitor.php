@@ -42,24 +42,35 @@ if (isset($_GET['images'])) {
 	die(json_encode($toReturn));
 }
 
-// Make sure lock key is in alloweddevices array FIXME reformat
+// Actions are passed with the device id in the $_POST[] to get the full path we
+// reference that device id for the key in the $_SESSION['alloweddevices] for the
+// correct data path to apply the action for a given device.
+// Make sure lock key is in alloweddevices array
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-	touch($dataDir.'/'.$_POST['lock'].'/lock');
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['lock']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	touch($_actionPath.'/lock');
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-	touch($dataDir.'/'.$_POST['unlock'].'/unlock');
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['unlock']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	touch($_actionPath.'/unlock');
 	die();
 }
 
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-	file_put_contents($dataDir.'/'.$_POST['openurl'].'/openurl',$_POST['url']);
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['openurl']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	file_put_contents($_actionPath.'/openurl',$_POST['url']);
 	die();
 }
 
 if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-	file_put_contents($dataDir.'/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['closetab']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 	die();
 }
 
