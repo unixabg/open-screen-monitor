@@ -3,11 +3,21 @@ session_start();
 
 //Authenticate here FIXME
 
+//set data path
+$dataDir='../../osm-data';
+
 //show all devices
-$folders = glob('../data/*', GLOB_ONLYDIR);
-foreach ($folders as $folder) {
-	$folder = basename($folder);
-	$_SESSION['alloweddevices'][$folder] = $folder;
+$groups = glob($dataDir.'/*', GLOB_ONLYDIR);
+if(count($groups) > 0) {
+	foreach ($groups as $_group) {
+		$_group = basename($_group);
+		$devices = glob($dataDir.'/'.$_group.'/*', GLOB_ONLYDIR);
+		foreach ($devices as $_device) {
+			$_device = basename($_device);
+			//set deviceID=>device data path
+			$_SESSION['alloweddevices'][$_device] = $_group.'/'.$_device;
+		}
+	}
 }
 
 //return all images after ctime
@@ -15,9 +25,9 @@ if (isset($_GET['images'])) {
 	ini_set('memory_limit','256M');
 	$toReturn = array();
 
-	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = '../data/'.$device.'/';
-		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
 
 		// Assure who needs access here FIXME
 		if (is_readable($folder.'screenshot.jpg') && filemtime($folder.'screenshot.jpg') >= time() - 10 ) {
@@ -32,28 +42,49 @@ if (isset($_GET['images'])) {
 	die(json_encode($toReturn));
 }
 
-// Make sure lock key is in alloweddevices array FIXME reformat
-if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])){touch('../data/'.$_POST['lock'].'/lock');die();}
-if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])){touch('../data/'.$_POST['unlock'].'/unlock');die();}
-if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)){
-	file_put_contents('../data/'.$_POST['openurl'].'/openurl',$_POST['url']);
+// Actions are passed with the device id in the $_POST[] to get the full path we
+// reference that device id for the key in the $_SESSION['alloweddevices] for the
+// correct data path to apply the action for a given device.
+// Make sure lock key is in alloweddevices array
+if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['lock']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	touch($_actionPath.'/lock');
 	die();
 }
-if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])){file_put_contents('../data/'.$_POST['closetab'].'/closetab',$_POST['tabid']."\n",FILE_APPEND);die();}
-if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']]) ){file_put_contents('../data/'.$_POST['sendmessage'].'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);die();}
 
+if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['unlock']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	touch($_actionPath.'/unlock');
+	die();
+}
 
-if (isset($_GET['update'])){
+if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['openurl']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	file_put_contents($_actionPath.'/openurl',$_POST['url']);
+	die();
+}
+
+if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['closetab']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	die();
+}
+
+if (isset($_GET['update'])) {
 	$data = array();
-	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		$folder = '../data/'.$device.'/';
-		$data[$device] = array('name'=>$name,'username'=>'','tabs'=>array());
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
 
-		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30){
+		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
 			$data[$device]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
 			$data[$device]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
 			$data[$device]['tabs'] = "";
-			if (file_exists($folder.'tabs')){
+			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach($temp as $tab) {
 					$data[$device]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$device."','".$tab['id']."');return false;\">X</a> ".htmlspecialchars($tab['title']).'<br /><br />'.substr(htmlspecialchars($tab['url']),0,500).'<br /><br /><br />';
@@ -67,14 +98,17 @@ if (isset($_GET['update'])){
 }
 
 if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny'))) {
+	//only allow printable characters and new lines
 	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
 
-	foreach ($_SESSION['alloweddevices'] as $device=>$name) {
-		file_put_contents('../data/'.$device.'/filtermode',$_POST['filtermode']);
-		file_put_contents('../data/'.$device.'/filterlist',$_POST['filterlist']);
+	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
+		$folder = $dataDir.'/'.$devicePath.'/';
+		file_put_contents($folder.'filtermode',$_POST['filtermode']);
+		file_put_contents($folder.'filterlist',$_POST['filterlist']);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
+
 ?><html>
 <head>
 	<title>Open Screen Monitor</title>
