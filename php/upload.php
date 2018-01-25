@@ -1,16 +1,5 @@
 <?php
 
-if (isset($_POST['filter']) && isset($_POST['filtergroup']) && isset($_POST['username'])) {
-	//TODO: add more logic to block websites here
-	if ($_POST['filter'] == 'https://www.msn.com/block') {
-		//to block a website sent a http 403
-		http_response_code(403);
-		//a redirect url is optional
-		die('https://google.com');
-	}
-	die('OK');
-}
-
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
 	if (isset($data['deviceID'])){
@@ -37,9 +26,8 @@ if (isset($_POST['data'])) {
 			}
 			if ($screenshot != "") {
 				file_put_contents($folder.'/screenshot.jpg',$screenshot);
-			}elseif(file_exists($folder.'/screenshot.jpg')) {
-				unlink($folder.'/screenshot.jpg');
 			}
+			elseif(file_exists($folder.'/screenshot.jpg')) {unlink($folder.'/screenshot.jpg');}
 
 			foreach (array('username','version','domain') as $field){
 				if (isset($data[$field]) && $data[$field] != "") {file_put_contents($folder.'/'.$field,$data[$field]);}
@@ -50,11 +38,20 @@ if (isset($_POST['data'])) {
 			elseif(file_exists($folder.'/tabs')) {unlink($folder.'/tabs');}
 
 
+
+
+
+
+
+
+
+
+
 			//send commands back
 			$toReturn = array();
 
 			//set the refresh time
-			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>11*1000);
 
 			if (file_exists($folder.'/openurl')) {
 				$urls = file_get_contents($folder.'/openurl');
@@ -66,6 +63,45 @@ if (isset($_POST['data'])) {
 						$toReturn['commands'][] = array('action'=>'windowsCreate','data'=>array('url'=>$url));
 				}
 				unlink($folder.'/openurl');
+			}
+
+			if (file_exists($folder.'/filterlist') && file_exists($folder.'/filtermode')){
+				$filtermode = file_get_contents($folder.'/filtermode');
+				$filterlisttime = filemtime($folder.'/filterlist');
+				$filterlist = file_get_contents($folder.'/filterlist');
+				$filterlist = explode("\n",$filterlist);
+
+				foreach ($filterlist as $i=>$value){if ($value == "") unset($filterlist[$i]);}
+
+				if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
+					//allow the new tab page
+					$filterlist[] = "^https://www.google.com/_/chrome/newtab";
+					$filterlist[] = "^https://accounts.google.com/";
+				}
+
+				if ($data['filterlisttime'] < $filterlisttime) {
+					$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermode','value'=>$filtermode);
+					$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlist','value'=>$filterlist);
+					$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlisttime','value'=>$filterlisttime);
+				}
+			}
+
+			if (file_exists($folder.'/messages')) {
+				$messages = file_get_contents($folder.'/messages');
+				$messages = explode("\n",$messages);
+				foreach ($messages as $message){
+					$message = explode("\t",$message);
+					if (count($message == 2) && $message[0] != '' && $message[1] != '') {
+						$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
+							'requireInteraction'=>true,
+							'type'=>'basic',
+							'iconUrl'=>'icon.png',
+							'title'=>$message[0],
+							'message'=>$message[1],
+						));
+					}
+				}
+				unlink($folder.'/messages');
 			}
 
 
