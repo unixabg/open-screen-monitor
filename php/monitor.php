@@ -4,7 +4,7 @@ session_start();
 //Authenticate here
 if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	session_destroy();
-	header('Location: ?'):
+	header('Location: ?');
 	die();
 }
 
@@ -12,23 +12,6 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 //set data path
 $dataDir='../../osm-data';
 
-
-//FIXME: this should be moved to the index page as a list of labs they can click on
-//which when they click on, populates the allowed devices array and redirects to this page
-
-//show all devices
-$groups = glob($dataDir.'/*', GLOB_ONLYDIR);
-if(count($groups) > 0) {
-	foreach ($groups as $_group) {
-		$_group = basename($_group);
-		$devices = glob($dataDir.'/'.$_group.'/*', GLOB_ONLYDIR);
-		foreach ($devices as $_device) {
-			$_device = basename($_device);
-			//set deviceID=>device data path
-			$_SESSION['alloweddevices'][$_device] = $_group.'/'.$_device;
-		}
-	}
-}
 
 //return all images after ctime
 if (isset($_GET['images'])) {
