@@ -408,14 +408,14 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	</div>
 	<div id="menu">
 	<?php
-	//get the filter list from first device ... not the best method but this is beta
+	//FIXME get the filter list from first device ... not the best method but this is beta
 	$device = array_keys($_SESSION['alloweddevices'])[0];
+	$_devicePath = $_SESSION['alloweddevices'][$device];
 	$filtermode = "";
 	$filterlist = "";
-
-	if (file_exists('../data/'.$device.'/filtermode') && file_exists('../data/'.$device.'/filterlist')){
-		$filtermode = file_get_contents('../data/'.$device.'/filtermode');
-		$filterlist = file_get_contents('../data/'.$device.'/filterlist');
+	if (file_exists($dataDir.'/'.$_devicePath.'/filtermode') && file_exists($dataDir.'/'.$_devicePath.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/'.$_devicePath.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/'.$_devicePath.'/filterlist');
 	}
 	?>
 	<h2>Filter Setup (Beta)</h2>
