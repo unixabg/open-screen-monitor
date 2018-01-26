@@ -169,7 +169,7 @@ if (isset($_GET['logout'])) {
 	die();
 } else {
 	//user needs to login, show them the login screen
-	?> 
+	?>
 <html>
 <head>
 	<meta name="google-signin-client_id" content="<?php echo $client_secret->web->client_id;?>">
