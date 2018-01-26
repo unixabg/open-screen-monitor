@@ -1,25 +1,17 @@
 <?php
 session_start();
-$_SESSION['name'] = 'FIXME';
 
-//Authenticate here FIXME
+//Authenticate here
+if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
+	session_destroy();
+	header('Location: ?');
+	die();
+}
+
 
 //set data path
 $dataDir='../../osm-data';
 
-//show all devices
-$groups = glob($dataDir.'/*', GLOB_ONLYDIR);
-if(count($groups) > 0) {
-	foreach ($groups as $_group) {
-		$_group = basename($_group);
-		$devices = glob($dataDir.'/'.$_group.'/*', GLOB_ONLYDIR);
-		foreach ($devices as $_device) {
-			$_device = basename($_device);
-			//set deviceID=>device data path
-			$_SESSION['alloweddevices'][$_device] = $_group.'/'.$_device;
-		}
-	}
-}
 
 //return all images after ctime
 if (isset($_GET['images'])) {
@@ -405,6 +397,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		|
 		<input type="button" id="massHide" value="Hide All" />
 		<input type="button" id="massShow" value="Show All" />
+		|
+		<a href="index.php">Change Lab</a>
 	</div>
 	<div id="menu">
 	<?php

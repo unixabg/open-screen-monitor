@@ -4,7 +4,6 @@
 var uploadURL = "https://osm/osm/upload.php";
 var monitorTimer = null;
 var data = {
-	group:"default",
 	deviceID:"",
 	username:"",
 	domain:"",
@@ -32,12 +31,16 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 		data.domain = temp[1];
 	}
 });
-//magic code goes here to get the managed storage variables and override those defined above
-//chrome.storage.managed.blablabla(function(blalballba){
-//	if (something.uploadURL != "") uploadURL = something.uploadURL;
-//	if (something.group != "") data.group = something.group;
-//});
-
+//get managed variables
+function getManagedProperties(){
+	chrome.storage.managed.get(["uploadURL"],function(manageddata){
+		if ("uploadURL" in manageddata) uploadURL = manageddata.uploadURL;
+	});
+}
+//listen for future changes
+chrome.storage.onChanged.addListener(getManagedProperties);
+//check at startup
+getManagedProperties();
 
 /////////////////
 //setup filter
