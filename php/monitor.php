@@ -1,5 +1,6 @@
 <?php
 session_start();
+$_SESSION['name'] = 'FIXME';
 
 //Authenticate here FIXME
 
@@ -71,6 +72,13 @@ if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['allo
 	$_devicePath = $_SESSION['alloweddevices'][$_POST['closetab']];
 	$_actionPath = $dataDir.'/'.$_devicePath;
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	die();
+}
+
+if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])){
+	$_devicePath = $_SESSION['alloweddevices'][$_POST['sendmessage']];
+	$_actionPath = $dataDir.'/'.$_devicePath;
+	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
 	die();
 }
 
