@@ -19,7 +19,7 @@ var data = {
 	filterblockpage:""
 }
 //get deviceID
-if ("undefined" !== typeof(chrome["enterprise"])){
+if ("undefined" !== typeof(chrome["enterprise"])) {
 	chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {data.deviceID = tempDevID;});
 } else {
 	console.log("Info: not managed device.");
@@ -42,13 +42,13 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 /////////////////
 //setup filter
 /////////////////
-function filterPage(nextPageDetails){
+function filterPage(nextPageDetails) {
 	//a filter mode must be defined as well as items on the list for the filter to activate
 	//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.frameId != 0)
-	if ( (data.filtermode == "defaultdeny" || data.filtermode == "defaultallow") && data.filterlist.length > 0 && nextPageDetails.frameId == 0){
+	if ( (data.filtermode == "defaultdeny" || data.filtermode == "defaultallow") && data.filterlist.length > 0 && nextPageDetails.frameId == 0) {
 		var foundMatch = false;
-		for (var i=0;i<data.filterlist.length;i++){
-			if ((new RegExp(data.filterlist[i])).test(nextPageDetails.url)){
+		for (var i=0;i<data.filterlist.length;i++) {
+			if ((new RegExp(data.filterlist[i])).test(nextPageDetails.url)) {
 				foundMatch = true;
 				break;
 			}
@@ -57,10 +57,10 @@ function filterPage(nextPageDetails){
 		//remove the tab if
 		// a) it is default deny and we didn"t find an exception
 		// b) it is default allow and we did find an exception
-		if ( (data.filtermode == "defaultdeny" && !foundMatch) || (data.filtermode == "defaultallow" && foundMatch) ){
+		if ( (data.filtermode == "defaultdeny" && !foundMatch) || (data.filtermode == "defaultallow" && foundMatch) ) {
 			try {
 				console.log("Blocking tab: " + nextPageDetails.url);
-				if (data.filterblockpage != ""){
+				if (data.filterblockpage != "") {
 					chrome.tabs.update(nextPageDetails.tabId,{url:data.filterblockpage});
 				} else {
 					chrome.tabs.remove(nextPageDetails.tabId);
@@ -74,10 +74,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
 ////////////////////////
 //setup the window lock
 ///////////////////////
-function lockOpenWindows(){
-	if (data.lock){
-		chrome.windows.getAll({},function(data){
-			for (var i=0;i<data.length;i=i+1){
+function lockOpenWindows() {
+	if (data.lock) {
+		chrome.windows.getAll({},function(data) {
+			for (var i=0;i<data.length;i=i+1) {
 				if (data[i]["state"] != "minimized")
 					chrome.windows.update(data[i]["id"],{state:"minimized"});
 			}
@@ -85,9 +85,9 @@ function lockOpenWindows(){
 	}
 }
 
-function openWindows(){
-	chrome.windows.getAll({},function(data){
-		for (var i=0;i<data.length;i=i+1){
+function openWindows() {
+	chrome.windows.getAll({},function(data) {
+		for (var i=0;i<data.length;i=i+1) {
 			chrome.windows.update(data[i]["id"],{state:"maximized"});
 		}
 	});
@@ -100,7 +100,7 @@ chrome.tabs.onUpdated.addListener(lockOpenWindows);
 ////////////////
 //setup monitor
 ////////////////
-function step1RefreshTabs(){
+function step1RefreshTabs() {
 	chrome.tabs.query({}, function (tabarray) {
 		data.tabs = tabarray;
 		step2CaptureImage();
@@ -109,15 +109,15 @@ function step1RefreshTabs(){
 	//just to make sure that they stay closed if locked
 	lockOpenWindows();
 }
-function step2CaptureImage(){
+function step2CaptureImage() {
 	if (data.deviceID != "") {
-		chrome.tabs.captureVisibleTab(null,null,function(dataUrl){
+		chrome.tabs.captureVisibleTab(null,null,function(dataUrl) {
 			data.screenshot = dataUrl;
 			step3PhoneHome();
 		});
 	}
 }
-function step3PhoneHome(){
+function step3PhoneHome() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.open("POST", uploadURL, true);
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -126,7 +126,7 @@ function step3PhoneHome(){
 		//see if we need to do anything
 		var response = JSON.parse(this.responseText);
 		if ("commands" in response) {
-			for (var i=0;i<response["commands"].length;i++){
+			for (var i=0;i<response["commands"].length;i++) {
 				var command = response["commands"][i];
 				try {
 					switch (command["action"]) {
