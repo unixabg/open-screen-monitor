@@ -7,7 +7,7 @@ if (isset($_POST['data'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		$group = preg_replace("/[^a-zA-Z0-9-]/","",$data['group']);
 		if ($deviceID != "" && $group != "") {
-			$deviceFolder="$group/$deviceID";
+			$deviceFolder=$dataDir.'/'.$group.'/'.$deviceID;
 			//create device folder if it doesn't exist
 			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 			//ping file for status
