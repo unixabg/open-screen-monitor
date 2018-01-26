@@ -105,7 +105,7 @@ if (isset($_GET['logout'])) {
 	if ($data !== false) {
 		$data = json_decode($data,true);
 		$devices = $data['chromeosdevices'];
-			while (isset($data['nextPageToken']) && $data['nextPageToken'] != ''){
+		while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
 			$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
 			if ($data === false) return false;
 				$data = json_decode($data,true);
