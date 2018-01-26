@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "uploadURL": {
+      "type": "string"
+    }
+  }
+}
