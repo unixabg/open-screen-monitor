@@ -33,7 +33,7 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 });
 //get managed variables
 function getManagedProperties(){
-	chrome.storage.managed.get(["uploadURL"],function(manageddata){
+	chrome.storage.managed.get(["uploadURL"],function(manageddata) {
 		if ("uploadURL" in manageddata) uploadURL = manageddata.uploadURL;
 	});
 }
