@@ -73,13 +73,15 @@ if (isset($_POST['data'])) {
 				$toReturn['commands'][] = array('action'=>'unlock');
 				unlink($deviceFolder.'/unlock');
 			}
-			if (file_exists($deviceFolder.'/filterlist') && file_exists($deviceFolder.'/filtermode')){
+			if (file_exists($deviceFolder.'/filterlist') && file_exists($deviceFolder.'/filtermode')) {
 				$filtermode = file_get_contents($deviceFolder.'/filtermode');
 				$filterlisttime = filemtime($deviceFolder.'/filterlist');
 				$filterlist = file_get_contents($deviceFolder.'/filterlist');
 				$filterlist = explode("\n",$filterlist);
 
-				foreach ($filterlist as $i=>$value){if ($value == "") unset($filterlist[$i]);}
+				foreach ($filterlist as $i=>$value) {
+					if ($value == "") unset($filterlist[$i]);
+				}
 
 				if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
 					//always allow the new tab page so they can atleast open the browser
@@ -97,7 +99,7 @@ if (isset($_POST['data'])) {
 			if (file_exists($deviceFolder.'/messages')) {
 				$messages = file_get_contents($deviceFolder.'/messages');
 				$messages = explode("\n",$messages);
-				foreach ($messages as $message){
+				foreach ($messages as $message) {
 					$message = explode("\t",$message);
 					if (count($message == 2) && $message[0] != '' && $message[1] != '') {
 						$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
