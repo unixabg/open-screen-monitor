@@ -1,11 +1,20 @@
 <?php
 session_start();
-$_SESSION['name'] = 'FIXME';
 
-//Authenticate here FIXME
+//Authenticate here
+if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
+	session_destroy();
+	header('Location: ?'):
+	die();
+}
+
 
 //set data path
 $dataDir='../../osm-data';
+
+
+//FIXME: this should be moved to the index page as a list of labs they can click on
+//which when they click on, populates the allowed devices array and redirects to this page
 
 //show all devices
 $groups = glob($dataDir.'/*', GLOB_ONLYDIR);
@@ -405,6 +414,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		|
 		<input type="button" id="massHide" value="Hide All" />
 		<input type="button" id="massShow" value="Show All" />
+		|
+		<a href="index.php">Change Lab</a>
 	</div>
 	<div id="menu">
 	<?php
