@@ -3,11 +3,10 @@
 $dataDir='../../osm-data';
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
-	if (isset($data['deviceID']) && isset($data['group'])) {
+	if (isset($data['deviceID'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
-		$group = preg_replace("/[^a-zA-Z0-9-]/","",$data['group']);
-		if ($deviceID != "" && $group != "") {
-			$deviceFolder=$dataDir.'/'.$group.'/'.$deviceID;
+		if ($deviceID != "") {
+			$deviceFolder=$dataDir.'/'.$deviceID;
 			//create device folder if it doesn't exist
 			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 			//ping file for status
