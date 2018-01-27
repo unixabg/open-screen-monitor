@@ -20,7 +20,7 @@ $permissions = array();
 if (file_exists($permissions_file)) {
 	$_permissions = file_get_contents($permissions_file);
 	$_permissions = explode("\n",$_permissions);
-	foreach($_permissions as $permission) {
+	foreach ($_permissions as $permission) {
 		$permission = explode("\t",$permission);
 		if (count($permission) == 2) {
 			$permissions[$permission[0]][] = $permission[1];
