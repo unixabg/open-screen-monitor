@@ -206,6 +206,7 @@ if (isset($_GET['logout'])) {
 				'longtitle': true,
 				'theme': 'dark',
 				'onsuccess': onSuccess,
+				'ux_mode':'redirect',
 			});
 		};
 	</script>
