@@ -86,7 +86,7 @@ if (isset($_GET['update'])) {
 			$data[$device]['tabs'] = "";
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
-				foreach($temp as $tab) {
+				foreach ($temp as $tab) {
 					$data[$device]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$device."','".$tab['id']."');return false;\">X</a> ".htmlspecialchars($tab['title']).'<br /><br />'.substr(htmlspecialchars($tab['url']),0,500).'<br /><br /><br />';
 				}
 			}

@@ -20,7 +20,7 @@ $permissions = array();
 if (file_exists($permissions_file)) {
 	$_permissions = file_get_contents($permissions_file);
 	$_permissions = explode("\n",$_permissions);
-	foreach($_permissions as $permission){
+	foreach ($_permissions as $permission) {
 		$permission = explode("\t",$permission);
 		if (count($permission) == 2) {
 			$permissions[$permission[0]][] = $permission[1];
@@ -28,7 +28,7 @@ if (file_exists($permissions_file)) {
 	}
 }
 $labs = array();
-if (file_exists($devices_file)){
+if (file_exists($devices_file)) {
 	$devices = file_get_contents($devices_file);
 	$devices = explode("\n",$devices);
 	foreach ($devices as $device) {
@@ -41,15 +41,15 @@ if (file_exists($devices_file)){
 }
 
 
-function checkToken($token){
+function checkToken($token) {
 	global $client_secret;
 
 	$data = @file_get_contents("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=".urlencode($token->id_token));
 	if ( $http_response_header[0] == "HTTP/1.0 200 OK") {
 		$data = json_decode($data);
 
-		if ($data->aud == $client_secret->web->client_id && $data->exp > time() && $data->iss == "accounts.google.com"){
-			if (count($permissions) > 0 && !isset($permissions[$data->email])){
+		if ($data->aud == $client_secret->web->client_id && $data->exp > time() && $data->iss == "accounts.google.com") {
+			if (count($permissions) > 0 && !isset($permissions[$data->email])) {
 				die("<h1>Credentials valid. No Permissions</h1>");
 			}
 
@@ -82,7 +82,7 @@ if (isset($_GET['logout'])) {
 	header('Location: ?');
 	die();
 } elseif (isset($_GET['lab']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
-	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || in_array('admin',$permissions[$_SESSION['email']]))){
+	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || in_array('admin',$permissions[$_SESSION['email']]))) {
 		//they have permission to this lab
 		$_SESSION['alloweddevices'] = array();
 		//prefix data dir to each device
@@ -113,7 +113,7 @@ if (isset($_GET['logout'])) {
 		}
 		$toSave = "";
 		foreach ($devices as $device) {
-			if ($device['status'] == 'ACTIVE'){
+			if ($device['status'] == 'ACTIVE') {
 				if ($toSave != '') $toSave .= "\n";
 				$toSave .= $device['deviceId']."\t".$device['orgUnitPath']."\t".$device['annotatedUser']."\t".$device['annotatedLocation']."\t".$device['annotatedAssetId'];
 			}
@@ -146,12 +146,12 @@ if (isset($_GET['logout'])) {
 		$myPermissions = $permissions[$_SESSION['email']];
 		if (in_array('admin',$myPermissions)) {
 			//show all devices
-			foreach (array_keys($labs) as $lab){
+			foreach (array_keys($labs) as $lab) {
 				echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
 			}
 		} else {
 			//show just what they can access
-			foreach ($myPermissions as $permission){
+			foreach ($myPermissions as $permission) {
 				$directPermissions .= "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
 			}
 		}
