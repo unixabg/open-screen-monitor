@@ -38,10 +38,12 @@ if (file_exists($devices_file)) {
 	}
 	ksort($labs);
 }
-
+$myPermissions = array();
 
 function checkToken($token) {
 	global $client_secret;
+	global $permissions;
+	global $myPermissions;
 
 	$data = @file_get_contents("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=".urlencode($token->id_token));
 	if ( $http_response_header[0] == "HTTP/1.0 200 OK") {
@@ -60,6 +62,8 @@ function checkToken($token) {
 			//this is needed on the monitor page to check if they are authenticated
 			//we have too many requests there to constantly hit googles servers (they would blacklist us)
 			$_SESSION['validuntil'] = $data->exp;
+
+			$myPermissions = isset($permissions[$_SESSION['email']]) ? $permissions[$_SESSION['email']] : array();
 			return true;
 		}
 	}
@@ -107,6 +111,41 @@ if (isset($_GET['logout'])) {
 		header('Location: ?');
 	}
 	die();
+} elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && in_array('admin',$myPermissions)){
+	$changesMade = false;
+	if (isset($_GET['addEmail']) && isset($_GET['addLab'])){
+		$permissions[$_GET['addEmail']][] = $_GET['addLab'];
+		$changesMade = true;
+	}
+
+	if (isset($_GET['delEmail']) && isset($_GET['delLab'])){
+		foreach ($permissions as $email=>$_labs){
+			if ($email == $_GET['delEmail']){
+				foreach ($_labs as $i=>$lab){
+					if ($lab == $_GET['delLab']){
+						unset($permissions[$email][$i]);
+						$changesMade = true;
+					}
+				}
+			}
+		}
+	}
+
+	//save changes to file
+	if ($changesMade){
+		$data = "";
+		foreach ($permissions as $email=>$_labs){
+			$_labs = array_unique($_labs);
+			foreach ($_labs as $lab){
+				if ($data != '') $data .= "\n";
+				$data .= $email."\t".$lab;
+			}
+		}
+
+		file_put_contents($permissions_file,$data);
+		header('Location: ?permissions');
+		die();
+	}
 }
 
 //begin html pages
@@ -156,6 +195,21 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		} else {
 			echo "<h1>No access to chrome devices</h1>";
 		}
+	} elseif (isset($_GET['permissions']) && in_array('admin',$myPermissions)) {
+		echo "<h2>Permissions</h2>";
+		echo "<table><thead><tr><th>Email</th><th>Lab</th><th>Delete</th></tr></thead><tbody>";
+		foreach($permissions as $email=>$_labs) {
+			foreach($_labs as $lab){
+				echo "<tr><td>".htmlentities($email)."</td><td>".htmlentities($lab)."<td><td><a href=\"?permissions&delEmail=".htmlentities($email)."&delLab=".htmlentities($lab)."\">X</a></td></tr>";
+			}
+		}
+		echo "</tbody></table>";
+		echo "<form method=\"get\"><input type=\"hidden\" name=\"permissions\" />Add User<br />Email: <input name=\"addEmail\" /><br />Lab: <select name=\"addLab\">";
+		foreach($labs as $lab=>$devices){
+			echo "<option value=\"".htmlentities($lab)."\">".htmlentities($lab)."</option>";
+		}
+		echo "</select><br /><input type=\"submit\" /></form>";
+
 	} else {
 		//the user is at the home (show labs) screen
 		?>
@@ -164,7 +218,6 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			Here are the labs you have access to:
 			<ul style="text-align:left;">
 			<?php
-			$myPermissions = $permissions[$_SESSION['email']];
 			if (in_array('admin',$myPermissions)) {
 				//show all devices
 				foreach (array_keys($labs) as $lab) {
@@ -173,7 +226,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			} else {
 				//show just what they can access
 				foreach ($myPermissions as $permission) {
-					$directPermissions .= "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+					echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
 				}
 			}
 			?>
@@ -183,7 +236,8 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		<div>
 			<h2>Admin Tools</h2>
 			<ul style="text-align:left;">
-				<li><a href="?syncdevices" target="_blank">Sync Devices</a></li>
+				<li><a href="?syncdevices" >Sync Devices</a></li>
+				<li><a href="?permissions">Permissions</a></li>
 			</ul>
 		</div>
 		<?php
