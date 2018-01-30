@@ -33,7 +33,7 @@ if (file_exists($devices_file)) {
 	foreach ($devices as $device) {
 		$device = explode("\t",$device);
 		if (count($device) == 5) {
-			$labs[$device[1]][] = $device[0];
+			$labs[$device[1]][$device[0]] = $device;
 		}
 	}
 	ksort($labs);
@@ -102,8 +102,15 @@ if (isset($_GET['logout'])) {
 		//they have permission to this lab
 		$_SESSION['alloweddevices'] = array();
 		//prefix data dir to each device
-		foreach ($labs[$_GET['lab']] as $deviceID) {
-			$_SESSION['alloweddevices'][$deviceID] = $deviceID;
+		foreach ($labs[$_GET['lab']] as $deviceID=>$deviceInfo) {
+			unset($deviceInfo[0]);
+			unset($deviceInfo[1]);
+			foreach($deviceInfo as $i => $value) {
+				if ($value == "") unset($deviceInfo[$i]);
+			}
+			$description = implode(" - ",$deviceInfo);
+			$_SESSION['lab'] = $_GET['lab'];
+			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
 		}
 		header('Location: monitor.php');
 	} else {
@@ -183,7 +190,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			foreach ($devices as $device) {
 				if ($device['status'] == 'ACTIVE') {
 					if ($toSave != '') $toSave .= "\n";
-					$toSave .= $device['deviceId']."\t".$device['orgUnitPath']."\t".$device['annotatedUser']."\t".$device['annotatedLocation']."\t".$device['annotatedAssetId'];
+					$toSave .= $device['deviceId']."\t"
+						.$device['orgUnitPath']."\t"
+						.trim($device['annotatedUser'])."\t"
+						.trim($device['annotatedLocation'])."\t"
+						.trim($device['annotatedAssetId']);
 				}
 			}
 			file_put_contents($devices_file,$toSave);
