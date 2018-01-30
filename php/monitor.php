@@ -4,7 +4,7 @@ session_start();
 //Authenticate here
 if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	session_destroy();
-	header('Location: ?');
+	header('Location: index.php?');
 	die();
 }
 
@@ -18,13 +18,13 @@ if (isset($_GET['images'])) {
 	ini_set('memory_limit','256M');
 	$toReturn = array();
 
-	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
-		$folder = $dataDir.'/'.$devicePath.'/';
-		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
-
+	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
+		$file = $dataDir.'/'.$deviceID.'/screenshot.jpg';
 		// Assure who needs access here FIXME
-		if (is_readable($folder.'screenshot.jpg') && filemtime($folder.'screenshot.jpg') >= time() - 10 ) {
-			$toReturn[$device] = base64_encode(file_get_contents($folder.'screenshot.jpg'));
+		if (is_readable($file) && filemtime($file) >= time() - 30 ) {
+			$toReturn[$deviceID] = base64_encode(file_get_contents($file));
+		} else {
+			$toReturn[$deviceID] = '';
 		}
 	}
 
@@ -35,59 +35,51 @@ if (isset($_GET['images'])) {
 	die(json_encode($toReturn));
 }
 
-// Actions are passed with the device id in the $_POST[] to get the full path we
-// reference that device id for the key in the $_SESSION['alloweddevices] for the
-// correct data path to apply the action for a given device.
-// Make sure lock key is in alloweddevices array
+// Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-	$_devicePath = $_SESSION['alloweddevices'][$_POST['lock']];
-	$_actionPath = $dataDir.'/'.$_devicePath;
+	$_actionPath = $dataDir.'/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-	$_devicePath = $_SESSION['alloweddevices'][$_POST['unlock']];
-	$_actionPath = $dataDir.'/'.$_devicePath;
+	$_actionPath = $dataDir.'/'.$_POST['unlock'];
 	touch($_actionPath.'/unlock');
 	die();
 }
 
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-	$_devicePath = $_SESSION['alloweddevices'][$_POST['openurl']];
-	$_actionPath = $dataDir.'/'.$_devicePath;
+	$_actionPath = $dataDir.'/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
 	die();
 }
 
 if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-	$_devicePath = $_SESSION['alloweddevices'][$_POST['closetab']];
-	$_actionPath = $dataDir.'/'.$_devicePath;
+	$_actionPath = $dataDir.'/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
-	$_devicePath = $_SESSION['alloweddevices'][$_POST['sendmessage']];
-	$_actionPath = $dataDir.'/'.$_devicePath;
+	$_actionPath = $dataDir.'/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_GET['update'])) {
 	$data = array();
-	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
-		$folder = $dataDir.'/'.$devicePath.'/';
-		$data[$device] = array('name'=>$device,'username'=>'','tabs'=>array());
+	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
+		$folder = $dataDir.'/'.$deviceID.'/';
+		$data[$deviceID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
 
 		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
-			$data[$device]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
-			$data[$device]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
-			$data[$device]['tabs'] = "";
+			$data[$deviceID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
+			$data[$deviceID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
+			$data[$deviceID]['tabs'] = "";
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach ($temp as $tab) {
-					$data[$device]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$device."','".$tab['id']."');return false;\">X</a> ".htmlspecialchars($tab['title']).'<br /><br />'.substr(htmlspecialchars($tab['url']),0,500).'<br /><br /><br />';
+					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\">X</a> ".htmlspecialchars($tab['title']).'<br /><br />'.substr(htmlspecialchars($tab['url']),0,500).'<br /><br /><br />';
 				}
 			}
 		}
@@ -101,10 +93,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	//only allow printable characters and new lines
 	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
 
-	foreach ($_SESSION['alloweddevices'] as $device=>$devicePath) {
-		$folder = $dataDir.'/'.$devicePath.'/';
-		file_put_contents($folder.'filtermode',$_POST['filtermode']);
-		file_put_contents($folder.'filterlist',$_POST['filterlist']);
+	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
+		$_devicePath = $dataDir.'/'.$deviceID.'/';
+		file_put_contents($_devicePath.'filtermode',$_POST['filtermode']);
+		file_put_contents($_devicePath.'filterlist',$_POST['filterlist']);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
@@ -369,7 +361,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		.fullscreen img, .fullscreen div.info {width: 100% !important;height: 95% !important;}
 
 		html, body, div, h1 { margin: 0; padding: 0; border: 0 none; }
-		#topmenu {clear:both;}
+		#topmenu {clear:both;padding-bottom: 5px;border-bottom: 1px solid black;}
 		#menu {width: 350px; float: left; border-right: 1px solid black;display:none;word-wrap:break-word;overflow-y:scroll;height: calc(100% - 40px);}
 
 		#inactivedevs {clear:both;padding-top:10px;border-top: 1px solid black;}
@@ -398,18 +390,17 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<input type="button" id="massHide" value="Hide All" />
 		<input type="button" id="massShow" value="Show All" />
 		|
-		<a href="index.php">Change Lab</a>
+		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab']); ?>
 	</div>
 	<div id="menu">
 	<?php
 	//FIXME get the filter list from first device ... not the best method but this is beta
-	$device = array_keys($_SESSION['alloweddevices'])[0];
-	$_devicePath = $_SESSION['alloweddevices'][$device];
+	$deviceID = array_keys($_SESSION['alloweddevices'])[0];
 	$filtermode = "";
 	$filterlist = "";
-	if (file_exists($dataDir.'/'.$_devicePath.'/filtermode') && file_exists($dataDir.'/'.$_devicePath.'/filterlist')){
-		$filtermode = file_get_contents($dataDir.'/'.$_devicePath.'/filtermode');
-		$filterlist = file_get_contents($dataDir.'/'.$_devicePath.'/filterlist');
+	if (file_exists($dataDir.'/'.$deviceID.'/filtermode') && file_exists($dataDir.'/'.$deviceID.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/'.$deviceID.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/'.$deviceID.'/filterlist');
 	}
 	?>
 	<h2>Filter Setup (Beta)</h2>
