@@ -175,6 +175,10 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			'method'=>'GET',
 			'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
 		)));
+
+		//links below are a reference for request and response, which is used to populate the devices.tsv
+		//https://developers.google.com/admin-sdk/directory/v1/reference/chromeosdevices/get
+		//https://developers.google.com/admin-sdk/directory/v1/reference/chromeosdevices#resource
 		$url = 'https://www.googleapis.com/admin/directory/v1/customer/my_customer/devices/chromeos?projection=full&maxResults=100';
 		$data = file_get_contents($url, false, $context);
 		if ($data !== false) {
