@@ -31,4 +31,22 @@
    - Here is your client secret
   - Now from the OSMClient edit button you will be able to choose DOWNLOAD JSON
 
+### Other notes (ymmv)
+- Self Signed Certificate
+ - You can install your self signed certificate in the Google Admin Console
+   - Device management > Networks > Certificates
+   - Choose the OU you wish to modify
+   - Upload your web server Self Signed Certificate
+     - (Enable) Use this certificate as an HTTPS certificate authority
+
+ - During testing if you set the subjectAltName="DNS:osm.xxx,DNS:osm" for your
+ certificate creation there were no extra settings required. Otherwise the next
+ setting seemed to make Chrome not complain about the certificate
+   - Device management > Chrome > User Settings
+    - Choose the OU you wish to modify
+    - Scroll down to Security section
+    - Locate the Local Trust Anchors Certificates
+    - Local Anchors Common Name Fallback
+     - Allow
+
 FIXME
