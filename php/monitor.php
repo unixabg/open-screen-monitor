@@ -406,10 +406,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<h2>Filter Setup (Beta)</h2>
 	<form id="filter" method="post" target="_blank" action="?filter">
 		Mode:
-		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Block these sites
-		<br /><input type="radio" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />Allow these sites
+		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Picket Fence (block selected sites)
+		<br /><input type="radio" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />Walled Garden (allow selected sites)
 
-		Sites (one per line):
+		<br />Sites (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 		<br /><input type="submit">
 	</form>
