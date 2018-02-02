@@ -5,7 +5,7 @@ session_start();
 //it should be downloaded from the api developers console after it is setup
 //see https://developers.google.com/identity/sign-in/web/sign-in
 $dataDir='../../osm-data';
-$client_secret_file = '../../client_secret.json';
+$client_secret_file = $dataDir.'/client_secret.json';
 $devices_file = $dataDir.'/devices.tsv';
 $permissions_file = $dataDir.'/permissions.tsv';
 

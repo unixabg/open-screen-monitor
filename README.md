@@ -1,4 +1,4 @@
-# Open Screen Monitor (open-screen-monitor)
+# Open Screen Monitor (osm)
 ## An open-source screen monitoring tool for Chrome.
 - Initial concepts and work created by Andrew Coursen AndrewCoursen@gmail.com.
 - Code contributed to the open source community by Andrew Coursen under the GNU General Public License v3.0.
@@ -18,6 +18,9 @@
 - Configure the chrome-extension for your deployment (FIXME)
 - Install the server side PHP
 - Make the data directory **Attention - DO NOT make this folder a public access folder from the web!**
+ - The defaults assume that you overload your dns for https://osm
+   - https://osm/osm is the default location for the osm php files
+   - ../../osm-data is the default data location relative to the default osm php files
 - Configure OAuth access to your Organizational Unit of your domain
  - Go to  https://console.developers.google.com/
  - Create a new API Project with name OpenScreenMonitor
@@ -29,7 +32,8 @@
   - After you choose Create you should get an OAuth Client screen with the following information:
    - Here is your client ID
    - Here is your client secret
-  - Now from the OSMClient edit button you will be able to choose DOWNLOAD JSON
+  - Now from the OSMClient edit button you will be able to choose DOWNLOAD JSON to the osm-data folder
+    - **Please be mindful** to apply appropiate security and permissions to the client_secret.json file
 
 ### Other notes (ymmv)
 - Self Signed Certificate
