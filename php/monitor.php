@@ -127,7 +127,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				return false;
 			});
 
-			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\">Lock</a> <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\">Unlock</a> <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\">Open Url</a> <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\">Send Message</a> <h2>Tabs</h2><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\">Lock</a> <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\">Unlock</a> <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\">Open Url</a> <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\">Send Message</a> <h5>Tabs</h5><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
@@ -211,7 +211,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 							$('#div_'+dev+' div.tabs').html(data[dev].tabs);
 							$('#div_'+dev).data('name',data[dev].name);
 
-							URLdata = URLdata + "<hr /><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br /><br />'+$('#div_'+dev+' div.info').html();
+							URLdata = URLdata + "<hr /><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br />'+$('#div_'+dev+' div.info').html();
 						}
 					} else if (thisdiv.first().hasClass('hidden')){
 						thisdiv.html('*'+data[dev].username+'*<br />('+data[dev].name+')');
@@ -403,7 +403,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$filtermode = "disabled";
 	}
 	?>
-	<h2>Filter Setup (Beta)</h2>
+	<h3>Lab Filter Setup (Beta)</h3>
+	<hr />
 	<form id="filter" method="post" target="_blank" action="?filter">
 		Mode:
 		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Picket Fence (block selected sites)
@@ -414,7 +415,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 		<br /><input type="submit" class="w3-button w3-white w3-border w3-border-blue w3-round-large">
 	</form>
-	<h2>URLs</h2>
+	<br /><h5>Device URLs - Data</h5>
 	<div id="urls"></div>
 	</div>
 	<div id="devicesdiv">
