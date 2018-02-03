@@ -353,9 +353,6 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		.devices {display: block;float: left; width: 200px; height: 200px;background-color: black;}
 		.devices img {width: 100%;height: 100%;}
 
-		.info a {float: left; display: block;width: 100px;margin:3px;background-color:grey;text-align:center;}
-		.info h2 {clear:both;}
-
 		#fullscreenBG {display:none;position:absolute;top:0px;left:0px;width:100%;height:100%;background-color:black;color:white;font-size:2em;cursor:pointer;text-align:left;}
 		.fullscreen {width: 90% !important;height: 90% !important;z-index: 100;position:absolute;left: 5%;top: 5%;margin: 0px !important;border: none !important;}
 		.fullscreen h1 {font-size: 2em !important;5%}
