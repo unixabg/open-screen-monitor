@@ -159,6 +159,7 @@ if (isset($_GET['logout'])) {
 ?>
 <html>
 <head>
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
@@ -223,7 +224,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		foreach($labs as $lab=>$devices){
 			echo "<option value=\"".htmlentities($lab)."\">".htmlentities($lab)."</option>";
 		}
-		echo "</select><br /><input type=\"submit\" /></form>";
+		echo "</select><br /><input type=\"submit\" class=\"w3-button w3-white w3-border w3-border-blue w3-round-large\" /></form>";
 
 	} else {
 		//the user is at the home (show labs) screen

@@ -105,6 +105,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 <head>
 	<title>Open Screen Monitor</title>
 	<meta http-equiv="refresh" content="3600">
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<script type="text/javascript">
 		var imgcss = {'width':400,'height':300,'fontsize':14,'multiplier':1};
@@ -376,19 +377,19 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 <div id="fullscreenBG"><div style="padding: 5px;">X</div></div>
 <div id="wrapper">
 	<div id="topmenu">
-		<input type="button" id="decrease_size" value="    -    " />
-		<input type="button" id="increase_size" value="    +    " />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="decrease_size" value="    -    " />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="increase_size" value="    +    " />
 		|
-		<input type="button" id="hidemenu"  style="display: none;" value="Hide Side Menu" />
-		<input type="button" id="showmenu" value="Show Side Menu" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="hidemenu"  style="display: none;" value="Hide Side Menu" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="showmenu" value="Show Side Menu" />
 		|
-		<input type="button" id="massLock" value="Lock All" />
-		<input type="button" id="massUnlock" value="Unlock All" />
-		<input type="button" id="massOpenurl" value="Open Url on All" />
-		<input type="button" id="massSendmessage" value="Send Message to All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massLock" value="Lock All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massUnlock" value="Unlock All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massOpenurl" value="Open Url on All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massSendmessage" value="Send Message to All" />
 		|
-		<input type="button" id="massHide" value="Hide All" />
-		<input type="button" id="massShow" value="Show All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massHide" value="Hide All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massShow" value="Show All" />
 		|
 		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab']); ?>
 	</div>
