@@ -91,7 +91,7 @@ if (isset($_GET['update'])) {
 
 if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny'))) {
 	//only allow printable characters and new lines
-	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
+	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
 		$_devicePath = $dataDir.'/'.$deviceID.'/';
