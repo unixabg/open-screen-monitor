@@ -412,7 +412,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 
 		<br />Sites (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
-		<br /><input type="submit">
+		<br /><input type="submit" class="w3-button w3-white w3-border w3-border-blue w3-round-large">
 	</form>
 	<h2>URLs</h2>
 	<div id="urls"></div>
