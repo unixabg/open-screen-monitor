@@ -89,7 +89,7 @@ if (isset($_GET['update'])) {
 	die(json_encode($data));
 }
 
-if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny'))) {
+if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny','disabled'))) {
 	//only allow printable characters and new lines
 	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
 
@@ -402,6 +402,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	if (file_exists($dataDir.'/'.$deviceID.'/filtermode') && file_exists($dataDir.'/'.$deviceID.'/filterlist')){
 		$filtermode = file_get_contents($dataDir.'/'.$deviceID.'/filtermode');
 		$filterlist = file_get_contents($dataDir.'/'.$deviceID.'/filterlist');
+	} else {
+		$filtermode = "disabled";
 	}
 	?>
 	<h2>Filter Setup (Beta)</h2>
@@ -409,6 +411,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		Mode:
 		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Picket Fence (block selected sites)
 		<br /><input type="radio" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />Walled Garden (allow selected sites)
+		<br /><input type="radio" name="filtermode" value="disabled" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />Disable Filter (no filter actions applied)
 
 		<br />Sites (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
