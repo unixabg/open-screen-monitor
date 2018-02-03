@@ -415,8 +415,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 		<br /><input type="submit" class="w3-button w3-white w3-border w3-border-blue w3-round-large">
 	</form>
+	<!-- Remarking out the next two line, but leaving for debugging purposes
 	<br /><h5>Device URLs - Data</h5>
 	<div id="urls"></div>
+	-->
 	</div>
 	<div id="devicesdiv">
 		<div id="activedevs"></div>
