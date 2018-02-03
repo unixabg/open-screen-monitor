@@ -37,7 +37,8 @@
 
 ### Other notes (ymmv)
 - Self Signed Certificate
- - You can install your self signed certificate in the Google Admin Console
+ - **Note: Officially Signed Certificates are recommended for safety and security**
+ - If you choose to use a self signed certificate you can install it in the Google Admin Console
    - Device management > Networks > Certificates
    - Choose the OU you wish to modify
    - Upload your web server Self Signed Certificate
