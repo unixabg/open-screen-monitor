@@ -403,7 +403,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$filtermode = "disabled";
 	}
 	?>
-	<h3>Lab Filter Setup (Beta)</h3>
+	<h3>Lab Filter (Beta)</h3>
 	<hr />
 	<form id="filter" method="post" target="_blank" action="?filter">
 		Mode:
