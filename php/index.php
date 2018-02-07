@@ -124,7 +124,11 @@ if (isset($_GET['logout'])) {
 		$emails = explode(";",$_POST['emails']);
 		foreach($emails as $email){
 			if (isset($_POST['addNotErase'])){
-				$permissions[$email] = array_unique(array_merge($permissions[$email], $_POST['labs']));
+				if (isset($permissions[$email])){
+					$permissions[$email] = array_unique(array_merge($permissions[$email], $_POST['labs']));
+				} else {
+					$permissions[$email] = $_POST['labs'];
+				}
 			} else {
 				$permissions[$email] = $_POST['labs'];
 			}
