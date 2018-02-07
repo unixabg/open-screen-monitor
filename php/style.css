@@ -1,0 +1,9 @@
+/* Overload for hover when not already */
+a:hover {
+  background-color:#e0ebeb;
+}
+
+/* Add some things for FontAwsome */
+.svg-inline--fa {
+  color:#2196F3;
+}

@@ -108,6 +108,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<title>Open Screen Monitor</title>
 	<meta http-equiv="refresh" content="3600">
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="./style.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 	<script type="text/javascript">
