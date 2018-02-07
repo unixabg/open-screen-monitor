@@ -408,6 +408,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	</form>
 	<br /><h5>Device URLs - Data</h5>
 	<div id="urls"></div>
+	<br />
 	</div>
 	<div id="devicesdiv">
 		<div id="activedevs"></div>
