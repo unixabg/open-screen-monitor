@@ -7,3 +7,12 @@ a:hover {
 .svg-inline--fa {
   color: #2196F3;
 }
+
+/* Custom tags */
+/* Moden horizontal line */
+.hline {
+  width: 100%;
+  height: 1px;
+  background:#d1e0e0;
+  overflow: hidden;
+}
