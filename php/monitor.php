@@ -79,7 +79,7 @@ if (isset($_GET['update'])) {
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach ($temp as $tab) {
-					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\">(Close)</a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
+					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\"></i> (Close)</a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
 				}
 			}
 		}
