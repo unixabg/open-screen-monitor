@@ -120,21 +120,22 @@ if (isset($_GET['logout'])) {
 	die();
 } elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && in_array('admin',$myPermissions)){
 	$changesMade = false;
-	if (isset($_GET['addEmail']) && isset($_GET['addLab'])){
-		$permissions[$_GET['addEmail']][] = $_GET['addLab'];
-		$changesMade = true;
+	if (isset($_POST['emails']) && isset($_POST['labs']) && is_array($_POST['labs'])){
+		$emails = explode(";",$_POST['emails']);
+		foreach($emails as $email){
+			if (isset($_POST['addNotErase'])){
+				$permissions[$email] = array_unique(array_merge($permissions[$email], $_POST['labs']));
+			} else {
+				$permissions[$email] = $_POST['labs'];
+			}
+			$changesMade = true;
+		}
 	}
 
-	if (isset($_GET['delEmail']) && isset($_GET['delLab'])){
-		foreach ($permissions as $email=>$_labs){
-			if ($email == $_GET['delEmail']){
-				foreach ($_labs as $i=>$lab){
-					if ($lab == $_GET['delLab']){
-						unset($permissions[$email][$i]);
-						$changesMade = true;
-					}
-				}
-			}
+	if (isset($_GET['delEmail'])){
+		if (isset($permissions[$_GET['delEmail']])){
+			unset($permissions[$_GET['delEmail']]);
+			$changesMade = true;
 		}
 	}
 
@@ -214,19 +215,32 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		}
 	} elseif (isset($_GET['permissions']) && in_array('admin',$myPermissions)) {
 		echo "<h2>Permissions</h2>";
-		echo "<table><thead><tr><th>Email</th><th>Lab</th><th>Delete</th></tr></thead><tbody>";
-		foreach($permissions as $email=>$_labs) {
-			foreach($_labs as $lab){
-				echo "<tr><td>".htmlentities($email)."</td><td>".htmlentities($lab)."<td><td><a href=\"?permissions&delEmail=".htmlentities($email)."&delLab=".htmlentities($lab)."\">X</a></td></tr>";
-			}
-		}
-		echo "</tbody></table>";
-		echo "<form method=\"get\"><input type=\"hidden\" name=\"permissions\" />Add User<br />Email: <input name=\"addEmail\" /><br />Lab: <select name=\"addLab\">";
-		foreach($labs as $lab=>$devices){
-			echo "<option value=\"".htmlentities($lab)."\">".htmlentities($lab)."</option>";
-		}
-		echo "</select><br /><input type=\"submit\" class=\"w3-button w3-white w3-border w3-border-blue w3-round-large\" /></form>";
+		if (isset($_GET['email'])){
+			echo "<form method=\"post\">Username: <input name=\"emails\" value=\"".htmlentities($_GET['email'])."\"/>";
+			echo "<br />* - Seperate multiple emails by semicolon";
+			echo "<br /><input type=\"checkbox\" name=\"addNotErase\" value=\"1\" /> Add instead of replace following permissions";
+			echo "<br /><br /><div style=\"border: 1px solid black;padding: 5px;margin:5px;column-count: 3; column-fill: auto;\">";
 
+			if (!isset($permissions[$_GET['email']]))$permissions[$_GET['email']] = array();
+			echo "<input type=\"checkbox\" name=\"labs[]\" value=\"admin\" ".(in_array('admin',$permissions[$_GET['email']]) ? 'checked="checked"':'')." /> Admin";
+			foreach($labs as $lab=>$devices) {
+				echo "<br /><input type=\"checkbox\" name=\"labs[]\" value=\"".htmlentities($lab)."\" ".(in_array($lab,$permissions[$_GET['email']]) ? 'checked="checked"':'')." /> ".htmlentities($lab);
+			}
+			echo "</div>";
+			echo "<br /><input type=\"submit\" /></form>";
+		} else {
+			echo "<a href=\"?permissions&email\">Add Permissions</a><br /><br />";
+			echo "<table border=\"1\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
+			foreach($permissions as $email=>$_labs) {
+				foreach($_labs as $i=>$value){$_labs[$i] = htmlentities($value);}
+				echo "<tr>";
+				echo "<td>".htmlentities($email)."</td>";
+				echo "<td>".implode("<br />",$_labs)."</td>";
+				echo "<td><a href=\"?permissions&email=".htmlentities($email)."\">(Edit)</a> <a href=\"?permissions&delEmail=".htmlentities($email)."\">(Delete)</a></td>";
+				echo "</tr>";
+			}
+			echo "</tbody></table>";
+		}
 	} else {
 		//the user is at the home (show labs) screen
 		?>
