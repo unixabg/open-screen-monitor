@@ -247,16 +247,13 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			$('#increase_size').click(function(){imgcss.multiplier = imgcss.multiplier + .05;refreshZoom();});
 			$('#decrease_size').click(function(){imgcss.multiplier = imgcss.multiplier - .05;refreshZoom();});
 			$('#select_all').click(function(){
-				$('.devicecheckbox:not(:checked)').click();
 				$('#hidemenu').click();
 			});
 			$('#select_loggedin').click(function(){
-				$('.devicecheckbox:not(:checked):not([data-name*=\'Unknown User\'])').click();
 				$('#hidemenu').click();
 				if (imgcss.multiplier > 1) imgcss.multiplier = 1;
 				refreshZoom();
 			});
-			$('#select_none').click(function(){$('.devicecheckbox:checked').click();$('#showmenu').click();});
 
 			$('#massLock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{lock:id});});});
 			$('#massUnlock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{unlock:id});});});
@@ -280,16 +277,6 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				updateMeta();
 			});
 			$('#massShow').click(function(){$('div.hidden').remove();updateMeta();});
-
-			//checkboxes
-			$('.devicecheckbox').click(function(){
-				var input = $(this);
-				if (input.prop('checked')) {
-					enableDevice(this.value, input.attr('data-name'));
-				} else {
-					disableDevice(this.value);
-				}
-			});
 
 			$('#fullscreenBG').click(function(){
 				$('.fullscreen').mousedown();
