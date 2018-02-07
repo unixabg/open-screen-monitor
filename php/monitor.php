@@ -79,7 +79,7 @@ if (isset($_GET['update'])) {
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach ($temp as $tab) {
-					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\"></i> (Close)</a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
+					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\" title=\"Close this tab.\"></i></a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
 				}
 			}
 		}
@@ -130,7 +130,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				return false;
 			});
 
-			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\"></i> Lock</a> | <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\"></i> Unlock</a> | <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\"></i> Open Url</a> | <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\"></i> Send Message</a><br /><h5>Tabs</h5><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a><br /><h5>Tabs</h5><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
