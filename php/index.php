@@ -231,7 +231,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				echo "<br /><input type=\"checkbox\" name=\"labs[]\" value=\"".htmlentities($lab)."\" ".(in_array($lab,$permissions[$_GET['email']]) ? 'checked="checked"':'')." /> ".htmlentities($lab);
 			}
 			echo "</div>";
-			echo "<br /><input type=\"submit\" /></form>";
+			echo "<br /><input type=\"submit\" class=\"w3-button w3-white w3-border w3-border-blue w3-round-large\" /></form>";
 		} else {
 			echo "<a href=\"?permissions&email\">Add Permissions</a><br /><br />";
 			echo "<table border=\"1\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
