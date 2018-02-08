@@ -167,6 +167,7 @@ if (isset($_GET['logout'])) {
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 	<link rel="stylesheet" href="./style.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 </head>
 <body>
 <h1 style="display:inline;">Open Screen Monitor |</h1> <a href="?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="?logout">Logout</a><?php } ?>
@@ -240,7 +241,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				echo "<tr>";
 				echo "<td>".htmlentities($email)."</td>";
 				echo "<td>".implode("<br />",$_labs)."</td>";
-				echo "<td><a href=\"?permissions&email=".htmlentities($email)."\">(Edit)</a> <a href=\"?permissions&delEmail=".htmlentities($email)."\">(Delete)</a></td>";
+				echo "<td><a href=\"?permissions&email=".htmlentities($email)."\"><i class=\"fas fa-pencil-alt\" title=\"Edit this user.\"></i></a>  <a href=\"?permissions&delEmail=".htmlentities($email)."\"><i class=\"fas fa-times\" title=\"Delete this user.\"></i></a></td>";
 				echo "</tr>";
 			}
 			echo "</tbody></table>";
