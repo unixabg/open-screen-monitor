@@ -391,7 +391,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				<label for="right"><span class="radio"><div class="tooltip">Disabled<span class="tooltiptext">Disable all filter operations.</span></div></span></label>
 			</div>
 		</section>
-		Sites (one per line):
+		Site URLs or keywords (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 		<br /><input type="submit" class="w3-button w3-white w3-border w3-border-blue w3-round-large">
 	</form>
