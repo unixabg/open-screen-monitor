@@ -64,6 +64,7 @@ html, body, div, h1 {
   border-bottom: 1px solid black;
 }
 
+/* side menu */
 #menu {
   width: 350px;
   float: left;
@@ -72,6 +73,86 @@ html, body, div, h1 {
   word-wrap:break-word;
   overflow-y:scroll;
   height: calc(100% - 40px);
+}
+
+
+/* ************************ */
+/* Start Fancy radiobuttons */
+.section {
+  padding: 5px;
+  padding-left: 55px;
+}
+.section input[type="radio"]{
+  display: none;
+}
+.container {
+  margin-bottom: 10px;
+}
+.container label {
+  position: relative;
+}
+
+/* Base styles for spans */
+.container span::before,
+.container span::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+}
+
+/* Radio buttons */
+.container span.radio:hover {
+  cursor: pointer;
+}
+
+.container span.radio::before {
+  left: -52px;
+  width: 45px;
+  height: 25px;
+  background-color: #A8AAC1;
+  border-radius: 50px;
+}
+.container span.radio::after {
+  left: -49px;
+  width: 17px;
+  height: 17px;
+  border-radius: 10px;
+  background-color: #6C788A;
+  transition: left .25s, background-color .25s;
+}
+input[type="radio"]:checked + label span.radio::after {
+  left: -27px;
+  background-color: #2196F3;
+}
+
+/* End Fancy radiobuttons */
+/* ********************** */
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  /* border-bottom: 1px dotted black; */
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }
 
 /* device related */

@@ -375,14 +375,23 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	}
 	?>
 	<h3>Lab Filter (Beta)</h3>
-	<hr />
+	<div class="hline" style="height:2px"></div>
 	<form id="filter" method="post" target="_blank" action="?filter">
-		Mode:
-		<br /><input type="radio" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />Picket Fence (block selected sites)
-		<br /><input type="radio" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />Walled Garden (allow selected sites)
-		<br /><input type="radio" name="filtermode" value="disabled" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />Disable Filter (no filter actions applied)
-
-		<br />Sites (one per line):
+		<section id="first" class="section">
+			<div class="container">
+				<input type="radio" id="left" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />
+				<label for="left"><span class="radio"><div class="tooltip">Picket Fence<span class="tooltiptext">Block sites matching listed patterns.</span></div></span></label>
+			</div>
+			<div class="container">
+				<input type="radio" id="center" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />
+				<label for="center"><span class="radio"><div class="tooltip">Walled Garden<span class="tooltiptext">Allow only sites matching listed patterns.</span></div></span></label>
+			</div>
+			<div class="container">
+				<input type="radio" id="right" name="filtermode" value="disabled" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />
+				<label for="right"><span class="radio"><div class="tooltip">Disabled<span class="tooltiptext">Disable all filter operations.</span></div></span></label>
+			</div>
+		</section>
+		Sites (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 		<br /><input type="submit" class="w3-button w3-white w3-border w3-border-blue w3-round-large">
 	</form>
