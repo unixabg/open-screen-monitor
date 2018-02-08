@@ -93,7 +93,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	//only allow printable characters and new lines
 	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
 	//let us do a second pass to drop empty lines and correctly format
-	$_POST['filterlist'] = trim(preg_replace('/\n+/', "\n", $_POST['filterlist']));
+	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
 		$_devicePath = $dataDir.'/'.$deviceID.'/';
