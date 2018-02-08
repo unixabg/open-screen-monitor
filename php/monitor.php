@@ -324,6 +324,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			setInterval(updateMeta, 30000);
 			updateMeta();
 			updateAllImages();
+			$('#applyfilter').hide();
 
 			$('#showmenu').click(function(){
 				$('#menu').show();
@@ -337,6 +338,17 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				$(this).hide();
 				$('#showmenu').show();
 				$('#devicesdiv').css('margin-left','0px');
+			});
+
+			/* logic trigger apply button for filter */
+			$('#filterlist').on('input propertychange', function() {
+				if(this.value.length){
+					$('#applyfilter').show();
+				}
+			});
+
+			$('#applyfilter]').click(function (){
+				$(this).hide();
 			});
 		});
 	</script>
@@ -379,20 +391,21 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<form id="filter" method="post" target="_blank" action="?filter">
 		<section id="first" class="section">
 			<div class="container">
-				<input type="radio" id="left" name="filtermode" value="defaultallow" onclick="this.form.submit();" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />
+				<input type="radio" id="left" name="filtermode" value="defaultallow" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />
 				<label for="left"><span class="radio"><div class="tooltip">Picket Fence<span class="tooltiptext">Block sites matching listed patterns.</span></div></span></label>
 			</div>
 			<div class="container">
-				<input type="radio" id="center" name="filtermode" value="defaultdeny" onclick="this.form.submit();" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />
+				<input type="radio" id="center" name="filtermode" value="defaultdeny" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />
 				<label for="center"><span class="radio"><div class="tooltip">Walled Garden<span class="tooltiptext">Allow only sites matching listed patterns.</span></div></span></label>
 			</div>
 			<div class="container">
-				<input type="radio" id="right" name="filtermode" value="disabled" onclick="this.form.submit();" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />
+				<input type="radio" id="right" name="filtermode" value="disabled" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />
 				<label for="right"><span class="radio"><div class="tooltip">Disabled<span class="tooltiptext">Disable all filter operations.</span></div></span></label>
 			</div>
 		</section>
 		Site URLs or keywords (one per line):
-		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
+		<textarea name="filterlist" id="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
+		<input type="submit" id="applyfilter" onclick="$('#applyfilter').hide();" value="Apply Changes" class="w3-button w3-white w3-border w3-border-blue w3-round-large" />
 	</form>
 	<h5>Device URLs - Data</h5>
 	<div id="urls"></div>
