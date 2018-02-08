@@ -394,7 +394,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		Site URLs or keywords (one per line):
 		<textarea name="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
 	</form>
-	<br /><h5>Device URLs - Data</h5>
+	<h5>Device URLs - Data</h5>
 	<div id="urls"></div>
 	<br />
 	</div>
