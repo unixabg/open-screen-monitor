@@ -1,11 +1,35 @@
-/* Overload for hover when not already */
-a:hover {
-  background-color: #d1e0e0;
-}
+/* Estimated Chrome logo colors
+ Red: rgb(213,15,37) or Hex #d50f25
+ Blue: rgb(51,105,232) or Hex #3369e8
+ Green: rgb(0,153,57) or Hex #009939
+ Yellow rgb(238,178,17) or Hex #eeb211
+ Gray: rgb(102,102,102) or Hex #666666
+*/
 
 /* Add some things for FontAwsome */
-.svg-inline--fa {
-  color: #2196F3;
+.svg-inline--fa:hover {
+  text-shadow: 1px 1px 1px #ccc;
+  font-size: 1.3em;
+}
+
+.svg-inline--fa.fa-trash:hover, .svg-inline--fa.fa-times:hover {
+  color: #d50f25;
+}
+
+.svg-inline--fa.fa-lock {
+  color: #d50f25;
+}
+
+.svg-inline--fa.fa-pencil-alt, .svg-inline--fa.fa-unlock {
+  color: #009939;
+}
+
+.svg-inline--fa.fa-cloud {
+  color: #eeb211;
+}
+
+.svg-inline--fa.fa-envelope {
+  color: #3369e8;
 }
 
 /* Custom tags */
@@ -111,7 +135,7 @@ html, body, div, h1 {
   left: -52px;
   width: 45px;
   height: 25px;
-  background-color: #A8AAC1;
+  background-color: #c0c0c0;
   border-radius: 50px;
 }
 .container span.radio::after {
@@ -119,12 +143,12 @@ html, body, div, h1 {
   width: 17px;
   height: 17px;
   border-radius: 10px;
-  background-color: #6C788A;
+  background-color: #666666;
   transition: left .25s, background-color .25s;
 }
 input[type="radio"]:checked + label span.radio::after {
   left: -27px;
-  background-color: #2196F3;
+  background-color: #009939;
 }
 
 /* End Fancy radiobuttons */
