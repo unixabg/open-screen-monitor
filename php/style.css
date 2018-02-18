@@ -148,7 +148,7 @@ html, body, div, h1 {
 }
 input[type="radio"]:checked + label span.radio::after {
   left: -27px;
-  background-color: #009939;
+  background-color: #3369e8;
 }
 
 /* End Fancy radiobuttons */
