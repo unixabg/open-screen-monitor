@@ -231,3 +231,7 @@ input[type="radio"]:checked + label span.radio::after {
   display:none;
   background-color:white;
 }
+
+div.locked {
+	border: 1px solid red !important;
+}

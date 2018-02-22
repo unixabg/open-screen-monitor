@@ -104,9 +104,8 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/closetab');
 			}
-			if (file_exists($deviceFolder.'/lock')) {
+			if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
 				$toReturn['commands'][] = array('action'=>'lock');
-				unlink($deviceFolder.'/lock');
 			}
 			if (file_exists($deviceFolder.'/unlock')) {
 				$toReturn['commands'][] = array('action'=>'unlock');
@@ -130,18 +129,6 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
-			//show startup notification
-			//TODO: replace false with config check to see if feature enabled
-			if (false && !isset($data['startupNotification'])){
-				$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
-				$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
-					'type'=>'basic',
-					'iconUrl'=>'icon.png',
-					'title'=>'Open Screen Monitor starting...',
-					'message'=>'',
-				));
-
-			}
 			//activate server side filter
 			if (!$data['filterviaserver'])
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);
@@ -154,6 +141,17 @@ if (isset($_POST['data'])) {
 			//up the refresh since this is probably a personal or atleast non-chromebook device and
 			//we don't really care except for maybe eventually enabling the filter so it follows them even on those devices
 			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
+		}
+		//show startup notification
+		//TODO: replace false with config check to see if feature enabled
+		if (false && !isset($data['startupNotification'])){
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
+			$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
+				'type'=>'basic',
+				'iconUrl'=>'icon.png',
+				'title'=>'Open Screen Monitor starting...',
+				'message'=>'',
+			));
 		}
 	}
 }
