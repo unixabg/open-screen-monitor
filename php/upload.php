@@ -1,12 +1,15 @@
 <?php
-
 $dataDir='../../osm-data';
+if (!file_exists($dataDir)) die('Missing osm-data directory');
+if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
+
+$toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
 	if (isset($data['deviceID'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		if ($deviceID != "") {
-			$deviceFolder=$dataDir.'/'.$deviceID;
+			$deviceFolder=$dataDir.'/devices/'.$deviceID;
 			//create device folder if it doesn't exist
 			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 			//ping file for status
@@ -38,7 +41,6 @@ if (isset($_POST['data'])) {
 				unlink($deviceFolder.'/tabs');
 			}
 			//send commands back
-			$toReturn = array();
 			//set the refresh time
 			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
 			if (file_exists($deviceFolder.'/openurl')) {
@@ -112,9 +114,34 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
-			//send it back
-			header('Content-Type: application/json');
-			die(json_encode($toReturn));
+			//show startup notification
+			//TODO: replace false with config check to see if feature enabled
+			if (false && !isset($data['startupNotification'])){
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
+				$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
+					'type'=>'basic',
+					'iconUrl'=>'icon.png',
+					'title'=>'Open Screen Monitor starting...',
+					'message'=>'',
+				));
+
+			}
+			//activate server side filter
+			if (!$data['filterviaserver'])
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);
+		} else {
+			//deviceID not set
+
+			//activate server side filter
+			if (!$data['filterviaserver'])
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);
+			//up the refresh since this is probably a personal or atleast non-chromebook device and
+			//we don't really care except for maybe eventually enabling the filter so it follows them even on those devices
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
 		}
 	}
 }
+
+//send it back
+header('Content-Type: application/json');
+die(json_encode($toReturn));
