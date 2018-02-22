@@ -44,6 +44,7 @@ if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']]))
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
+	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
 	touch($_actionPath.'/unlock');
 	die();
 }
@@ -76,6 +77,7 @@ if (isset($_GET['update'])) {
 			$data[$deviceID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
 			$data[$deviceID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
 			$data[$deviceID]['tabs'] = "";
+			$data[$deviceID]['locked'] = file_exists($folder.'lock');
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach ($temp as $tab) {
@@ -213,7 +215,12 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 							//update username
 							$('#div_'+dev+' h1').html(data[dev].username+' ('+data[dev].name+')');
 							$('#div_'+dev+' div.tabs').html(data[dev].tabs);
-							$('#div_'+dev).data('name',data[dev].name);
+							thisdiv.data('name',data[dev].name);
+							if (data[dev].locked){
+								if (!thisdiv.hasClass('locked')) {thisdiv.addClass('locked');}
+							} else {
+								if (thisdiv.hasClass('locked')) {thisdiv.removeClass('locked');}
+							}
 
 							URLdata = URLdata + "<div class=\"hline\" style=\"height:2px\"></div><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br />'+$('#div_'+dev+' div.info').html();
 						}
