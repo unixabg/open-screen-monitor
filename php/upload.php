@@ -55,25 +55,6 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/openurl');
 			}
-			if (file_exists($deviceFolder.'/closetab')) {
-				$tabs = file_get_contents($deviceFolder.'/closetab');
-				$tabs = explode("\n",$tabs);
-				foreach ($tabs as $tab){
-					if ($tab != "") {
-						$tab = intval($tab);
-						$toReturn['commands'][] = array('action'=>'tabsRemove','tabId'=>$tab);
-					}
-				}
-				unlink($deviceFolder.'/closetab');
-			}
-			if (file_exists($deviceFolder.'/lock')) {
-				$toReturn['commands'][] = array('action'=>'lock');
-				unlink($deviceFolder.'/lock');
-			}
-			if (file_exists($deviceFolder.'/unlock')) {
-				$toReturn['commands'][] = array('action'=>'unlock');
-				unlink($deviceFolder.'/unlock');
-			}
 			if (file_exists($deviceFolder.'/filterlist') && file_exists($deviceFolder.'/filtermode')) {
 				$filtermode = file_get_contents($deviceFolder.'/filtermode');
 				$filterlisttime = filemtime($deviceFolder.'/filterlist');
@@ -96,7 +77,42 @@ if (isset($_POST['data'])) {
 					$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlist','value'=>$filterlist);
 					$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlisttime','value'=>$filterlisttime);
 				}
+				//test here for tabs that need dropped for filtering policy
+				if (isset($data['tabs'])) {
+					foreach ($data['tabs'] as $tabs=>$tab) {
+						//test each tab against the filterlist
+						foreach ($filterlist as $i=>$value) {
+							$foundMatch = preg_match("/$value/i", $tab['url']);
+							if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
+								//filter violation found so append to closetab
+								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
+								//notify the user we dropped the tab
+								file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
+							}
+						}
+					}
+				}
 			}
+			if (file_exists($deviceFolder.'/closetab')) {
+				$tabs = file_get_contents($deviceFolder.'/closetab');
+				$tabs = explode("\n",$tabs);
+				foreach ($tabs as $tab){
+					if ($tab != "") {
+						$tab = intval($tab);
+						$toReturn['commands'][] = array('action'=>'tabsRemove','tabId'=>$tab);
+					}
+				}
+				unlink($deviceFolder.'/closetab');
+			}
+			if (file_exists($deviceFolder.'/lock')) {
+				$toReturn['commands'][] = array('action'=>'lock');
+				unlink($deviceFolder.'/lock');
+			}
+			if (file_exists($deviceFolder.'/unlock')) {
+				$toReturn['commands'][] = array('action'=>'unlock');
+				unlink($deviceFolder.'/unlock');
+			}
+
 			if (file_exists($deviceFolder.'/messages')) {
 				$messages = file_get_contents($deviceFolder.'/messages');
 				$messages = explode("\n",$messages);

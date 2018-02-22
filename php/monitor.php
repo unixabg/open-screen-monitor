@@ -234,8 +234,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 					if (newvalue > 1) newvalue = 1;
 				}
 
-				//if it is off by 5 clicks (.05) auto adjust
-				if (Math.abs(newvalue - imgcss.multiplier) > .26){
+				//if it is off by 10 clicks (.05) auto adjust
+				if (Math.abs(newvalue - imgcss.multiplier) > .51){
 					imgcss.multiplier = newvalue;
 					refreshZoom();
 				}
