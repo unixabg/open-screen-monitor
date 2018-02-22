@@ -19,7 +19,7 @@ if (isset($_GET['images'])) {
 	$toReturn = array();
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$file = $dataDir.'/'.$deviceID.'/screenshot.jpg';
+		$file = $dataDir.'/devices/'.$deviceID.'/screenshot.jpg';
 		// Assure who needs access here FIXME
 		if (is_readable($file) && filemtime($file) >= time() - 30 ) {
 			$toReturn[$deviceID] = base64_encode(file_get_contents($file));
@@ -35,33 +35,33 @@ if (isset($_GET['images'])) {
 	die(json_encode($toReturn));
 }
 
-// Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir
+// Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir.'/devices'
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-	$_actionPath = $dataDir.'/'.$_POST['lock'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-	$_actionPath = $dataDir.'/'.$_POST['unlock'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
 	touch($_actionPath.'/unlock');
 	die();
 }
 
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-	$_actionPath = $dataDir.'/'.$_POST['openurl'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
 	die();
 }
 
 if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-	$_actionPath = $dataDir.'/'.$_POST['closetab'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
-	$_actionPath = $dataDir.'/'.$_POST['sendmessage'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
 	die();
 }
@@ -69,7 +69,7 @@ if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION[
 if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$folder = $dataDir.'/'.$deviceID.'/';
+		$folder = $dataDir.'/devices/'.$deviceID.'/';
 		$data[$deviceID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
 
 		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
@@ -96,7 +96,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$_devicePath = $dataDir.'/'.$deviceID.'/';
+		$_devicePath = $dataDir.'/devices/'.$deviceID.'/';
 		file_put_contents($_devicePath.'filtermode',$_POST['filtermode']);
 		file_put_contents($_devicePath.'filterlist',$_POST['filterlist']);
 	}
@@ -379,9 +379,9 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$deviceID = array_keys($_SESSION['alloweddevices'])[0];
 	$filtermode = "";
 	$filterlist = "";
-	if (file_exists($dataDir.'/'.$deviceID.'/filtermode') && file_exists($dataDir.'/'.$deviceID.'/filterlist')){
-		$filtermode = file_get_contents($dataDir.'/'.$deviceID.'/filtermode');
-		$filterlist = file_get_contents($dataDir.'/'.$deviceID.'/filterlist');
+	if (file_exists($dataDir.'/devices/'.$deviceID.'/filtermode') && file_exists($dataDir.'/devices/'.$deviceID.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/devices/'.$deviceID.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/devices/'.$deviceID.'/filterlist');
 	} else {
 		$filtermode = "disabled";
 	}
