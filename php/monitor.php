@@ -11,7 +11,14 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 
 //set data path
 $dataDir='../../osm-data';
+$global_defaults_file = $dataDir.'/defaults.php';
 
+//pull in global defaults
+if ($global_defaults_file) {
+	include $global_defaults_file;
+} else {
+	die('Missing osm-data/defaults.php file');
+}
 
 //return all images after ctime
 if (isset($_GET['images'])) {

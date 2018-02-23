@@ -1,7 +1,15 @@
 <?php
 $dataDir='../../osm-data';
+$global_defaults_file = $dataDir.'/defaults.php';
 if (!file_exists($dataDir)) die('Missing osm-data directory');
 if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
+
+//pull in global defaults
+if ($global_defaults_file) {
+	include $global_defaults_file;
+} else {
+	die('Missing osm-data/defaults.php file');
+}
 
 $toReturn = array();
 if (isset($_POST['data'])) {
