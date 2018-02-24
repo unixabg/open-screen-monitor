@@ -7,7 +7,15 @@ session_start();
 $dataDir='../../osm-data';
 $client_secret_file = $dataDir.'/client_secret.json';
 $devices_file = $dataDir.'/devices.tsv';
+$global_defaults_file = $dataDir.'/defaults.php';
 $permissions_file = $dataDir.'/permissions.tsv';
+
+//pull in global defaults
+if ($global_defaults_file) {
+	include $global_defaults_file;
+} else {
+	die('Missing osm-data/defaults.php file');
+}
 
 //load variables
 if (file_exists($client_secret_file)) {
