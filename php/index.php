@@ -300,8 +300,9 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		."&response_type=code"
 		."&client_id=".$client_secret->web->client_id
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])
-		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a>";
+		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a><br />";
 }
+echo "<br />Version ".$_version;
 ?>
 </body>
 </html>
