@@ -400,7 +400,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$filtermode = "disabled";
 	}
 	?>
-		<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_version; ?>
+		<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_gVersion; ?>
 	<div class="hline" style="height:2px"></div>
 	<form id="filter" method="post" target="_blank" action="?filter">
 		<section id="first" class="section">

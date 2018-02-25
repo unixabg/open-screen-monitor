@@ -50,7 +50,7 @@ if (isset($_POST['data'])) {
 			}
 			//send commands back
 			//set the refresh time
-			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_defaultUploadRefreshTime);
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_gUploadRefreshTime);
 			if (file_exists($deviceFolder.'/openurl')) {
 				$urls = file_get_contents($deviceFolder.'/openurl');
 				$urls = explode("\n",$urls);
