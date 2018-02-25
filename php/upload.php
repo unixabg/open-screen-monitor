@@ -113,7 +113,12 @@ if (isset($_POST['data'])) {
 				unlink($deviceFolder.'/closetab');
 			}
 			if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
-				$toReturn['commands'][] = array('action'=>'lock');
+				//avoid locking with stale lock file
+				if (filemtime($deviceFolder.'/lock') <= time() - $_gLockTimeout ) {
+					unlink($deviceFolder.'/lock');
+				} else {
+					$toReturn['commands'][] = array('action'=>'lock');
+				}
 			}
 			if (file_exists($deviceFolder.'/unlock')) {
 				$toReturn['commands'][] = array('action'=>'unlock');

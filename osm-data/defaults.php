@@ -11,3 +11,5 @@ $_version='0.2.0.1';
 //set the default time chrome will wait between phone home attempst to the upload script
 $_defaultUploadRefreshTime=9000;
 
+//set lock file timeout to avoid locking on stale lock request
+$_gLockTimeout=300;
