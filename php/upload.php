@@ -95,7 +95,7 @@ if (isset($_POST['data'])) {
 								//filter violation found so append to closetab
 								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 								//notify the user we dropped the tab
-								file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
+								file_put_contents($deviceFolder.'/messages',$_gFilterMessage["title"]."\t".$_gFilterMessage["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 							}
 						}
 					}
@@ -142,6 +142,15 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
+			//populate filtermessage
+			if (!$data['filtermessage'])
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
+					'requireInteraction'=>true,
+					'type'=>'basic',
+					'iconUrl'=>'icon.png',
+					'title'=>$_gFilterMessage["title"],
+					'message'=>$_gFilterMessage["message"]["newtab"],
+				));
 			//activate server side filter
 			if (!$data['filterviaserver'])
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);

@@ -21,6 +21,7 @@ var data = {
 	filtermode:"",
 	filterlist:[],
 	filterlisttime:0,
+	filtermessage:[],
 	filterblockpage:"",
 	filterviaserver:false
 }
@@ -70,11 +71,11 @@ function filterPage(nextPageDetails) {
 		if ( (data.filtermode == "defaultdeny" && !foundMatch) || (data.filtermode == "defaultallow" && foundMatch) ) {
 			try {
 				console.log("Blocking tab: " + nextPageDetails.url);
-				if (data.filterblockpage != "") {
-					chrome.tabs.update(nextPageDetails.tabId,{url:data.filterblockpage});
-				} else {
-					chrome.tabs.remove(nextPageDetails.tabId);
-				}
+				chrome.tabs.remove(nextPageDetails.tabId);
+				var tempstring = data.filtermessage["message"];
+				data.filtermessage["message"] = data.filtermessage["message"] + nextPageDetails.url;
+				chrome.notifications.create("",data.filtermessage);
+				data.filtermessage["message"] = tempstring;
 			} catch (e) {console.log(e);}
 		}
 	}
