@@ -29,3 +29,11 @@ $_config['filterMessage'] = array(
 );
 
 $_config['showStartupNotification'] = false;
+
+
+
+//overlay settings from config file
+if (file_exists($dataDir.'/config.json')){
+	$overlayConfig = json_decode(file_get_contents($dataDir.'/config.json'),true);
+	$_config = array_merge($_config,$overlayConfig);
+}
