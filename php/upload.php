@@ -1,7 +1,5 @@
 <?php
-$dataDir='../../osm-data';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
-if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
+require('config.php'):
 
 $toReturn = array();
 if (isset($_POST['data'])) {
@@ -42,7 +40,7 @@ if (isset($_POST['data'])) {
 			}
 			//send commands back
 			//set the refresh time
-			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_gUploadRefreshTime);
 			if (file_exists($deviceFolder.'/openurl')) {
 				$urls = file_get_contents($deviceFolder.'/openurl');
 				$urls = explode("\n",$urls);
@@ -87,7 +85,7 @@ if (isset($_POST['data'])) {
 								//filter violation found so append to closetab
 								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 								//notify the user we dropped the tab
-								file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
+								file_put_contents($deviceFolder.'/messages',$_gFilterMessage["title"]."\t".$_gFilterMessage["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 							}
 						}
 					}
@@ -105,7 +103,12 @@ if (isset($_POST['data'])) {
 				unlink($deviceFolder.'/closetab');
 			}
 			if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
-				$toReturn['commands'][] = array('action'=>'lock');
+				//avoid locking with stale lock file
+				if (filemtime($deviceFolder.'/lock') <= time() - $_gLockTimeout ) {
+					unlink($deviceFolder.'/lock');
+				} else {
+					$toReturn['commands'][] = array('action'=>'lock');
+				}
 			}
 			if (file_exists($deviceFolder.'/unlock')) {
 				$toReturn['commands'][] = array('action'=>'unlock');
@@ -129,6 +132,16 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
+
+			//populate filtermessage
+			if (!$data['filtermessage'])
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
+					'requireInteraction'=>true,
+					'type'=>'basic',
+					'iconUrl'=>'icon.png',
+					'title'=>'FILTER TITLE',
+					'message'=>'FILTER MESSAGE',
+				));
 			//activate server side filter
 			if (!$data['filterviaserver'])
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);

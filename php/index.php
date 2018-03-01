@@ -7,7 +7,15 @@ session_start();
 $dataDir='../../osm-data';
 $client_secret_file = $dataDir.'/client_secret.json';
 $devices_file = $dataDir.'/devices.tsv';
+$global_defaults_file = $dataDir.'/defaults.php';
 $permissions_file = $dataDir.'/permissions.tsv';
+
+//pull in global defaults
+if ($global_defaults_file) {
+	include $global_defaults_file;
+} else {
+	die('Missing osm-data/defaults.php file');
+}
 
 //load variables
 if (file_exists($client_secret_file)) {
@@ -292,8 +300,9 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		."&response_type=code"
 		."&client_id=".$client_secret->web->client_id
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])
-		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a>";
+		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a><br />";
 }
+echo "<br />Version ".$_gVersion;
 ?>
 </body>
 </html>

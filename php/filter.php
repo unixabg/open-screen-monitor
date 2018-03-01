@@ -1,7 +1,8 @@
 <?php
 $dataDir = '../../osm-data';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
+
 $logDir = $dataDir.'/logs/';
+if (!file_exists($dataDir)) die('Missing osm-data directory');
 if (!file_exists($logDir)) mkdir($logDir,0755,true);
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();

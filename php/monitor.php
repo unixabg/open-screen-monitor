@@ -11,7 +11,14 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 
 //set data path
 $dataDir='../../osm-data';
+$global_defaults_file = $dataDir.'/defaults.php';
 
+//pull in global defaults
+if ($global_defaults_file) {
+	include $global_defaults_file;
+} else {
+	die('Missing osm-data/defaults.php file');
+}
 
 //return all images after ctime
 if (isset($_GET['images'])) {
@@ -393,7 +400,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$filtermode = "disabled";
 	}
 	?>
-	<h3>Lab Filter (Beta)</h3>
+		<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_gVersion; ?>
 	<div class="hline" style="height:2px"></div>
 	<form id="filter" method="post" target="_blank" action="?filter">
 		<section id="first" class="section">
