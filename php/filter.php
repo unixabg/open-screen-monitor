@@ -19,9 +19,10 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 	//determine action
 	$action = 'ALLOW';
-	$redirectURL = '';
+	$blockPageParameters = '';
 	//TODO
 
+	if ($data['deviceID'] == 'test'){$action='BLOCK';$blockPageParameters = 'test=test';}
 
 
 	//log it
@@ -38,7 +39,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//send it back
-	die($action.($redirectURL != '' ? "\n".$redirectURL : ""));
+	die($action.($blockPageParameters != '' ? "\n".$blockPageParameters : ""));
 }
 //if we get here, there has been a problem
 die("Error in request");

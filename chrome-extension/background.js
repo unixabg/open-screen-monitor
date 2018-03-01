@@ -99,19 +99,17 @@ function filterPage(nextPageDetails) {
 		xhttp.open("POST", uploadURL+'filter.php', false);
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
-		xhttp.onload = function(){
-			var response = this.responseText.split("\n");
-			if (response[0] == 'BLOCK') {
-				try {
-					console.log("Blocking tab: " + nextPageDetails.url);
-					if (response.length == 2) {
-						chrome.tabs.update(nextPageDetails.tabId,{url:response[1]});
-					} else {
-						chrome.tabs.remove(nextPageDetails.tabId);
-					}
-				} catch (e) {console.log(e);}
-			}
-		};
+		var response = xhttp.responseText.split("\n");
+		if (response[0] == 'BLOCK') {
+			try {
+				console.log("Blocking tab: " + nextPageDetails.url);
+				if (response.length == 2) {
+					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
+				} else {
+					chrome.tabs.remove(nextPageDetails.tabId);
+				}
+			} catch (e) {console.log(e);}
+		}
 	}
 };
 //chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
