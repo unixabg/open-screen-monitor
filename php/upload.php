@@ -156,7 +156,7 @@ if (isset($_POST['data'])) {
 			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
 		}
 		//show startup notification
-		if (!isset($data['startupNotification'])){
+		if ($_config['showStartupNotification'] && !isset($data['startupNotification'])){
 			$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
 			$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
 				'type'=>'basic',

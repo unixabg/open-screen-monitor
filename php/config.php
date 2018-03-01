@@ -27,3 +27,5 @@ $_config['filterMessage'] = array(
 		'opentab' => 'A lab filter violation was detected on an existing tab url of: '
 	)
 );
+
+$_config['showStartupNotification'] = false;
