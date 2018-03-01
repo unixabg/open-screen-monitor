@@ -13,6 +13,8 @@
 		"tabs",
 		"enterprise.deviceAttributes",
 		"webNavigation",
+		"webRequest",
+		"webRequestBlocking",
 		"notifications"
 	],
 	"background": { "scripts": ["background.js"] },

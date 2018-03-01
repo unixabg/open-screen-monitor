@@ -54,9 +54,13 @@ getManagedProperties();
 //setup filter
 /////////////////
 function filterPage(nextPageDetails) {
+	//any page on the osm server can be scipped
+	if (nextPageDetails.url.indexOf(uploadURL) == 0){return;}
+
+
 	//a filter mode must be defined as well as items on the list for the filter to activate
-	//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.frameId != 0)
-	if ( (data.filtermode == "defaultdeny" || data.filtermode == "defaultallow") && data.filterlist.length > 0 && nextPageDetails.frameId == 0) {
+	//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.type == "main_frame")
+	if ( (data.filtermode == "defaultdeny" || data.filtermode == "defaultallow") && data.filterlist.length > 0 && nextPageDetails.type == "main_frame") {
 		var foundMatch = false;
 		for (var i=0;i<data.filterlist.length;i++) {
 			if ((new RegExp(data.filterlist[i])).test(nextPageDetails.url)) {
@@ -82,35 +86,34 @@ function filterPage(nextPageDetails) {
 
 	//this has to be turned on via the regular syncing mechanism
 	//it defaults to off
-	//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.frameId != 0)
-	if (data.filterviaserver && nextPageDetails.frameId == 0){
+	if (data.filterviaserver){
 		var tempdata = {
 			url:nextPageDetails.url,
+			type:nextPageDetails.type,
 			username:data.username,
 			domain:data.domain,
 			deviceID:data.deviceID
 		};
 
 		var xhttp = new XMLHttpRequest();
-		xhttp.open("POST", uploadURL+'filter.php', true);
+		xhttp.open("POST", uploadURL+'filter.php', false);
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
-		xhttp.onload = function(){
-			var response = this.responseText.split("\n");
-			if (response[0] == 'BLOCK') {
-				try {
-					console.log("Blocking tab: " + nextPageDetails.url);
-					if (response.length == 2) {
-						chrome.tabs.update(nextPageDetails.tabId,{url:response[1]});
-					} else {
-						chrome.tabs.remove(nextPageDetails.tabId);
-					}
-				} catch (e) {console.log(e);}
-			}
-		};
+		var response = xhttp.responseText.split("\n");
+		if (response[0] == 'BLOCK') {
+			try {
+				console.log("Blocking tab: " + nextPageDetails.url);
+				if (response.length == 2) {
+					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
+				} else {
+					chrome.tabs.remove(nextPageDetails.tabId);
+				}
+			} catch (e) {console.log(e);}
+		}
 	}
 };
-chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
+//chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
+chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"],types:["main_frame","sub_frame","xmlhttprequest"]},["blocking"]);
 
 ////////////////////////
 //setup the window lock

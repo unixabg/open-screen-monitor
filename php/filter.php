@@ -1,16 +1,5 @@
 <?php
-$dataDir = '../../osm-data';
-$global_defaults_file = $dataDir.'/defaults.php';
-$logDir = $dataDir.'/logs/';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
-if (!file_exists($logDir)) mkdir($logDir,0755,true);
-
-//pull in global defaults
-if ($global_defaults_file) {
-	include $global_defaults_file;
-} else {
-	die('Missing osm-data/defaults.php file');
-}
+require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url']) && $data['url'] != ''){
@@ -30,9 +19,10 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 	//determine action
 	$action = 'ALLOW';
-	$redirectURL = '';
+	$blockPageParameters = '';
 	//TODO
 
+	if ($data['deviceID'] == 'test'){$action='BLOCK';$blockPageParameters = 'test=test';}
 
 
 	//log it
@@ -49,7 +39,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//send it back
-	die($action.($redirectURL != '' ? "\n".$redirectURL : ""));
+	die($action.($blockPageParameters != '' ? "\n".$blockPageParameters : ""));
 }
 //if we get here, there has been a problem
 die("Error in request");
