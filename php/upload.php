@@ -1,5 +1,5 @@
 <?php
-require('config.php'):
+require('config.php');
 
 $toReturn = array();
 if (isset($_POST['data'])) {
