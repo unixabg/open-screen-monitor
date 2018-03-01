@@ -1,9 +1,5 @@
 <?php
-$dataDir = '../../osm-data';
-
-$logDir = $dataDir.'/logs/';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
-if (!file_exists($logDir)) mkdir($logDir,0755,true);
+require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url']) && $data['url'] != ''){

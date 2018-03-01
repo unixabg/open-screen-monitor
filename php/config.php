@@ -1,11 +1,13 @@
 <?php
 
 $dataDir = '../../osm-data';
-$logDir = $dataDir.'/logs/';
 
 if (!file_exists($dataDir)) die('Missing osm-data directory');
+
 if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
 
+$logDir = $dataDir.'/logs/';
+if (!file_exists($logDir)) mkdir($logDir,0755,true);
 
 //start config
 //set system wide version for php scripts
