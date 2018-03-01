@@ -143,14 +143,13 @@ if (isset($_POST['data'])) {
 			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
 		}
 		//show startup notification
-		//TODO: replace false with config check to see if feature enabled
-		if (false && !isset($data['startupNotification'])){
+		if (!isset($data['startupNotification'])){
 			$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
 			$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
 				'type'=>'basic',
 				'iconUrl'=>'icon.png',
 				'title'=>'Open Screen Monitor starting...',
-				'message'=>'',
+				'message'=>'The account '.$data['username'].'@'.$data['domain'].' is under a managed policy.',
 			));
 		}
 	}
