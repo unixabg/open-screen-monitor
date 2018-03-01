@@ -1,16 +1,5 @@
 <?php
-$dataDir = '../../osm-data';
-$global_defaults_file = $dataDir.'/defaults.php';
-$logDir = $dataDir.'/logs/';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
-if (!file_exists($logDir)) mkdir($logDir,0755,true);
-
-//pull in global defaults
-if ($global_defaults_file) {
-	include $global_defaults_file;
-} else {
-	die('Missing osm-data/defaults.php file');
-}
+require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url']) && $data['url'] != ''){

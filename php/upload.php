@@ -1,15 +1,5 @@
 <?php
-$dataDir='../../osm-data';
-$global_defaults_file = $dataDir.'/defaults.php';
-if (!file_exists($dataDir)) die('Missing osm-data directory');
-if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
-
-//pull in global defaults
-if ($global_defaults_file) {
-	include $global_defaults_file;
-} else {
-	die('Missing osm-data/defaults.php file');
-}
+require('config.php'):
 
 $toReturn = array();
 if (isset($_POST['data'])) {
@@ -50,7 +40,7 @@ if (isset($_POST['data'])) {
 			}
 			//send commands back
 			//set the refresh time
-			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_gUploadRefreshTime);
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_config['uploadRefreshTime']);
 			if (file_exists($deviceFolder.'/openurl')) {
 				$urls = file_get_contents($deviceFolder.'/openurl');
 				$urls = explode("\n",$urls);
@@ -95,7 +85,7 @@ if (isset($_POST['data'])) {
 								//filter violation found so append to closetab
 								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 								//notify the user we dropped the tab
-								file_put_contents($deviceFolder.'/messages',$_gFilterMessage["title"]."\t".$_gFilterMessage["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
+								file_put_contents($deviceFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 							}
 						}
 					}
@@ -114,7 +104,7 @@ if (isset($_POST['data'])) {
 			}
 			if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
 				//avoid locking with stale lock file
-				if (filemtime($deviceFolder.'/lock') <= time() - $_gLockTimeout ) {
+				if (filemtime($deviceFolder.'/lock') <= time() - $_config['lockTimeout'] ) {
 					unlink($deviceFolder.'/lock');
 				} else {
 					$toReturn['commands'][] = array('action'=>'lock');
@@ -142,14 +132,15 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
+
 			//populate filtermessage
 			if (!$data['filtermessage'])
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
 					'requireInteraction'=>true,
 					'type'=>'basic',
 					'iconUrl'=>'icon.png',
-					'title'=>$_gFilterMessage["title"],
-					'message'=>$_gFilterMessage["message"]["newtab"],
+					'title'=>$_config['filterMessage']['title'],
+					'message'=>$_config['filterMessage']['message']['newtab'],
 				));
 			//activate server side filter
 			if (!$data['filterviaserver'])
