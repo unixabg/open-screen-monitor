@@ -1,21 +1,13 @@
 <?php
 session_start();
+require('config.php');
 
 //this will need to be setup per site
 //it should be downloaded from the api developers console after it is setup
 //see https://developers.google.com/identity/sign-in/web/sign-in
-$dataDir='../../osm-data';
 $client_secret_file = $dataDir.'/client_secret.json';
 $devices_file = $dataDir.'/devices.tsv';
-$global_defaults_file = $dataDir.'/defaults.php';
 $permissions_file = $dataDir.'/permissions.tsv';
-
-//pull in global defaults
-if ($global_defaults_file) {
-	include $global_defaults_file;
-} else {
-	die('Missing osm-data/defaults.php file');
-}
 
 //load variables
 if (file_exists($client_secret_file)) {
@@ -302,7 +294,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])
 		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a><br />";
 }
-echo "<br />Version ".$_gVersion;
+echo "<br />Version ".$_config['version'];
 ?>
 </body>
 </html>
