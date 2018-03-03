@@ -167,6 +167,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			}).fail(function(){
 				setTimeout(updateAllImages,4000);
 			});
+			updateMeta();
 		}
 
 		function closeTab(dev,id) {
