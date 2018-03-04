@@ -12,6 +12,10 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	if ($data['deviceID'] == '') $data['deviceID'] = 'unknown';
 
+	if (!isset($data['type']))$data['type'] = 'unknown';
+	$data['type'] = preg_replace("/[^a-z0-9-]/","",$data['type']);
+	if ($data['type'] == '') $data['type'] = 'unknown';
+
 
 	$data['url'] = str_replace("\t","",$data['url']);
 	$data['url'] = str_replace("\n","",$data['url']);
@@ -26,7 +30,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//log it
-	$logentry = $action."\t".time()."\t".$data['url']."\n";
+	$logentry = $action."\t".time()."\t".$data['type']."\t".$data['url']."\n";
 	$logDir .= $data['username']."_".$data['domain']."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['deviceID']."/";
