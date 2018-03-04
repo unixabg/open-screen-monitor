@@ -233,5 +233,5 @@ input[type="radio"]:checked + label span.radio::after {
 }
 
 div.locked {
-	border: 1px solid red !important;
+	border: 5px solid red !important;
 }

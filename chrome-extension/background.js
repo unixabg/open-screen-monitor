@@ -54,7 +54,7 @@ getManagedProperties();
 //setup filter
 /////////////////
 function filterPage(nextPageDetails) {
-	//any page on the osm server can be scipped
+	//any page on the osm server can be skipped
 	if (nextPageDetails.url.indexOf(uploadURL) == 0){return;}
 
 
