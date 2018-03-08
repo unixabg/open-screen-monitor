@@ -81,12 +81,15 @@ if (isset($_POST['data'])) {
 						//test each tab against the filterlist
 						foreach ($filterlist as $i=>$value) {
 							$foundMatch = preg_match("/$value/i", $tab['url']);
-							if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
-								//filter violation found so append to closetab
-								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
-								//notify the user we dropped the tab
-								file_put_contents($deviceFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
+							if ($foundMatch) {
+								break;
 							}
+						}
+						if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
+							//filter violation found so append to closetab
+							file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
+							//notify the user we dropped the tab
+							file_put_contents($deviceFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 						}
 					}
 				}
