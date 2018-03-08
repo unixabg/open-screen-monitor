@@ -36,12 +36,15 @@ if (isset($_GET['images'])) {
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
+	//time,user who requested the action,action,other action related information
+	file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tlocked\t\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
 	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
+	file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tunlocked\t\n",FILE_APPEND);
 	touch($_actionPath.'/unlock');
 	die();
 }
@@ -49,18 +52,22 @@ if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock'
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
+	file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	//FIXME - add title of tab later
+	file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tclosetab\t\n",FILE_APPEND);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
+	file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n",FILE_APPEND);
 	die();
 }
 
@@ -95,9 +102,11 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$_devicePath = $dataDir.'/devices/'.$deviceID.'/';
-		file_put_contents($_devicePath.'filtermode',$_POST['filtermode']);
-		file_put_contents($_devicePath.'filterlist',$_POST['filterlist']);
+		$_actionPath = $dataDir.'/devices/'.$deviceID.'/';
+		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
+		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
+		file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n",FILE_APPEND);
+		file_put_contents($_actionPath.'/log',time()."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n",FILE_APPEND);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
