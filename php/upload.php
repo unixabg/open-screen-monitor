@@ -137,7 +137,7 @@ if (isset($_POST['data'])) {
 			}
 
 			//populate filtermessage
-			if (!$data['filtermessage'])
+			if (!$data['filtermessage']){
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
 					'requireInteraction'=>true,
 					'type'=>'basic',
@@ -145,19 +145,18 @@ if (isset($_POST['data'])) {
 					'title'=>$_config['filterMessage']['title'],
 					'message'=>$_config['filterMessage']['message']['newtab'],
 				));
-			//activate server side filter
-			if (!$data['filterviaserver'])
-				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);
+			}
 		} else {
 			//deviceID not set
 
-			//activate server side filter
-			if (!$data['filterviaserver'])
-				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>true);
 			//up the refresh since this is probably a personal or atleast non-chromebook device and
 			//we don't really care except for maybe eventually enabling the filter so it follows them even on those devices
 			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
 		}
+		//(de)activate server side filter
+		if ($_config['filterviaserver'] != $data['filterviaserver'])
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>$_config['filterviaserver']);
+
 		//show startup notification
 		if ($_config['showStartupNotification'] && !isset($data['startupNotification'])){
 			$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
