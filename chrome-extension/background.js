@@ -23,7 +23,8 @@ var data = {
 	filterlisttime:0,
 	filtermessage:[],
 	filterblockpage:"",
-	filterviaserver:false
+	filterviaserver:false,
+	uploadInProgress:false
 }
 //get deviceID
 if ("undefined" !== typeof(chrome["enterprise"])) {
@@ -165,7 +166,6 @@ function step3PhoneHome() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.open("POST", uploadURL+'upload.php', true);
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	xhttp.send("data=" + encodeURIComponent(JSON.stringify(data)));
 	xhttp.onload = function() {
 		//see if we need to do anything
 		var response = JSON.parse(this.responseText);
@@ -218,6 +218,16 @@ function step3PhoneHome() {
 				} catch (e) {console.log(e);}
 			}
 		}
+		data.uploadInProgress = false;
 	};
+	xhttp.onerror = function() {
+		data.uploadInProgress = false;
+	}
+	if (!data.uploadInProgress){
+		data.uploadInProgress = true;
+		xhttp.send("data=" + encodeURIComponent(JSON.stringify(data)));
+	} else {
+		console.log("Skipping upload since one is already in progress");
+	}
 }
 monitorTimer = setInterval(step1RefreshTabs,data.refreshTime);

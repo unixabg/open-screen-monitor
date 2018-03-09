@@ -11,7 +11,7 @@ if (!file_exists($logDir)) mkdir($logDir,0755,true);
 
 //start config
 //set system wide version for php scripts
-$_config['version']='0.2.0.2';
+$_config['version']='0.2.0.3';
 
 //set the default time chrome will wait between phone home attempst to the upload script
 $_config['uploadRefreshTime']=9000;
@@ -29,7 +29,7 @@ $_config['filterMessage'] = array(
 );
 
 $_config['showStartupNotification'] = false;
-
+$_config['filterviaserver'] = false;
 
 
 //overlay settings from config file
