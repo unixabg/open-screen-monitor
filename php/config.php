@@ -29,7 +29,7 @@ $_config['filterMessage'] = array(
 );
 
 $_config['showStartupNotification'] = false;
-
+$_config['filterviaserver'] = false;
 
 
 //overlay settings from config file
