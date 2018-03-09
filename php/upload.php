@@ -81,12 +81,15 @@ if (isset($_POST['data'])) {
 						//test each tab against the filterlist
 						foreach ($filterlist as $i=>$value) {
 							$foundMatch = preg_match("/$value/i", $tab['url']);
-							if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
-								//filter violation found so append to closetab
-								file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
-								//notify the user we dropped the tab
-								file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
+							if ($foundMatch) {
+								break;
 							}
+						}
+						if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
+							//filter violation found so append to closetab
+							file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
+							//notify the user we dropped the tab
+							file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
 						}
 					}
 				}
