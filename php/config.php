@@ -19,6 +19,9 @@ $_config['uploadRefreshTime']=9000;
 //set lock file timeout to avoid locking on stale lock request
 $_config['lockTimeout']=300;
 
+//set max number of device log entries to retain
+$_config['logmax']=100;
+
 //set the OSM lab filter message
 $_config['filterMessage'] = array(
 	'title' => 'OSM Server says ... ',
