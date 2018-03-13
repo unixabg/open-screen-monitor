@@ -160,7 +160,13 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				return false;
 			});
 
-			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a><br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+			var info = $("<div class=\"info\">"+
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){console.log('Log data: ',data);});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a>" +
+				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"log\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
