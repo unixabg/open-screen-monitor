@@ -382,7 +382,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				}
 			});
 
-			$('#applyfilter]').click(function (){
+			$('#applyfilter').click(function (){
 				$(this).hide();
 			});
 		});
