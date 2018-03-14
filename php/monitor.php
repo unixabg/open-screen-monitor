@@ -52,7 +52,7 @@ if (isset($_GET['images'])) {
 // Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir.'/devices'
 if (isset($_POST['log']) && isset($_SESSION['alloweddevices'][$_POST['log']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['log'];
-	die(file_get_contents($_actionPath.'/log'));
+	die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($_actionPath.'/log')));
 }
 
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
@@ -137,8 +137,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<title>Open Screen Monitor</title>
 	<meta http-equiv="refresh" content="3600">
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
 	<link rel="stylesheet" href="./style.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 	<script type="text/javascript">
 		var imgcss = {'width':400,'height':300,'fontsize':14,'multiplier':1};
@@ -165,8 +167,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#div_"+dev+" .log').html(data);});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a>" +
-				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"log\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a>" +
+				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
@@ -367,6 +369,19 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			updateAllImages();
 			$('#applyfilter').hide();
 
+			$("#logdialog").dialog({
+				dialogClass: 'logdialog',
+				show: {
+					effect: "blind",
+					duration: 1000
+				},
+				hide: {
+					effect: "fade",
+					duration: 1000
+				},
+				autoOpen: false
+			});
+
 			$('#showmenu').click(function(){
 				$('#menu').show();
 				$(this).hide();
@@ -457,6 +472,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<div id="inactivedevs"></div>
 	</div>
 </div>
+<div id="logdialog" title="Device Log"></div>
 <!-- <?php print_r($_SESSION); ?>-->
 </body>
 </html>
