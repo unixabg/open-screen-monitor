@@ -167,7 +167,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a>" +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"FIXME Device log.\"></i></a>" +
 				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
@@ -472,7 +472,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<div id="inactivedevs"></div>
 	</div>
 </div>
-<div id="logdialog" title="Device Log"></div>
+<div id="logdialog"></div>
 <!-- <?php print_r($_SESSION); ?>-->
 </body>
 </html>
