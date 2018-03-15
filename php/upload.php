@@ -1,12 +1,13 @@
 <?php
+require('config.php');
 
-$dataDir='../../osm-data';
+$toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
 	if (isset($data['deviceID'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		if ($deviceID != "") {
-			$deviceFolder=$dataDir.'/'.$deviceID;
+			$deviceFolder=$dataDir.'/devices/'.$deviceID;
 			//create device folder if it doesn't exist
 			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 			//ping file for status
@@ -38,9 +39,8 @@ if (isset($_POST['data'])) {
 				unlink($deviceFolder.'/tabs');
 			}
 			//send commands back
-			$toReturn = array();
 			//set the refresh time
-			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>9000);
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_config['uploadRefreshTime']);
 			if (file_exists($deviceFolder.'/openurl')) {
 				$urls = file_get_contents($deviceFolder.'/openurl');
 				$urls = explode("\n",$urls);
@@ -89,7 +89,7 @@ if (isset($_POST['data'])) {
 							//filter violation found so append to closetab
 							file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 							//notify the user we dropped the tab
-							file_put_contents($deviceFolder.'/messages',"OSM Server says ... \tAn active tab of: ".$tab['url']." violated the filter policy and was closed.\n",FILE_APPEND);
+							file_put_contents($deviceFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 						}
 					}
 				}
@@ -105,9 +105,13 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/closetab');
 			}
-			if (file_exists($deviceFolder.'/lock')) {
-				$toReturn['commands'][] = array('action'=>'lock');
-				unlink($deviceFolder.'/lock');
+			if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
+				//avoid locking with stale lock file
+				if (filemtime($deviceFolder.'/lock') <= time() - $_config['lockTimeout'] ) {
+					unlink($deviceFolder.'/lock');
+				} else {
+					$toReturn['commands'][] = array('action'=>'lock');
+				}
 			}
 			if (file_exists($deviceFolder.'/unlock')) {
 				$toReturn['commands'][] = array('action'=>'unlock');
@@ -131,9 +135,41 @@ if (isset($_POST['data'])) {
 				}
 				unlink($deviceFolder.'/messages');
 			}
-			//send it back
-			header('Content-Type: application/json');
-			die(json_encode($toReturn));
+
+			//populate filtermessage
+			if (!$data['filtermessage']){
+				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
+					'requireInteraction'=>true,
+					'type'=>'basic',
+					'iconUrl'=>'icon.png',
+					'title'=>$_config['filterMessage']['title'],
+					'message'=>$_config['filterMessage']['message']['newtab'],
+				));
+			}
+		} else {
+			//deviceID not set
+
+			//up the refresh since this is probably a personal or atleast non-chromebook device and
+			//we don't really care except for maybe eventually enabling the filter so it follows them even on those devices
+			$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>10*60*1000);
+		}
+		//(de)activate server side filter
+		if ($_config['filterviaserver'] != $data['filterviaserver'])
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>$_config['filterviaserver']);
+
+		//show startup notification
+		if ($_config['showStartupNotification'] && !isset($data['startupNotification'])){
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);
+			$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
+				'type'=>'basic',
+				'iconUrl'=>'icon.png',
+				'title'=>'Open Screen Monitor starting...',
+				'message'=>'The account '.$data['username'].'@'.$data['domain'].' is under a managed policy.',
+			));
 		}
 	}
 }
+
+//send it back
+header('Content-Type: application/json');
+die(json_encode($toReturn));

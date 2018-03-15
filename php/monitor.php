@@ -1,5 +1,6 @@
 <?php
 session_start();
+require('config.php');
 
 //Authenticate here
 if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
@@ -8,10 +9,23 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	die();
 }
 
-
-//set data path
-$dataDir='../../osm-data';
-
+function logger($filename, $information, $logmax) {
+	//$information should be of the format: time<tab>user who requested the action<tab>action<tab>other action related information
+	file_put_contents($filename,$information,FILE_APPEND);
+	$lines = file($filename, FILE_IGNORE_NEW_LINES);
+	$mycount = count($lines);
+	if ($mycount>$logmax) {
+		$newcount=count($lines)-$logmax;
+		for ($i=$newcount; $i<$mycount;$i++) {
+			//echo "Dumping array entry to file ".$i."\n";
+			if ($i==$newcount) {
+				file_put_contents($filename,$lines[$i]."\n");
+			} else {
+				file_put_contents($filename,$lines[$i]."\n",FILE_APPEND);
+			}
+		}
+	}
+}
 
 //return all images after ctime
 if (isset($_GET['images'])) {
@@ -19,7 +33,7 @@ if (isset($_GET['images'])) {
 	$toReturn = array();
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$file = $dataDir.'/'.$deviceID.'/screenshot.jpg';
+		$file = $dataDir.'/devices/'.$deviceID.'/screenshot.jpg';
 		// Assure who needs access here FIXME
 		if (is_readable($file) && filemtime($file) >= time() - 30 ) {
 			$toReturn[$deviceID] = base64_encode(file_get_contents($file));
@@ -35,47 +49,60 @@ if (isset($_GET['images'])) {
 	die(json_encode($toReturn));
 }
 
-// Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir
+// Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir.'/devices'
+if (isset($_POST['log']) && isset($_SESSION['alloweddevices'][$_POST['log']])) {
+	$_actionPath = $dataDir.'/devices/'.$_POST['log'];
+	die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($_actionPath.'/log')));
+}
+
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-	$_actionPath = $dataDir.'/'.$_POST['lock'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
+	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-	$_actionPath = $dataDir.'/'.$_POST['unlock'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
+	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
+	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 	touch($_actionPath.'/unlock');
 	die();
 }
 
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-	$_actionPath = $dataDir.'/'.$_POST['openurl'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
+	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-	$_actionPath = $dataDir.'/'.$_POST['closetab'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+	//FIXME - add title of tab later
+	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
-	$_actionPath = $dataDir.'/'.$_POST['sendmessage'];
+	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
+	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$folder = $dataDir.'/'.$deviceID.'/';
+		$folder = $dataDir.'/devices/'.$deviceID.'/';
 		$data[$deviceID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
 
 		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
 			$data[$deviceID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
 			$data[$deviceID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
 			$data[$deviceID]['tabs'] = "";
+			$data[$deviceID]['locked'] = file_exists($folder.'lock');
 			if (file_exists($folder.'tabs')) {
 				$temp = json_decode(file_get_contents($folder.'tabs'),true);
 				foreach ($temp as $tab) {
@@ -96,9 +123,11 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$_devicePath = $dataDir.'/'.$deviceID.'/';
-		file_put_contents($_devicePath.'filtermode',$_POST['filtermode']);
-		file_put_contents($_devicePath.'filterlist',$_POST['filterlist']);
+		$_actionPath = $dataDir.'/devices/'.$deviceID.'/';
+		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
+		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
+		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
@@ -108,8 +137,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<title>Open Screen Monitor</title>
 	<meta http-equiv="refresh" content="3600">
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
 	<link rel="stylesheet" href="./style.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 	<script type="text/javascript">
 		var imgcss = {'width':400,'height':300,'fontsize':14,'multiplier':1};
@@ -131,7 +162,13 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				return false;
 			});
 
-			var info = $("<div class=\"info\"><a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | <a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a><br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
+			var info = $("<div class=\"info\">"+
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a>" +
+				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
 			div.attr("id","div_" + dev);
@@ -158,6 +195,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			}).fail(function(){
 				setTimeout(updateAllImages,4000);
 			});
+			updateMeta();
 		}
 
 		function closeTab(dev,id) {
@@ -213,7 +251,12 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 							//update username
 							$('#div_'+dev+' h1').html(data[dev].username+' ('+data[dev].name+')');
 							$('#div_'+dev+' div.tabs').html(data[dev].tabs);
-							$('#div_'+dev).data('name',data[dev].name);
+							thisdiv.data('name',data[dev].name);
+							if (data[dev].locked){
+								if (!thisdiv.hasClass('locked')) {thisdiv.addClass('locked');}
+							} else {
+								if (thisdiv.hasClass('locked')) {thisdiv.removeClass('locked');}
+							}
 
 							URLdata = URLdata + "<div class=\"hline\" style=\"height:2px\"></div><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br />'+$('#div_'+dev+' div.info').html();
 						}
@@ -326,6 +369,19 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			updateAllImages();
 			$('#applyfilter').hide();
 
+			$("#logdialog").dialog({
+				dialogClass: 'logdialog',
+				show: {
+					effect: "blind",
+					duration: 1000
+				},
+				hide: {
+					effect: "fade",
+					duration: 1000
+				},
+				autoOpen: false
+			});
+
 			$('#showmenu').click(function(){
 				$('#menu').show();
 				$(this).hide();
@@ -347,7 +403,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				}
 			});
 
-			$('#applyfilter]').click(function (){
+			$('#applyfilter').click(function (){
 				$(this).hide();
 			});
 		});
@@ -379,14 +435,14 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$deviceID = array_keys($_SESSION['alloweddevices'])[0];
 	$filtermode = "";
 	$filterlist = "";
-	if (file_exists($dataDir.'/'.$deviceID.'/filtermode') && file_exists($dataDir.'/'.$deviceID.'/filterlist')){
-		$filtermode = file_get_contents($dataDir.'/'.$deviceID.'/filtermode');
-		$filterlist = file_get_contents($dataDir.'/'.$deviceID.'/filterlist');
+	if (file_exists($dataDir.'/devices/'.$deviceID.'/filtermode') && file_exists($dataDir.'/devices/'.$deviceID.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/devices/'.$deviceID.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/devices/'.$deviceID.'/filterlist');
 	} else {
 		$filtermode = "disabled";
 	}
 	?>
-	<h3>Lab Filter (Beta)</h3>
+		<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_config['version']; ?>
 	<div class="hline" style="height:2px"></div>
 	<form id="filter" method="post" target="_blank" action="?filter">
 		<section id="first" class="section">
@@ -416,6 +472,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<div id="inactivedevs"></div>
 	</div>
 </div>
+<div id="logdialog"></div>
 <!-- <?php print_r($_SESSION); ?>-->
 </body>
 </html>

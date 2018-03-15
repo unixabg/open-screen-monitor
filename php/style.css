@@ -231,3 +231,17 @@ input[type="radio"]:checked + label span.radio::after {
   display:none;
   background-color:white;
 }
+
+div.locked {
+  border: 5px solid red !important;
+}
+
+#logdialog {
+  display:none;
+}
+
+.ui-dialog.logdialog {
+  overflow: auto;
+  min-width: 500px;
+  max-height: 600px;
+}

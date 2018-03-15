@@ -1,10 +1,10 @@
 <?php
 session_start();
+require('config.php');
 
 //this will need to be setup per site
 //it should be downloaded from the api developers console after it is setup
 //see https://developers.google.com/identity/sign-in/web/sign-in
-$dataDir='../../osm-data';
 $client_secret_file = $dataDir.'/client_secret.json';
 $devices_file = $dataDir.'/devices.tsv';
 $permissions_file = $dataDir.'/permissions.tsv';
@@ -292,8 +292,9 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		."&response_type=code"
 		."&client_id=".$client_secret->web->client_id
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])
-		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a>";
+		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a><br />";
 }
+echo "<br />Version ".$_config['version'];
 ?>
 </body>
 </html>
