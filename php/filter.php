@@ -30,7 +30,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//log it
-	$logentry = $action."\t".time()."\t".$data['type']."\t".$data['url']."\n";
+	$logentry = $action."\t".date('Ymdhis',time())."\t".$data['type']."\t".$data['url']."\n";
 	$logDir .= $data['username']."_".$data['domain']."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['deviceID']."/";
