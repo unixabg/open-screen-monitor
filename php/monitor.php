@@ -17,7 +17,7 @@ function logger($filename, $information, $logmax) {
 	if ($mycount>$logmax) {
 		$newcount=count($lines)-$logmax;
 		for ($i=$newcount; $i<$mycount;$i++) {
-			echo "Dumping array entry ".$i."\n";
+			//echo "Dumping array entry to file ".$i."\n";
 			if ($i==$newcount) {
 				file_put_contents($filename,$lines[$i]."\n");
 			} else {
