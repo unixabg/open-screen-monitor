@@ -153,6 +153,7 @@ if (isset($_GET['logout'])) {
 	if ($changesMade){
 		//sort permissions by email
 		ksort($permissions);
+
 		$data = "";
 		foreach ($permissions as $email=>$_labs){
 			$_labs = array_unique($_labs);
@@ -255,6 +256,27 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			}
 			echo "</tbody></table>";
 		}
+	} elseif (isset($_GET['config']) && $_SESSION['admin']) {
+		echo "<h2>Config Editor (must be a valid JSON object)</h2>";
+		if (isset($_POST['configjson'])){
+			$newConfig = json_decode($_POST['configjson'],true);
+
+			if (is_array($newConfig)){
+				if (file_put_contents($dataDir.'/config.json',$_POST['configjson'])){
+					$_config = array_merge($_config,$newConfig);
+					echo "<h3>Successfully Saved JSON</h3>";
+				} else {
+					echo "<h3>Error Saving Config to config.json</h3>";
+				}
+			} else {
+				echo "<h3>Error in parsing JSON</h3>";
+			}
+		}
+		//unset variables that shouldn't be set by user
+		$tempConfig = $_config;
+		unset($tempConfig['version']);
+		echo "<form method=\"post\"><textarea name=\"configjson\" style=\"width:100%;height:400px;\">".htmlentities(json_encode($tempConfig,JSON_PRETTY_PRINT))."</textarea><br /><input type=\"submit\" value=\"Save Config\"/></form>";
+
 	} else {
 		//the user is at the home (show labs) screen
 		?>
@@ -283,6 +305,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			<ul style="text-align:left;">
 				<li><a href="?syncdevices" >Sync Devices</a></li>
 				<li><a href="?permissions">Permissions</a></li>
+				<li><a href="?config">Config Editor</a></li>
 			</ul>
 		</div>
 		<?php

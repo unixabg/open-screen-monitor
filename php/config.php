@@ -10,6 +10,7 @@ $logDir = $dataDir.'/logs/';
 if (!file_exists($logDir)) mkdir($logDir,0755,true);
 
 //start config
+//Don't modify these values in this script. Use config.json in $dataDir instead.
 //set system wide version for php scripts
 $_config['version']='0.2.0.3';
 
