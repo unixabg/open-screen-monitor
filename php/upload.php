@@ -1,6 +1,10 @@
 <?php
 require('config.php');
 
+if (isset($_POST['connectiontest'])) {
+	die('SUCCESS');
+}
+
 $toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
