@@ -64,6 +64,8 @@ function checkToken($token) {
 			$_SESSION['validuntil'] = $data->exp;
 
 			$myPermissions = isset($permissions[$_SESSION['email']]) ? $permissions[$_SESSION['email']] : array();
+
+			$_SESSION['admin'] = in_array('admin',$myPermissions);
 			return true;
 		}
 	}
@@ -98,7 +100,7 @@ if (isset($_GET['logout'])) {
 	header('Location: ?');
 	die();
 } elseif (isset($_GET['lab']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
-	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || in_array('admin',$permissions[$_SESSION['email']]))) {
+	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || $_SESSION['admin'] )) {
 		//they have permission to this lab
 		$_SESSION['alloweddevices'] = array();
 		//prefix data dir to each device
@@ -112,13 +114,17 @@ if (isset($_GET['logout'])) {
 			$_SESSION['lab'] = $_GET['lab'];
 			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
 		}
+
+		//sort the allowed devices array
+		asort($_SESSION['alloweddevices']);
+
 		header('Location: monitor.php');
 	} else {
 		//they don't have permission to this lab but are valid, redirect back
 		header('Location: ?');
 	}
 	die();
-} elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && in_array('admin',$myPermissions)){
+} elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']){
 	$changesMade = false;
 	if (isset($_POST['emails']) && isset($_POST['labs']) && is_array($_POST['labs'])){
 		$emails = explode(";",$_POST['emails']);
@@ -145,9 +151,12 @@ if (isset($_GET['logout'])) {
 
 	//save changes to file
 	if ($changesMade){
+		//sort permissions by email
+		ksort($permissions);
 		$data = "";
 		foreach ($permissions as $email=>$_labs){
 			$_labs = array_unique($_labs);
+			ksort($_labs);
 			foreach ($_labs as $lab){
 				if ($data != '') $data .= "\n";
 				$data .= $email."\t".$lab;
@@ -218,7 +227,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		} else {
 			echo "<h1>No access to chrome devices</h1>";
 		}
-	} elseif (isset($_GET['permissions']) && in_array('admin',$myPermissions)) {
+	} elseif (isset($_GET['permissions']) && $_SESSION['admin']) {
 		echo "<h2>Permissions</h2>";
 		if (isset($_GET['email'])){
 			echo "<form method=\"post\">Username: <input name=\"emails\" value=\"".htmlentities($_GET['email'])."\"/>";
@@ -235,7 +244,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			echo "<br /><input type=\"submit\" class=\"w3-button w3-white w3-border w3-border-blue w3-round-large\" /></form>";
 		} else {
 			echo "<a href=\"?permissions&email\">Add Permissions</a><br /><br />";
-			echo "<table border=\"1\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
+			echo "<table class=\"w3-table-all\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
 			foreach($permissions as $email=>$_labs) {
 				foreach($_labs as $i=>$value){$_labs[$i] = htmlentities($value);}
 				echo "<tr>";
@@ -254,7 +263,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			Here are the labs you have access to:
 			<ul style="text-align:left;">
 			<?php
-			if (in_array('admin',$myPermissions)) {
+			if ($_SESSION['admin']) {
 				//show all devices
 				foreach (array_keys($labs) as $lab) {
 					echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
@@ -268,7 +277,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			?>
 			</ul>
 		</div>
-		<?php if (in_array('admin',$myPermissions) || count($permissions) == 0) { ?>
+		<?php if ($_SESSION['admin'] || count($permissions) == 0) { ?>
 		<div>
 			<h2>Admin Tools</h2>
 			<ul style="text-align:left;">
