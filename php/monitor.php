@@ -208,7 +208,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{screenshot:'"+dev+"'},function(data){alert(data);});return false;\"><i class=\"fas\" title=\"Take Screenshot.\"></i></a>" +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{screenshot:'"+dev+"'},function(data){alert(data);});return false;\"><i class=\"fas fa-camera\" title=\"Take Screenshot.\"></i></a>" +
 				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
