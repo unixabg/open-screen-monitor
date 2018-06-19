@@ -50,13 +50,13 @@ if (isset($_GET['search'])){
 	echo "<tr><td>Date</td><td>Username</td><td>Device</td>".(isset($_GET['showadvanced'])?"<td>IP</td><td>Request Type</td>":"")."<td>URL</td></tr>";
 	echo "</thead><tbody>";
 
-	$logfiles = glob("../../osm-data/logs/$username/$deviceID/$date/*.tsv");
+	$logfiles = glob("../../osm-data/logs/$date/$username/$deviceID/*.tsv");
 
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
-		$username = $logfile[4];
-		$deviceID = $logfile[5];
-		$date = $logfile[6];
+		$date = $logfile[4];
+		$username = $logfile[5];
+		$deviceID = $logfile[6];
 		$ip = substr($logfile[7],0,-4);
 		$url = $ip;
 		if (isset($_SESSION['alloweddevices'][$deviceID]) && $file = fopen($_logfile,"r")) {

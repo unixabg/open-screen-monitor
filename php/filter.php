@@ -31,11 +31,11 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 	//log it
 	$logentry = $action."\t".date('Ymdhis',time())."\t".$data['type']."\t".$data['url']."\n";
+	$logDir .= date('Ymd')."/";
+	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['username']."_".$data['domain']."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['deviceID']."/";
-	if (!file_exists($logDir)) mkdir($logDir,0755,true);
-	$logDir .= date('Ymd')."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logFile = $logDir.str_replace(".",'-',$_SERVER['REMOTE_ADDR']).".tsv";
 	if (!file_exists($logFile)) touch($logFile);
