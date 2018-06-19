@@ -35,7 +35,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['deviceID']."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
-	$logDir .= date('Y-m-d')."/";
+	$logDir .= date('Ymd')."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logFile = $logDir.str_replace(".",'-',$_SERVER['REMOTE_ADDR']).".tsv";
 	if (!file_exists($logFile)) touch($logFile);
