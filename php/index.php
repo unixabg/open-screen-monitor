@@ -276,7 +276,33 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		$tempConfig = $_config;
 		unset($tempConfig['version']);
 		echo "<form method=\"post\"><textarea name=\"configjson\" style=\"width:100%;height:400px;\">".htmlentities(json_encode($tempConfig,JSON_PRETTY_PRINT))."</textarea><br /><input type=\"submit\" value=\"Save Config\"/></form>";
+	} elseif (isset($_GET['serverfilter']) && $_SESSION['admin']) {
+		echo "<h2>Server Filter List</h2>";
+		if (isset($_POST['blacklist'])){
+			if (file_put_contents($dataDir.'/filter_domainblacklist.txt',$_POST['blacklist']))
+				echo "<h3>Successfully Saved Blacklist</h3>";
+			else
+				echo "<h3>Error Saving Blacklist</h3>";
+		}
+		if (isset($_POST['whitelist'])){
+			if (file_put_contents($dataDir.'/filter_domainwhitelist.txt',$_POST['whitelist']))
+				echo "<h3>Successfully Saved Whitelist</h3>";
+			else
+				echo "<h3>Error Saving Whitelist</h3>";
+		}
 
+		echo "<hr />";
+		echo "<form method=\"post\">";
+
+		$data = file_exists($dataDir.'/filter_domainblacklist.txt') ? file_get_contents($dataDir.'/filter_domainblacklist.txt') : '';
+		echo "<h2>Blacklist</h2>";
+		echo "<textarea name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+
+		$data = file_exists($dataDir.'/filter_domainwhitelist.txt') ? file_get_contents($dataDir.'/filter_domainwhitelist.txt') : '';
+		echo "<h2>Whitelist</h2>";
+		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+
+		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
 	} else {
 		//the user is at the home (show labs) screen
 		?>
@@ -306,6 +332,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<li><a href="?syncdevices" >Sync Devices</a></li>
 				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?config">Config Editor</a></li>
+				<li><a href="?serverfilter">Server Filter Lists</a></li>
 			</ul>
 		</div>
 		<?php
