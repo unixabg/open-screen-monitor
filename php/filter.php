@@ -24,14 +24,42 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	//determine action
 	$action = 'ALLOW';
 	$blockPageParameters = '';
-	//TODO
+	$url = parse_url($data['url']);
 
-	if ($data['deviceID'] == 'test'){$action='BLOCK';$blockPageParameters = 'test=test';}
+	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($url['host']) && file_exists($dataDir.'/filter_domainblacklist.txt')){
+		$file = fopen($dataDir.'/filter_domainblacklist.txt',"r");
+		while (($line = fgets($file)) !== false){
+			$line = rtrim($line);
+			//block if domain equal or if a subdomain of domain
+			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+				$action='BLOCK';
+				if ($_config['filterviaserverShowBlockPage']){
+					//todo: pass parameters to block page here
+					$blockPageParameters = 'show';
+				}
+			}
+		}
+		fclose($file);
+	}
+
+	//check the whitelist if there was a ding on the blacklist
+	if ($action == 'BLOCK' && file_exists($dataDir.'/filter_domainwhitelist.txt')){
+		$file = fopen($dataDir.'/filter_domainwhitelist.txt',"r");
+		while (($line = fgets($file)) !== false){
+			$line = rtrim($line);
+			//block if domain equal or if a subdomain of domain
+			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+				$action = 'ALLOW';
+				$blockPageParameters = '';
+			}
+		}
+		fclose($file);
+	}
 
 
 	//log it
 	$logentry = $action."\t".date('Ymdhis',time())."\t".$data['type']."\t".$data['url']."\n";
-	$logDir .= date('Ymd')."/";
+	$logDir .= date('Y-m-d')."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
 	$logDir .= $data['username']."_".$data['domain']."/";
 	if (!file_exists($logDir)) mkdir($logDir,0755,true);
