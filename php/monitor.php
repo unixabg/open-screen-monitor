@@ -58,14 +58,14 @@ if (isset($_POST['log']) && isset($_SESSION['alloweddevices'][$_POST['log']])) {
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
 	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 	touch($_actionPath.'/unlock');
 	die();
 }
@@ -73,7 +73,7 @@ if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock'
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
 	die();
 }
 
@@ -81,21 +81,21 @@ if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['allo
 	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 	//FIXME - add title of tab later
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['screenshot']) && isset($_SESSION['alloweddevices'][$_POST['screenshot']])){
 	$_actionPath = $dataDir.'/devices/'.$_POST['screenshot'];
 	if (file_exists($_actionPath."/screenshot.jpg")){
-		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 
 		$text = "Screenshot: ".date("Y-m-d h:i a")."\r\n\r\n";
 		if (file_exists($_actionPath.'/username')) $text .= "Username: ".file_get_contents($_actionPath.'/username')."\r\n";
@@ -166,8 +166,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$_actionPath = $dataDir.'/devices/'.$deviceID.'/';
 		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
 		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
-		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
-		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
