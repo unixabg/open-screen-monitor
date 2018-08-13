@@ -22,12 +22,47 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//determine action
-	$action = 'ALLOW';
+	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$blockPageParameters = '';
-	//TODO
+	$url = parse_url($data['url']);
 
-	if ($data['deviceID'] == 'test'){$action='BLOCK';$blockPageParameters = 'test=test';}
+	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($url['host']) && file_exists($dataDir.'/filter_domainwhitelist.txt') && file_exists($dataDir.'/filter_domainblacklist.txt')){
+		//first check whitelist
+		$file = fopen($dataDir.'/filter_domainwhitelist.txt',"r");
+		while (($line = fgets($file)) !== false){
+			$line = rtrim($line);
+			//pass if domain equal or if a subdomain of domain
+			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+				$action = 'ALLOW';
+				$blockPageParameters = '';
+				break;
+			}
+		}
+		fclose($file);
 
+		//if no match in whitelist test against the blacklist
+		if ($action == 'SENTRY'){
+			$file = fopen($dataDir.'/filter_domainblacklist.txt',"r");
+			while (($line = fgets($file)) !== false){
+				$line = rtrim($line);
+				//block if domain equal or if a subdomain of domain
+				if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+					$action='BLOCK';
+					if ($_config['filterviaserverShowBlockPage']){
+						//todo: pass parameters to block page here
+						$blockPageParameters = 'show';
+						break;
+					}
+				}
+			}
+			fclose($file);
+		}
+	}
+
+	//if no whitelist or blacklist match default to allow
+	if ($action == 'SENTRY'){
+		$action = 'ALLOW';
+	}
 
 	//log it
 	$logentry = $action."\t".date('YmdHis',time())."\t".$data['type']."\t".$data['url']."\n";

@@ -34,6 +34,7 @@ $_config['filterMessage'] = array(
 
 $_config['showStartupNotification'] = false;
 $_config['filterviaserver'] = false;
+$_config['filterviaserverShowBlockPage'] = false;
 
 
 //overlay settings from config file
