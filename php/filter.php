@@ -49,7 +49,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					$action='BLOCK';
 					if ($_config['filterviaserverShowBlockPage']){
 						//todo: pass parameters to block page here
-						$blockPageParameters = 'show';
+						$blockPageParameters = 'url_host='.$url['host'].'&data_type='.$data['type'].'&data_username='.$data['username'];
 						break;
 					}
 				}
