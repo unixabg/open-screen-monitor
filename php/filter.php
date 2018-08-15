@@ -34,7 +34,6 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 			//pass if domain equal or if a subdomain of domain
 			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
 				$action = 'ALLOW';
-				$blockPageParameters = '';
 				break;
 			}
 		}
