@@ -38,12 +38,25 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 	if (temp.length == 2) {
 		data.username = temp[0];
 		data.domain = temp[1];
+
+		if (uploadURL == ''){
+			//try and guess uploadURL based on domain
+			var xhttp = new XMLHttpRequest();
+			xhttp.open("POST", 'https://osm.'+data.domain+'/upload.php', true);
+			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhttp.onload = function() {
+				if (this.responseText == 'SUCCESS'){
+					uploadURL = "https://osm." + data.domain + "/";
+				}
+			};
+			xhttp.send("connectiontest");
+		}
 	}
 });
 //get managed variables
 function getManagedProperties(){
 	chrome.storage.managed.get(["uploadURL"],function(manageddata) {
-		if ("uploadURL" in manageddata) uploadURL = manageddata.uploadURL;
+		if ("uploadURL" in manageddata && manageddata.uploadURL != '') uploadURL = manageddata.uploadURL;
 	});
 }
 //listen for future changes

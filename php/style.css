@@ -32,6 +32,10 @@
   color: #3369e8;
 }
 
+.svg-inline--fa.fa-camera {
+  color: tomato;
+}
+
 /* Custom tags */
 /* Moden horizontal line */
 .hline {
@@ -68,7 +72,7 @@
 }
 
 .fullscreen h1 {
-  font-size: 2em !important 5%;
+  font-size: 1em !important;
 }
 
 .fullscreen img, .fullscreen div.info {

@@ -58,14 +58,14 @@ if (isset($_POST['log']) && isset($_SESSION['alloweddevices'][$_POST['log']])) {
 if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
 	touch($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
 	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 	touch($_actionPath.'/unlock');
 	die();
 }
@@ -73,7 +73,7 @@ if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock'
 if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
 	file_put_contents($_actionPath.'/openurl',$_POST['url']);
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
 	die();
 }
 
@@ -81,14 +81,54 @@ if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['allo
 	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
 	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 	//FIXME - add title of tab later
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
 	die();
 }
 
 if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
 	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
 	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
-	logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+	die();
+}
+
+if (isset($_POST['screenshot']) && isset($_SESSION['alloweddevices'][$_POST['screenshot']])){
+	$_actionPath = $dataDir.'/devices/'.$_POST['screenshot'];
+	if (file_exists($_actionPath."/screenshot.jpg")){
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+
+		$text = "Screenshot: ".date("Y-m-d h:i a")."\r\n\r\n";
+		if (file_exists($_actionPath.'/username')) $text .= "Username: ".file_get_contents($_actionPath.'/username')."\r\n";
+		if (file_exists($_actionPath.'/tabs')){
+			$tabs = json_decode(file_get_contents($_actionPath.'/tabs'),true);
+			foreach ($tabs as $tab){
+				$text .= "Open Tab: <".$tab['title']."> ".$tab['url']."\r\n";
+			}
+		}
+
+		$uid = md5(uniqid(time()));
+
+		// header
+		$header = "From: Open Screen Monitor <".$_SESSION['email'].">\r\n";
+		$header .= "MIME-Version: 1.0\r\n";
+		$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
+
+		// message & attachment
+		$raw = "--".$uid."\r\n";
+		$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
+		$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+		$raw .= "$text\r\n\r\n";
+		$raw .= "--".$uid."\r\n";
+		$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
+		$raw .= "Content-Transfer-Encoding: base64\r\n";
+		$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
+		$raw .= chunk_split(base64_encode(file_get_contents($_actionPath.'/screenshot.jpg')))."\r\n\r\n";
+		$raw .= "--".$uid."--";
+
+		echo mail($_SESSION['email'], "OSM Screenshot", $raw, $header) ? "Successfully Sent Screenshot To ".$_SESSION['email'] : "Error Sending Screenshot";
+	} else {
+		echo "No Screenshot to send";
+	}
 	die();
 }
 
@@ -126,8 +166,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$_actionPath = $dataDir.'/devices/'.$deviceID.'/';
 		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
 		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
-		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
-		logger($_actionPath.'/log', date('Ymdhis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
+		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
 	}
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
@@ -167,7 +207,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a>" +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{screenshot:'"+dev+"'},function(data){alert(data);});return false;\"><i class=\"fas fa-camera\" title=\"Take Screenshot.\"></i></a>" +
 				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
@@ -442,7 +483,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		$filtermode = "disabled";
 	}
 	?>
-		<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_config['version']; ?>
+	<a href="filterlog.php" target="_blank">View Browsing History</a><hr />
+	<h3>Lab Filter (Beta)</h3> <?php echo "Version ".$_config['version']; ?>
 	<div class="hline" style="height:2px"></div>
 	<form id="filter" method="post" target="_blank" action="?filter">
 		<section id="first" class="section">
