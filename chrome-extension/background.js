@@ -114,19 +114,27 @@ function filterPage(nextPageDetails) {
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
 		var response = xhttp.responseText.split("\n");
-		if (response[0] == 'BLOCK') {
-			try {
+		try {
+			if (response[0] == 'BLOCK') {
 				console.log("Blocking tab: " + nextPageDetails.url);
 				if (response.length == 2) {
 					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
 				} else {
 					chrome.tabs.remove(nextPageDetails.tabId);
 				}
-			} catch (e) {console.log(e);}
-		}
+			} else if (response[0] == 'NOTIFY') {
+				//strip "NOTIFY\n" from response, parse as json, and create notification
+				var notification = JSON.parse(xhttp.responseText.substring(7));
+				chrome.notifications.create("",notification);
+			} else if (response[0] == 'BLOCKNOTIFY') {
+				//strip "BLOCKNOTIFY\n" from response, parse as json, create notification, and close tab
+				var notification = JSON.parse(xhttp.responseText.substring(12));
+				chrome.notifications.create("",notification);
+				chrome.tabs.remove(nextPageDetails.tabId);
+			}
+		} catch (e) {console.log(e);}
 	}
 };
-//chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
 chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"],types:["main_frame","sub_frame","xmlhttprequest"]},["blocking"]);
 
 ////////////////////////
