@@ -56,7 +56,7 @@ if (isset($_GET['search'])){
 	echo "<tr><td>Action</td><td>Date</td><td>Username</td><td>Device</td>".(isset($_GET['showadvanced'])?"<td>IP</td><td>Request Type</td>":"")."<td>URL</td></tr>";
 	echo "</thead><tbody>";
 
-	$logfiles = glob("../../osm-data/logs/$date/$username/$deviceID/*.tsv");
+	$logfiles = glob("$dataDir/logs/$date/$username/$deviceID/*.tsv");
 
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
