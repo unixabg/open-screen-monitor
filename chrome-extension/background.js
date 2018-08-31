@@ -115,22 +115,33 @@ function filterPage(nextPageDetails) {
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
 		var response = xhttp.responseText.split("\n");
 		try {
-			if (response[0] == 'BLOCK') {
-				console.log("Blocking tab: " + nextPageDetails.url);
-				if (response.length == 2) {
-					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
-				} else {
+			switch (response[0]) {
+				case 'ALLOW':
+					//do nothing
+					break;
+				case 'BLOCK':
+					console.log("Blocking tab: " + nextPageDetails.url);
+					if (response.length == 2) {
+						chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
+					} else {
+						chrome.tabs.remove(nextPageDetails.tabId);
+					}
+					break;
+				case 'BLOCKNOTIFY':
+					console.log("Blocking tab with notification: " + nextPageDetails.url);
+					//strip "BLOCKNOTIFY\n" from response, parse as json, create notification, and close tab
+					var notification = JSON.parse(xhttp.responseText.substring(12));
+					chrome.notifications.create("",notification);
 					chrome.tabs.remove(nextPageDetails.tabId);
-				}
-			} else if (response[0] == 'NOTIFY') {
-				//strip "NOTIFY\n" from response, parse as json, and create notification
-				var notification = JSON.parse(xhttp.responseText.substring(7));
-				chrome.notifications.create("",notification);
-			} else if (response[0] == 'BLOCKNOTIFY') {
-				//strip "BLOCKNOTIFY\n" from response, parse as json, create notification, and close tab
-				var notification = JSON.parse(xhttp.responseText.substring(12));
-				chrome.notifications.create("",notification);
-				chrome.tabs.remove(nextPageDetails.tabId);
+					break;
+				case 'NOTIFY':
+					console.log("Notification: " + nextPageDetails.url);
+					//strip "NOTIFY\n" from response, parse as json, and create notification
+					var notification = JSON.parse(xhttp.responseText.substring(7));
+					chrome.notifications.create("",notification);
+					break;
+				default:
+					console.log("Unknown filter action from server of: " + response[0]);
 			}
 		} catch (e) {console.log(e);}
 	}
