@@ -59,7 +59,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
-							'message'=>'Tab was blocked by OSM',
+							'message'=>'Tab with the url of '.$url['host'].' was blocked by OSM',
 						));
 					}
 				}
