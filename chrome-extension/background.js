@@ -121,11 +121,7 @@ function filterPage(nextPageDetails) {
 					break;
 				case 'BLOCK':
 					console.log("Blocking tab: " + nextPageDetails.url);
-					if (response.length == 2) {
-						chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
-					} else {
-						chrome.tabs.remove(nextPageDetails.tabId);
-					}
+					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
 					break;
 				case 'BLOCKNOTIFY':
 					console.log("Blocking tab with notification: " + nextPageDetails.url);
