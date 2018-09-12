@@ -114,19 +114,34 @@ function filterPage(nextPageDetails) {
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
 		var response = xhttp.responseText.split("\n");
-		if (response[0] == 'BLOCK') {
-			try {
-				console.log("Blocking tab: " + nextPageDetails.url);
-				if (response.length == 2) {
+		try {
+			switch (response[0]) {
+				case 'ALLOW':
+					//do nothing
+					break;
+				case 'BLOCK':
+					console.log("Blocking tab: " + nextPageDetails.url);
 					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
-				} else {
+					break;
+				case 'BLOCKNOTIFY':
+					console.log("Blocking tab with notification: " + nextPageDetails.url);
+					//strip "BLOCKNOTIFY\n" from response, parse as json, create notification, and close tab
+					var notification = JSON.parse(xhttp.responseText.substring(12));
+					chrome.notifications.create("",notification);
 					chrome.tabs.remove(nextPageDetails.tabId);
-				}
-			} catch (e) {console.log(e);}
-		}
+					break;
+				case 'NOTIFY':
+					console.log("Notification: " + nextPageDetails.url);
+					//strip "NOTIFY\n" from response, parse as json, and create notification
+					var notification = JSON.parse(xhttp.responseText.substring(7));
+					chrome.notifications.create("",notification);
+					break;
+				default:
+					console.log("Unknown filter action from server of: " + response[0]);
+			}
+		} catch (e) {console.log(e);}
 	}
 };
-//chrome.webNavigation.onBeforeNavigate.addListener(filterPage);
 chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"],types:["main_frame","sub_frame","xmlhttprequest"]},["blocking"]);
 
 ////////////////////////

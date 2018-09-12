@@ -57,34 +57,39 @@ if (isset($_GET['search'])){
 	echo "</thead><tbody>";
 
 	$logfiles = glob("$dataDir/logs/$date/$username/$deviceID/*.tsv");
-
+	$_myTmpCnt=0;
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
-		$date = $logfile[4];
-		$username = $logfile[5];
-		$deviceID = $logfile[6];
-		$ip = substr($logfile[7],0,-4);
+		//get the data positions
+		$datapos=sizeof($logfile);
+		$date = $logfile[$datapos-4];
+		$username = $logfile[$datapos-3];
+		$deviceID = $logfile[$datapos-2];
+		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if (isset($_SESSION['alloweddevices'][$deviceID]) && $file = fopen($_logfile,"r")) {
-			$device = htmlentities($_SESSION['alloweddevices'][$deviceID]);
-			while (($line = fgets($file)) !== false) {
-				$line = explode("\t",$line);
-
-				if (count($line) == 4){
-					$lineaction = $line[0];
-					$date = $line[1];
-					$type = $line[2];
-					$url = $line[3];
-					if ( (isset($_GET['showadvanced']) || $type == 'mainframe') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
-						echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
-						if (isset($_GET['showadvanced'])) {
-							echo "<td>$ip</td><td>$type</td>";
+		if (isset($_SESSION['alloweddevices'][$deviceID])){
+			if ($file = fopen($_logfile,"r")){
+				$device = htmlentities($_SESSION['alloweddevices'][$deviceID]);
+				while (($line = fgets($file)) !== false) {
+					$line = explode("\t",$line);
+					if (count($line) == 4){
+						$lineaction = $line[0];
+						$date = $line[1];
+						$type = $line[2];
+						$url = $line[3];
+						if ( (isset($_GET['showadvanced']) || $type == 'mainframe') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+							echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
+							if (isset($_GET['showadvanced'])) {
+								echo "<td>$ip</td><td>$type</td>";
+							}
+							echo "<td>".htmlentities($url)."</td></tr>";
 						}
-						echo "<td>".htmlentities($url)."</td></tr>";
 					}
 				}
+				fclose($file);
+			} else {
+				echo "Failed to open $_logfile !";
 			}
-			fclose($file);
 		}
 	}
 
