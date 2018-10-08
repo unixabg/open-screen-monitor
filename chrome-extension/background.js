@@ -41,15 +41,7 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 
 		if (uploadURL == ''){
 			//try and guess uploadURL based on domain
-			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", 'https://osm.'+data.domain+'/upload.php', true);
-			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-			xhttp.onload = function() {
-				if (this.responseText == 'SUCCESS'){
-					uploadURL = "https://osm." + data.domain + "/";
-				}
-			};
-			xhttp.send("connectiontest");
+			uploadURL = "https://osm." + data.domain + "/";
 		}
 	}
 });
@@ -196,7 +188,11 @@ function step3PhoneHome() {
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.onload = function() {
 		//see if we need to do anything
-		var response = JSON.parse(this.responseText);
+		var response = {};
+		try {
+			response = JSON.parse(this.responseText);
+		} catch (e) {console.log(e);}
+
 		if ("commands" in response) {
 			for (var i=0;i<response["commands"].length;i++) {
 				var command = response["commands"][i];
