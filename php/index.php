@@ -96,6 +96,8 @@ if (isset($_GET['logout'])) {
 	if (!checkToken($token))
 		die("Error has occured validating token");
 
+	file_put_contents($logDir.'login.log', date('YmdHis',time())."\t".$_SESSION['email']."\t".$_SERVER['REMOTE_ADDR']."\n" ,FILE_APPEND);
+
 	//redirect them back to self, except this time they will be logged in
 	header('Location: ?');
 	die();
