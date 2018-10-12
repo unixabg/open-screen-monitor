@@ -5,7 +5,13 @@ require('config.php');
 //Authenticate here
 if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	session_destroy();
-	header('Location: index.php?');
+	//if this is a request for images or meta, just silently die or it could crash the browser
+	if (isset($_GET['images']) || isset($_GET['update'])){
+		header('Content-Type: application/json');
+		echo json_encode(array());
+	} else {
+		header('Location: index.php?');
+	}
 	die();
 }
 

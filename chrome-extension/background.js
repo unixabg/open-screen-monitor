@@ -22,8 +22,8 @@ var data = {
 	filterlist:[],
 	filterlisttime:0,
 	filtermessage:[],
-	filterblockpage:"",
 	filterviaserver:false,
+	filterresourcetypes:["main_frame","sub_frame","xmlhttprequest"],
 	uploadInProgress:false
 }
 //get deviceID
@@ -92,7 +92,7 @@ function filterPage(nextPageDetails) {
 
 	//this has to be turned on via the regular syncing mechanism
 	//it defaults to off
-	if (data.filterviaserver){
+	if (data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
 		var tempdata = {
 			url:nextPageDetails.url,
 			type:nextPageDetails.type,
@@ -111,9 +111,13 @@ function filterPage(nextPageDetails) {
 				case 'ALLOW':
 					//do nothing
 					break;
+				case 'CANCEL':
+					return {cancel: true};
+					break;
 				case 'BLOCK':
 					console.log("Blocking tab: " + nextPageDetails.url);
 					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
+					return {cancel: true};
 					break;
 				case 'BLOCKNOTIFY':
 					console.log("Blocking tab with notification: " + nextPageDetails.url);
@@ -121,12 +125,14 @@ function filterPage(nextPageDetails) {
 					var notification = JSON.parse(xhttp.responseText.substring(12));
 					chrome.notifications.create("",notification);
 					chrome.tabs.remove(nextPageDetails.tabId);
+					return {cancel: true};
 					break;
 				case 'NOTIFY':
 					console.log("Notification: " + nextPageDetails.url);
 					//strip "NOTIFY\n" from response, parse as json, and create notification
 					var notification = JSON.parse(xhttp.responseText.substring(7));
 					chrome.notifications.create("",notification);
+					return {cancel: true};
 					break;
 				default:
 					console.log("Unknown filter action from server of: " + response[0]);
@@ -134,7 +140,7 @@ function filterPage(nextPageDetails) {
 		} catch (e) {console.log(e);}
 	}
 };
-chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"],types:["main_frame","sub_frame","xmlhttprequest"]},["blocking"]);
+chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"]},["blocking"]);
 
 ////////////////////////
 //setup the window lock
