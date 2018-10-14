@@ -8,6 +8,7 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	//if this is a request for images or meta, just silently die or it could crash the browser
 	if (isset($_GET['images']) || isset($_GET['update'])){
 		header('Content-Type: application/json');
+		header('X-OSM-Refresh: page');
 		echo json_encode(array());
 	} else {
 		header('Location: index.php?');
@@ -39,12 +40,16 @@ if (isset($_GET['images'])) {
 	$toReturn = array();
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$file = $dataDir.'/devices/'.$deviceID.'/screenshot.jpg';
-		// Assure who needs access here FIXME
-		if (is_readable($file) && filemtime($file) >= time() - 30 ) {
-			$toReturn[$deviceID] = base64_encode(file_get_contents($file));
-		} else {
-			$toReturn[$deviceID] = '';
+		$files = glob($dataDir.'/devices/'.$deviceID.'/*',GLOB_ONLYDIR);
+		foreach ($files as $file){
+			$sessionID = basename($file);
+			$file .= '/screenshot.jpg';
+			// Assure who needs access here FIXME
+			if (is_readable($file) && filemtime($file) >= time() - 30 ) {
+				$toReturn[$deviceID.'_'.$sessionID] = base64_encode(file_get_contents($file));
+			} else {
+				$toReturn[$deviceID.'_'.$sessionID] = '';
+			}
 		}
 	}
 
@@ -56,84 +61,99 @@ if (isset($_GET['images'])) {
 }
 
 // Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir.'/devices'
-if (isset($_POST['log']) && isset($_SESSION['alloweddevices'][$_POST['log']])) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['log'];
-	die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($_actionPath.'/log')));
-}
-
-if (isset($_POST['lock']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['lock'];
-	touch($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
+if (isset($_POST['log'])){
+	if (isset($_SESSION['alloweddevices'][$_POST['log']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['log'];
+		die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($_actionPath.'/log')));
+	}
 	die();
 }
 
-if (isset($_POST['unlock']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['unlock'];
-	if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
-	touch($_actionPath.'/unlock');
+if (isset($_POST['lock'])){
+	if(isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['lock'].'/'.$_POST['sessionID'];
+		touch($_actionPath.'/lock');
+		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
+	}
 	die();
 }
 
-if (isset($_POST['openurl']) && isset($_POST['url']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['openurl'];
-	file_put_contents($_actionPath.'/openurl',$_POST['url']);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
+if (isset($_POST['unlock'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['unlock'].'/'.$_POST['sessionID'];
+		if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
+		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+		touch($_actionPath.'/unlock');
+	}
 	die();
 }
 
-if (isset($_POST['closetab']) && isset($_POST['tabid']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['closetab'];
-	file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
-	//FIXME - add title of tab later
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+if (isset($_POST['openurl']) && isset($_POST['url'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['openurl'].'/'.$_POST['sessionID'];
+		file_put_contents($_actionPath.'/openurl',$_POST['url']);
+		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
+	}
 	die();
 }
 
-if (isset($_POST['sendmessage']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
-	$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'];
-	file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+if (isset($_POST['closetab']) && isset($_POST['tabid'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['closetab'].'/'.$_POST['sessionID'];
+		file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
+		//FIXME - add title of tab later
+		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+	}
 	die();
 }
 
-if (isset($_POST['screenshot']) && isset($_SESSION['alloweddevices'][$_POST['screenshot']])){
-	$_actionPath = $dataDir.'/devices/'.$_POST['screenshot'];
-	if (file_exists($_actionPath."/screenshot.jpg")){
-		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+if (isset($_POST['sendmessage'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'].'/'.$_POST['sessionID'];
+		file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
+		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+	}
+	die();
+}
 
-		$text = "Screenshot: ".date("Y-m-d h:i a")."\r\n\r\n";
-		if (file_exists($_actionPath.'/username')) $text .= "Username: ".file_get_contents($_actionPath.'/username')."\r\n";
-		if (file_exists($_actionPath.'/tabs')){
-			$tabs = json_decode(file_get_contents($_actionPath.'/tabs'),true);
-			foreach ($tabs as $tab){
-				$text .= "Open Tab: <".$tab['title']."> ".$tab['url']."\r\n";
+if (isset($_POST['screenshot'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['screenshot']])){
+		$_actionPath = $dataDir.'/devices/'.$_POST['screenshot']."/".$_POST['sessionID'];
+		if (file_exists($_actionPath."/screenshot.jpg")){
+			logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tscreenshot\t\n", $_config['logmax']);
+
+			$text = "Screenshot: ".date("Y-m-d h:i a")."\r\n\r\n";
+			if (file_exists($_actionPath.'/username')) $text .= "Username: ".file_get_contents($_actionPath.'/username')."\r\n";
+			if (file_exists($_actionPath.'/tabs')){
+				$tabs = json_decode(file_get_contents($_actionPath.'/tabs'),true);
+				foreach ($tabs as $tab){
+					$text .= "Open Tab: <".$tab['title']."> ".$tab['url']."\r\n";
+				}
 			}
+
+			$uid = md5(uniqid(time()));
+
+			// header
+			$header = "From: Open Screen Monitor <".$_SESSION['email'].">\r\n";
+			$header .= "MIME-Version: 1.0\r\n";
+			$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
+
+			// message & attachment
+			$raw = "--".$uid."\r\n";
+			$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
+			$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+			$raw .= "$text\r\n\r\n";
+			$raw .= "--".$uid."\r\n";
+			$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
+			$raw .= "Content-Transfer-Encoding: base64\r\n";
+			$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
+			$raw .= chunk_split(base64_encode(file_get_contents($_actionPath.'/screenshot.jpg')))."\r\n\r\n";
+			$raw .= "--".$uid."--";
+
+			echo mail($_SESSION['email'], "OSM Screenshot", $raw, $header) ? "Successfully Sent Screenshot To ".$_SESSION['email'] : "Error Sending Screenshot";
+		} else {
+			echo "No Screenshot to send";
 		}
-
-		$uid = md5(uniqid(time()));
-
-		// header
-		$header = "From: Open Screen Monitor <".$_SESSION['email'].">\r\n";
-		$header .= "MIME-Version: 1.0\r\n";
-		$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
-
-		// message & attachment
-		$raw = "--".$uid."\r\n";
-		$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
-		$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-		$raw .= "$text\r\n\r\n";
-		$raw .= "--".$uid."\r\n";
-		$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
-		$raw .= "Content-Transfer-Encoding: base64\r\n";
-		$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
-		$raw .= chunk_split(base64_encode(file_get_contents($_actionPath.'/screenshot.jpg')))."\r\n\r\n";
-		$raw .= "--".$uid."--";
-
-		echo mail($_SESSION['email'], "OSM Screenshot", $raw, $header) ? "Successfully Sent Screenshot To ".$_SESSION['email'] : "Error Sending Screenshot";
-	} else {
-		echo "No Screenshot to send";
 	}
 	die();
 }
@@ -141,18 +161,22 @@ if (isset($_POST['screenshot']) && isset($_SESSION['alloweddevices'][$_POST['scr
 if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$folder = $dataDir.'/devices/'.$deviceID.'/';
-		$data[$deviceID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
+		$folders = glob($dataDir.'/devices/'.$deviceID.'/*',GLOB_ONLYDIR);
+		foreach ($folders as $folder){
+			$sessionID = basename($folder);
+			$folder .= '/';
+			$data[$deviceID][$sessionID] = array('name'=>$deviceName,'username'=>'','tabs'=>array(),'folder'=>$folder);
 
-		if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
-			$data[$deviceID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
-			$data[$deviceID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
-			$data[$deviceID]['tabs'] = "";
-			$data[$deviceID]['locked'] = file_exists($folder.'lock');
-			if (file_exists($folder.'tabs')) {
-				$temp = json_decode(file_get_contents($folder.'tabs'),true);
-				foreach ($temp as $tab) {
-					$data[$deviceID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\" title=\"Close this tab.\"></i></a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
+			if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
+				$data[$deviceID][$sessionID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
+				$data[$deviceID][$sessionID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
+				$data[$deviceID][$sessionID]['tabs'] = "";
+				$data[$deviceID][$sessionID]['locked'] = file_exists($folder.'lock');
+				if (file_exists($folder.'tabs')) {
+					$temp = json_decode(file_get_contents($folder.'tabs'),true);
+					foreach ($temp as $tab) {
+						$data[$deviceID][$sessionID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."_".$sessionID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\" title=\"Close this tab.\"></i></a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
+					}
 				}
 			}
 		}
@@ -209,12 +233,12 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			});
 
 			var info = $("<div class=\"info\">"+
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{lock:'"+dev+"'});return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{unlock:'"+dev+"'});return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:var url1 = prompt('Please enter an URL', 'http://'); if (url1 != '') $.post('?',{openurl:'"+dev+"',url:url1});return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:var message1 = prompt('Please enter a message', ''); if (message1 != '') $.post('?',{sendmessage:'"+dev+"',message:message1});return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{log:'"+dev+"'},function(data){$('#logdialog').html(data);$('#logdialog').dialog('open');$('#logdialog').dialog('option','title','"+dev+"');});return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a> | " +
-				"<a href=\"#\" onmousedown=\"javascript:$.post('?',{screenshot:'"+dev+"'},function(data){alert(data);});return false;\"><i class=\"fas fa-camera\" title=\"Take Screenshot.\"></i></a>" +
+				"<a href=\"#\" onmousedown=\"javascript:lockDev('"+dev+"');return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:unlockDev('"+dev+"');return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:openUrl('"+dev+"');return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:sendMessage('"+dev+"');return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:showLog('"+dev+"');return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:screenshot('"+dev+"');return false;\"><i class=\"fas fa-camera\" title=\"Take Screenshot.\"></i></a>" +
 				"<br /><font size=\"4\">Tabs</font><div class=\"hline\"></div><div class=\"tabs\"></div></div>").css({'width':imgcss.width * imgcss.multiplier,'height':imgcss.height * imgcss.multiplier});
 
 			var div = $('<div class=\"dev active\"></div>');
@@ -224,6 +248,49 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			div.append(info);
 
 			$('#activedevs').append(div);
+		}
+
+		function lockDev(dev){
+			var div = $('#div_'+dev);
+			$.post('?',{lock:div.data('dev'),sessionID:div.data('sessionID')});
+		}
+
+		function unlockDev(dev){
+			var div = $('#div_'+dev);
+			$.post('?',{unlock:div.data('dev'),sessionID:div.data('sessionID')});
+		}
+
+		function openUrl(dev){
+			var div = $('#div_'+dev);
+			var url1 = prompt('Please enter an URL', 'http://');
+			if (url1 != '')
+				$.post('?',{openurl:div.data('dev'),sessionID:div.data('sessionID'),url:url1})
+		}
+
+		function sendMessage(dev){
+			var div = $('#div_'+dev);
+			var message1 = prompt('Please enter a message', '');
+			if (message1 != '')
+				$.post('?',{sendmessage:div.data('dev'),sessionID:div.data('sessionID'),message:message1});
+		}
+
+		function showLog(dev){
+			var div = $('#div_'+dev);
+			$.post('?',{log:div.data('dev')},function(data){
+				$('#logdialog').html(data);
+				$('#logdialog').dialog('open');
+				$('#logdialog').dialog('option','title',dev);
+			});
+		}
+
+		function screenshot(dev){
+			var div = $('#div_'+dev);
+			$.post('?',{screenshot:div.data('dev'),sessionID:div.data('sessionID')},function(data){alert(data);})
+		}
+
+		function closeTab(dev,id) {
+			var div = $('#div_'+dev);
+			$.post('?',{closetab:div.data('dev'),sessionID:div.data('sessionID'),tabid:id});
 		}
 
 		function updateAllImages() {
@@ -243,10 +310,6 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				setTimeout(updateAllImages,4000);
 			});
 			updateMeta();
-		}
-
-		function closeTab(dev,id) {
-			$.post('?',{closetab:dev,tabid:id});
 		}
 
 		function refreshZoom(){
@@ -277,38 +340,50 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		}
 
 		function updateMeta() {
-			$.get('?update',function(data){
+			$.get('?update',function(data,textStatus,jqXHR){
+				if (jqXHR.getResponseHeader('X-OSM-Refresh') == 'page'){
+					location.reload(true);
+					return;
+				}
+
 				var URLdata = "";
-				for (var dev in data) {
-					var thisdiv = $('#div_'+dev);
+				for (dev in data) {
+					for (sessionID in data[dev]){
+						var thisdiv = $('#div_'+dev+'_'+sessionID);
+						thisdiv.data('dev',dev);
+						thisdiv.data('sessionID',sessionID);
 
-					if (thisdiv.length == 0 || !thisdiv.first().hasClass('hidden')){
-						if (data[dev].username == "") {
-							$('#div_'+dev).remove();
-							$('#inactivedevs').append("<div id=\"div_" + dev + "\" class=\"dev\">"+data[dev].name+"</div>");
-						} else {
-							//if we don't have an image for the device
-							//add the image for the first time
-							if ($('#img_'+dev).length == 0) {
-								//we may have to delete it from the inactive devices
-								$('#div_'+dev).remove();
-								enableDevice(dev);
-							}
-
-							//update username
-							$('#div_'+dev+' h1').html(data[dev].username+' ('+data[dev].name+')');
-							$('#div_'+dev+' div.tabs').html(data[dev].tabs);
-							thisdiv.data('name',data[dev].name);
-							if (data[dev].locked){
-								if (!thisdiv.hasClass('locked')) {thisdiv.addClass('locked');}
+						if (thisdiv.length == 0 || !thisdiv.first().hasClass('hidden')){
+							if (data[dev][sessionID].username == "") {
+								$('#div_'+dev+'_'+sessionID).remove();
 							} else {
-								if (thisdiv.hasClass('locked')) {thisdiv.removeClass('locked');}
-							}
+								//if we don't have an image for the device
+								//add the image for the first time
+								if ($('#img_'+dev+'_'+sessionID).length == 0) {
+									//we may have to delete it from the inactive devices
+									$('#div_'+dev+'_'+sessionID).remove();
+									enableDevice(dev+'_'+sessionID);
+								}
 
-							URLdata = URLdata + "<div class=\"hline\" style=\"height:2px\"></div><b>"+data[dev].username+' ('+data[dev].name +' - '+data[dev].ip +')</b><br />'+$('#div_'+dev+' div.info').html();
+								//update username
+								$('#div_'+dev+'_'+sessionID+' h1').html(data[dev][sessionID].username+' ('+data[dev][sessionID].name+')');
+								$('#div_'+dev+'_'+sessionID+' div.tabs').html(data[dev][sessionID].tabs);
+								thisdiv.data('name',data[dev][sessionID].name);
+								if (data[dev][sessionID].locked){
+									if (!thisdiv.hasClass('locked')) {thisdiv.addClass('locked');}
+								} else {
+									if (thisdiv.hasClass('locked')) {thisdiv.removeClass('locked');}
+								}
+
+								URLdata = URLdata + "<div class=\"hline\" style=\"height:2px\"></div><b>"+data[dev][sessionID].username+' ('+data[dev][sessionID].name +' - '+data[dev][sessionID].ip +')</b><br />'+$('#div_'+dev+'_'+sessionID+' div.info').html();
+							}
+						} else if (thisdiv.first().hasClass('hidden')){
+							if (data[dev][sessionID].username == "") {
+								$('#div_'+dev+'_'+sessionID).remove();
+							} else {
+								thisdiv.html('*'+data[dev][sessionID].username+'*<br />('+data[dev][sessionID].name+')');
+							}
 						}
-					} else if (thisdiv.first().hasClass('hidden')){
-						thisdiv.html('*'+data[dev].username+'*<br />('+data[dev].name+')');
 					}
 				}
 
@@ -347,18 +422,18 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				refreshZoom();
 			});
 
-			$('#massLock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{lock:id});});});
-			$('#massUnlock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{unlock:id});});});
+			$('#massLock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);lockDev(id);});});
+			$('#massUnlock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);unlockDev(id);});});
 			$('#massOpenurl').click(function(){
 				var url1 = prompt("Please enter an URL", "http://");
 				if (url1 != '')
-					$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{openurl:id,url:url1});});
+					$('#activedevs > div').each(function(){var div = $(this);$.post('?',{openurl:div.data('dev'),sessionID:div.data('sessionID'),url:url1});});
 			});
 
 			$('#massSendmessage').click(function(){
 				var message1 = prompt("Please enter a message", "");
 				if (message1 != '')
-					$('#activedevs > div').each(function(){var id = this.id.substring(4);$.post('?',{sendmessage:id,message:message1});});
+					$('#activedevs > div').each(function(){var div = $(this);$.post('?',{sendmessage:div.data('dev'),sessionID:div.data('sessionID'),message:message1});});
 			});
 
 			$('#massHide').click(function(){

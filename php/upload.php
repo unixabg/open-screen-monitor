@@ -7,9 +7,38 @@ if (isset($_POST['data'])) {
 	if (isset($data['deviceID'])) {
 		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 		if ($deviceID != "") {
-			$deviceFolder=$dataDir.'/devices/'.$deviceID;
 			//create device folder if it doesn't exist
+			$deviceFolder = $dataDir.'/devices/'.$deviceID;
 			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
+
+			//create sessionID if it doesn't exist
+			if (!isset($data['sessionID']) || !is_numeric($data['sessionID'])){
+				//use this time to clear any old sessions
+				$folders = glob($deviceFolder.'/*',GLOB_ONLYDIR);
+				foreach ($folders as $folder){
+					if (!file_exists($folder.'/ping') || filemtime($folder.'/ping') < strtotime("-1 day")){
+						$files = glob($folder.'/*');
+						foreach ($files as $file){
+							unlink($file);
+						}
+						rmdir($folder);
+					}
+				}
+
+				$i = 0;
+				while (true){
+					if (!file_exists($deviceFolder.'/'.$i)){
+						$data['sessionID'] = $i;
+						$toReturn['commands'][] = array('action'=>'setData','key'=>'sessionID','value'=>$data['sessionID']);
+						break;
+					} else {
+						$i++;
+					}
+				}
+			}
+			$deviceFolder .= '/'.$data['sessionID'];
+			if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
+
 			//ping file for status
 			touch($deviceFolder.'/ping');
 			file_put_contents($deviceFolder.'/ip',$_SERVER['REMOTE_ADDR']);
