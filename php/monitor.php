@@ -165,7 +165,7 @@ if (isset($_GET['update'])) {
 		foreach ($folders as $folder){
 			$sessionID = basename($folder);
 			$folder .= '/';
-			$data[$deviceID][$sessionID] = array('name'=>$deviceName,'username'=>'','tabs'=>array(),'folder'=>$folder);
+			$data[$deviceID][$sessionID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
 
 			if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
 				$data[$deviceID][$sessionID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
