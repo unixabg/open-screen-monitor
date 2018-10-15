@@ -22,6 +22,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//determine action
+	$toReturn = array();
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
 	$url = parse_url($data['url']);
@@ -47,21 +48,26 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				//block if domain equal or if a subdomain of domain
 				if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
 					if ($_config['filterviaserverShowBlockPage']){
-						$action='BLOCK';
-						//todo: pass parameters to block page here
-						$parameters = 'url_host='.$url['host'].'&data_type='.$data['type'].'&data_username='.$data['username'];
-						break;
+						$action='BLOCKPAGE';
+						$toReturn['commands'][] = array(
+							'action'=>'BLOCKPAGE',
+							'data'=>'url_host='.urlencode($url['host']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']),
+						);
+						$toReturn['return']['cancel'] = true;
 					} else {
 						//show notification instead
 						$action='BLOCKNOTIFY';
-						$parameters = json_encode(array(
+						$toReturn['commands'][] = array('action'=>'BLOCK');
+						$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
 							'requireInteraction'=>false,
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
 							'message'=>'Tab with the url of '.$url['host'].' was blocked by OSM',
 						));
+						$toReturn['return']['cancel'] = true;
 					}
+					break;
 				}
 			}
 			fclose($file);
@@ -87,7 +93,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//send it back
-	die($action.($parameters != '' ? "\n".$parameters : ""));
+	die(json_encode($toReturn));
 }
 //if we get here, there has been a problem
 die("Error in request");
