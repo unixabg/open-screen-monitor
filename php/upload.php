@@ -171,6 +171,16 @@ if (isset($_POST['data'])) {
 				'message'=>'The account '.$data['username'].'@'.$data['domain'].' is under a managed policy.',
 			));
 		}
+
+		//refresh tabs on load so that we can be sure the filter sees them
+		if (!isset($data['onLoadRefreshed'])){
+			if (isset($data['tabs'])) {
+				foreach ($data['tabs'] as $tab) {
+					$toReturn['commands'][] = array('action'=>'tabsUpdate','tabId'=>$tab['id'],'data'=>array('url'=>$tab['url']));
+				}
+			}
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'onLoadRefreshed','value'=>true);
+		}
 	}
 }
 
