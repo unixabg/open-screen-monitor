@@ -26,9 +26,9 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
 
-	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($data['url']) && file_exists($dataDir.'/filter_domainwhitelist.txt') && file_exists($dataDir.'/filter_domainblacklist.txt')){
+	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($data['url']) && file_exists($dataDir.'/filter_whitelist.txt') && file_exists($dataDir.'/filter_blacklist.txt')){
 		//first check whitelist
-		$file = fopen($dataDir.'/filter_domainwhitelist.txt',"r");
+		$file = fopen($dataDir.'/filter_whitelist.txt',"r");
 		while (($line = fgets($file)) !== false){
 			$line = rtrim($line);
 			//pass if domain equal or if a subdomain of domain
@@ -41,7 +41,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 		//if no match in whitelist test against the blacklist
 		if ($action == 'SENTRY'){
-			$file = fopen($dataDir.'/filter_domainblacklist.txt',"r");
+			$file = fopen($dataDir.'/filter_blacklist.txt',"r");
 			while (($line = fgets($file)) !== false){
 				$line = rtrim($line);
 				//block if domain equal or if a subdomain of domain

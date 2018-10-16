@@ -281,13 +281,13 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	} elseif (isset($_GET['serverfilter']) && $_SESSION['admin']) {
 		echo "<h2>Server Filter List</h2>";
 		if (isset($_POST['blacklist'])){
-			if (file_put_contents($dataDir.'/filter_domainblacklist.txt',$_POST['blacklist']))
+			if (file_put_contents($dataDir.'/filter_blacklist.txt',$_POST['blacklist']))
 				echo "<h3>Successfully Saved Blacklist</h3>";
 			else
 				echo "<h3>Error Saving Blacklist</h3>";
 		}
 		if (isset($_POST['whitelist'])){
-			if (file_put_contents($dataDir.'/filter_domainwhitelist.txt',$_POST['whitelist']))
+			if (file_put_contents($dataDir.'/filter_whitelist.txt',$_POST['whitelist']))
 				echo "<h3>Successfully Saved Whitelist</h3>";
 			else
 				echo "<h3>Error Saving Whitelist</h3>";
@@ -296,11 +296,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<hr />";
 		echo "<form method=\"post\">";
 
-		$data = file_exists($dataDir.'/filter_domainblacklist.txt') ? file_get_contents($dataDir.'/filter_domainblacklist.txt') : '';
+		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
 		echo "<h2>Blacklist</h2>";
 		echo "<textarea name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
-		$data = file_exists($dataDir.'/filter_domainwhitelist.txt') ? file_get_contents($dataDir.'/filter_domainwhitelist.txt') : '';
+		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
 		echo "<h2>Whitelist</h2>";
 		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
