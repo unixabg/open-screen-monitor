@@ -25,15 +25,14 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$toReturn = array();
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
-	$url = parse_url($data['url']);
 
-	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($url['host']) && file_exists($dataDir.'/filter_domainwhitelist.txt') && file_exists($dataDir.'/filter_domainblacklist.txt')){
+	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($data['url']) && file_exists($dataDir.'/filter_domainwhitelist.txt') && file_exists($dataDir.'/filter_domainblacklist.txt')){
 		//first check whitelist
 		$file = fopen($dataDir.'/filter_domainwhitelist.txt',"r");
 		while (($line = fgets($file)) !== false){
 			$line = rtrim($line);
 			//pass if domain equal or if a subdomain of domain
-			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+			if ($line != '' && ($line == $data['url'] || strstr($data['url'],$line)) !== false){
 				$action = 'ALLOW';
 				break;
 			}
@@ -46,12 +45,12 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 			while (($line = fgets($file)) !== false){
 				$line = rtrim($line);
 				//block if domain equal or if a subdomain of domain
-				if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+				if ($line != '' && ($line == $data['url'] || strstr($data['url'],$line)) !== false){
 					if ($_config['filterviaserverShowBlockPage']){
 						$action='BLOCKPAGE';
 						$toReturn['commands'][] = array(
 							'action'=>'BLOCKPAGE',
-							'data'=>'url_host='.urlencode($url['host']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']),
+							'data'=>'url_host='.urlencode($data['url']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']).'&filter_keyword='.urlencode($line),
 						);
 						$toReturn['return']['cancel'] = true;
 					} else {
@@ -63,7 +62,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
-							'message'=>'Tab with the url of '.$url['host'].' was blocked by OSM',
+							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
 						$toReturn['return']['cancel'] = true;
 					}
