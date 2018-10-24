@@ -161,6 +161,7 @@ if (isset($_POST['screenshot'])){
 if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
+		$data[$deviceID] = array();
 		$folders = glob($dataDir.'/devices/'.$deviceID.'/*',GLOB_ONLYDIR);
 		foreach ($folders as $folder){
 			$sessionID = basename($folder);
@@ -214,6 +215,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 	<script type="text/javascript">
 		var imgcss = {'width':400,'height':300,'fontsize':14,'multiplier':1};
+		var deviceNames = <?php echo json_encode($_SESSION['alloweddevices']); ?>
 
 		function enableDevice(dev){
 			var img = $('<img />');
@@ -348,6 +350,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 
 				var URLdata = "";
 				for (dev in data) {
+					var _active = false;
+					$('#div_'+dev).remove();
 					for (sessionID in data[dev]){
 						var thisdiv = $('#div_'+dev+'_'+sessionID);
 						thisdiv.data('dev',dev);
@@ -357,6 +361,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 							if (data[dev][sessionID].username == "") {
 								$('#div_'+dev+'_'+sessionID).remove();
 							} else {
+								_active = true;
 								//if we don't have an image for the device
 								//add the image for the first time
 								if ($('#img_'+dev+'_'+sessionID).length == 0) {
@@ -384,6 +389,10 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 								thisdiv.html('*'+data[dev][sessionID].username+'*<br />('+data[dev][sessionID].name+')');
 							}
 						}
+					}
+
+					if (!_active){
+						$('#inactivedevs').append("<div id=\"div_" + dev + "\" class=\"dev\">"+deviceNames[dev]+"</div>");
 					}
 				}
 
