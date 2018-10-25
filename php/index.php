@@ -50,10 +50,6 @@ function checkToken($token) {
 		$data = json_decode($data);
 
 		if ($data->aud == $client_secret->web->client_id && $data->exp > time() && $data->iss == "https://accounts.google.com") {
-			if (count($permissions) > 0 && !isset($permissions[$data->email])) {
-				die("<h1>Credentials valid. No Permissions</h1>");
-			}
-
 			//they are good
 			$_SESSION['token'] = $token;
 			$_SESSION['email'] = $data->email;
@@ -125,6 +121,48 @@ if (isset($_GET['logout'])) {
 		//they don't have permission to this lab but are valid, redirect back
 		header('Location: ?');
 	}
+	die();
+} elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
+	if ($_config['mode'] == 'user') {
+		//sync devices
+		$context = stream_context_create(array('http' =>array(
+			'method'=>'GET',
+			'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
+		)));
+
+		//links below are a reference for request and response
+		//https://developers.google.com/classroom/reference/rest/v1/courses.students/list
+		$students = array();
+		$url = 'https://classroom.googleapis.com/v1/courses/'.urlencode($_GET['course']).'/students?pageSize=100';
+		$data = file_get_contents($url, false, $context);
+		if ($data !== false) {
+			$data = json_decode($data,true);
+			if (isset($data['students'])){
+				$students = $data['students'];
+				while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
+					$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
+					if ($data === false) return false;
+						$data = json_decode($data,true);
+					$students = array_merge($students,$data['students']);
+				}
+			}
+		}
+		$_SESSION['alloweddevices'] = array();
+		foreach ($students as $student){
+			$email = $student['profile']['emailAddress'];
+			$email = str_replace("@","_",$email);
+			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
+			$_SESSION['alloweddevices'][$email] = $student['profile']['name']['fullName'];
+		}
+		if (count($_SESSION['alloweddevices']) > 0){
+			asort($_SESSION['alloweddevices']);
+			$_SESSION['lab'] = 'CLASS NAME GOES HERE';
+			header('Location: monitor.php');
+			die();
+		}
+	}
+	//they don't have permission to this lab but are valid, redirect back
+	header('Location: ?');
 	die();
 } elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']){
 	$changesMade = false;
@@ -310,22 +348,59 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		?>
 		<h2>Hello <?php echo htmlentities($_SESSION['name'].' ('.$_SESSION['email'].')');?></h2>
 		<div>
-			Here are the labs you have access to:
-			<ul style="text-align:left;">
+			<?php if ($_config['mode'] == 'device'){ ?>
+				Here are the labs you have access to:
+				<ul style="text-align:left;">
+				<?php
+				if ($_SESSION['admin']) {
+					//show all devices
+					foreach (array_keys($labs) as $lab) {
+						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+					}
+				} else {
+					//show just what they can access
+					foreach ($myPermissions as $permission) {
+						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+					}
+				}
+				?>
+				</ul>
 			<?php
-			if ($_SESSION['admin']) {
-				//show all devices
-				foreach (array_keys($labs) as $lab) {
-					echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+			} elseif ($_config['mode'] == 'user'){
+				//sync devices
+				$context = stream_context_create(array('http' =>array(
+					'method'=>'GET',
+					'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
+				)));
+
+				//links below are a reference for request and response
+				//https://developers.google.com/classroom/reference/rest/v1/courses/list
+				$courses = array();
+				$url = 'https://classroom.googleapis.com/v1/courses?pageSize=100&courseStates=ACTIVE'.($_SESSION['admin'] ? '':'&teacherId=me');
+				$data = file_get_contents($url, false, $context);
+				if ($data !== false) {
+					$data = json_decode($data,true);
+					$courses = $data['courses'];
+					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
+						$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
+						if ($data === false) return false;
+							$data = json_decode($data,true);
+						$courses = array_merge($courses,$data['courses']);
+					}
 				}
-			} else {
-				//show just what they can access
-				foreach ($myPermissions as $permission) {
-					echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+				echo "Here are your Google Classroom classes: <ul style=\"text-align:left;\">";
+				$_courses = array();
+				foreach ($courses as $course) {
+					$_courses[$course['id']]=$course['name'];
 				}
+				asort($_courses);
+				foreach($_courses as $id=>$name){
+					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
+				}
+
+				echo "</ul>";
 			}
 			?>
-			</ul>
 		</div>
 		<?php if ($_SESSION['admin'] || count($permissions) == 0) { ?>
 		<div>
@@ -349,7 +424,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	</center>
 	<?php
 	echo "<a href=\"https://accounts.google.com/o/oauth2/v2/auth?scope="
-		.urlencode("profile email https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly")
+		.urlencode("profile email https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/classroom.profile.emails")
 		."&response_type=code"
 		."&client_id=".$client_secret->web->client_id
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])

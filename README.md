@@ -24,7 +24,7 @@
 - Configure OAuth access to your Organizational Unit of your domain
  - Go to  https://console.developers.google.com/
  - Create a new API Project with name OpenScreenMonitor
- - Once created open the OSMOAuth project and enable the Admin SDK
+ - Once created open the OSMOAuth project and enable the Admin SDK & Classroom API
  - Create the APIs Credentials of type OAuth client ID
   - Configure OAuth consent screen: yourDomain - OpenScreenMonitor
   - Application type: Web application
