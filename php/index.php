@@ -410,6 +410,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?serverfilter">Server Filter Lists</a></li>
 				<li><a href="?syncdevices" >Sync Devices</a></li>
+				<li><a href="usagereport.php" >Usage Report</a></li>
 			</ul>
 		</div>
 		<?php
