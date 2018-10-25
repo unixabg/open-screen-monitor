@@ -10,19 +10,25 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 }
 
 
-?><html>
+?>
+<html>
 <head>
 	<title>Open Screen Monitor - Usage Report</title>
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="./style.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 	<style>
 		table {table-layout: fixed;}
 		td {word-break: break-all;}
 	</style>
-	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body>
-<form method="get">Date: <input type="text" name="date"/> <input type="submit" /></form>
+<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } ?>
+<hr />
 
+<form method="get">Date: <input type="text" name="date"/> <input type="submit" /></form>
 <?php
 if (isset($_GET['date'])){
 	$dateIn = date("Ymd", ($_GET['date'] != '' ? strtotime($_GET['date']) : time()));
@@ -75,7 +81,7 @@ if (isset($_GET['date'])){
 	google.charts.setOnLoadCallback(drawCurveTypes);
 	function drawCurveTypes() {
 	var jsdata = '.json_encode($jsdata).';
-	document.write("<div style=\"height: 600px;width: 1200px;\" id=\"" + jsdata.divid + "\"></div>");
+	//document.write("<div style=\"height: 600px;width: 1200px;\" id=\"" + jsdata.divid + "\"></div>");
 	var data = google.visualization.arrayToDataTable(jsdata.data);
 	var chart = new google.visualization.LineChart(document.getElementById(jsdata.divid));
 	chart.draw(data,{hAxis:{title:"Date ('.$dateIn.')"},vAxis:{textStyle:{fontSize: 20},title:jsdata.vtitle},legend:{position:"none"}});
@@ -83,5 +89,6 @@ if (isset($_GET['date'])){
 	</script>';
 }
 ?>
+<div style="height: 600px;width: 1200px;" id="total_count_div"></div>
 </body>
 </html>
