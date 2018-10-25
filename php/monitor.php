@@ -107,6 +107,22 @@ if (isset($_POST['closetab']) && isset($_POST['tabid'])){
 	die();
 }
 
+if (isset($_POST['closeAllTabs'])){
+	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['closeAllTabs']])) {
+		$_actionPath = $dataDir.'/devices/'.$_POST['closeAllTabs'].'/'.$_POST['sessionID'];
+		if (file_exists($_actionPath.'/tabs')) {
+			$temp = json_decode(file_get_contents($_actionPath.'/tabs'),true);
+			foreach ($temp as $tab) {
+				//$tab['id']
+				file_put_contents($_actionPath.'/closetab',$tab['id']."\n",FILE_APPEND);
+				//FIXME - add title of tab later
+				logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+			}
+		}
+	}
+	die();
+}
+
 if (isset($_POST['sendmessage'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
 		$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'].'/'.$_POST['sessionID'];
@@ -238,6 +254,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 				"<a href=\"#\" onmousedown=\"javascript:lockDev('"+dev+"');return false;\"><i class=\"fas fa-lock\" title=\"Lock this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:unlockDev('"+dev+"');return false;\"><i class=\"fas fa-unlock\" title=\"Unlock this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:openUrl('"+dev+"');return false;\"><i class=\"fas fa-cloud\" title=\"Open an URL on this device.\"></i></a> | " +
+				"<a href=\"#\" onmousedown=\"javascript:closeAllTabs('"+dev+"');return false;\"><i class=\"fas fa-window-close\" title=\"Close all tabs on this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:sendMessage('"+dev+"');return false;\"><i class=\"fas fa-envelope\" title=\"Send a message to this device.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:showLog('"+dev+"');return false;\"><i class=\"fas fa-book\" title=\"Device log.\"></i></a> | " +
 				"<a href=\"#\" onmousedown=\"javascript:screenshot('"+dev+"');return false;\"><i class=\"fas fa-camera\" title=\"Take Screenshot.\"></i></a>" +
@@ -250,6 +267,11 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 			div.append(info);
 
 			$('#activedevs').append(div);
+		}
+
+		function closeAllTabs(dev){
+			var div = $('#div_'+dev);
+			$.post('?',{closeAllTabs:div.data('dev'),sessionID:div.data('sessionID')});
 		}
 
 		function lockDev(dev){
@@ -433,6 +455,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 
 			$('#massLock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);lockDev(id);});});
 			$('#massUnlock').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);unlockDev(id);});});
+			$('#massCloseAllTabs').click(function(){$('#activedevs > div').each(function(){var id = this.id.substring(4);closeAllTabs(id);});});
 			$('#massOpenurl').click(function(){
 				var url1 = prompt("Please enter an URL", "http://");
 				if (url1 != '')
@@ -553,6 +576,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massLock" value="Lock All" />
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massUnlock" value="Unlock All" />
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massOpenurl" value="Open Url on All" />
+		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massCloseAllTabs" value="Close All Tabs" />
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massSendmessage" value="Send Message to All" />
 		|
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massHide" value="Hide All" />
