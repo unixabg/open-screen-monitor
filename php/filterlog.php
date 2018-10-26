@@ -32,6 +32,8 @@ $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) :
 	</style>
 </head>
 <body>
+<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:20px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
+<hr />
 <form method="get">
 Username: <input type="text" name="username" value="<?php echo htmlentities($username == '*' ? '' : $username);?>" />
 <br />Device: <select name="deviceID">
