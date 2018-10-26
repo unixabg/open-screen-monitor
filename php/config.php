@@ -1,6 +1,6 @@
 <?php
 
-$dataDir = '../../osm-data';
+$dataDir = '/var/www/osm-data';
 
 if (!file_exists($dataDir)) die('Missing osm-data directory');
 
