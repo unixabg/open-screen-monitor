@@ -35,6 +35,7 @@ if (isset($_GET['date'])){
 	$logfiles = glob("$dataDir/logs/$dateIn/*/*/*.tsv");
 	$_myTmpCnt=0;
 
+	$activeUsers = array();//array used to count total users on a given day
 	$activeBlocks = array();//times rounded down to to previous 5 min increment
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
@@ -45,6 +46,7 @@ if (isset($_GET['date'])){
 		$deviceID = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
+		$activeUsers[$username] = $username;
 		if (true || isset($_SESSION['alloweddevices'][$deviceID])){
 			if ($file = fopen($_logfile,"r")){
 				while (($line = fgets($file)) !== false) {
@@ -84,7 +86,7 @@ if (isset($_GET['date'])){
 	//document.write("<div style=\"height: 600px;width: 1200px;\" id=\"" + jsdata.divid + "\"></div>");
 	var data = google.visualization.arrayToDataTable(jsdata.data);
 	var chart = new google.visualization.LineChart(document.getElementById(jsdata.divid));
-	chart.draw(data,{hAxis:{title:"Date ('.$dateIn.')"},vAxis:{textStyle:{fontSize: 20},title:jsdata.vtitle},legend:{position:"none"}});
+	chart.draw(data,{hAxis:{title:"Date ('.$dateIn.')\nActive users ('.count($activeUsers).')"},vAxis:{textStyle:{fontSize: 20},title:jsdata.vtitle},legend:{position:"none"}});
 	}
 	</script>';
 }
