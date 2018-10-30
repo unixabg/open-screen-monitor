@@ -28,7 +28,7 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 <h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:20px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 <hr />
 
-<form method="get">Date: <input type="text" name="date"/> <input type="submit" /></form>
+<form method="get">Date: <input type="text" name="date" placeholder="YYYYMMDD"/> <input type="submit" /></form>
 <?php
 if (isset($_GET['date'])){
 	$dateIn = date("Ymd", ($_GET['date'] != '' ? strtotime($_GET['date']) : time()));
