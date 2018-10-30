@@ -582,7 +582,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massHide" value="Hide All" />
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massShow" value="Show All" />
 		|
-		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab']); ?>
+		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab'])."<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 	</div>
 	<div id="menu">
 	<?php
