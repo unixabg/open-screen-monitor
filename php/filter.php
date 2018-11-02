@@ -13,7 +13,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	if ($data['deviceID'] == '') $data['deviceID'] = 'unknown';
 
 	if (!isset($data['type']))$data['type'] = 'unknown';
-	$data['type'] = preg_replace("/[^a-z0-9-]/","",$data['type']);
+	$data['type'] = preg_replace("/[^a-z0-9_]/","",$data['type']);
 	if ($data['type'] == '') $data['type'] = 'unknown';
 
 
@@ -26,7 +26,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
 
-	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($data['url']) && file_exists($dataDir.'/filter_whitelist.txt') && file_exists($dataDir.'/filter_blacklist.txt')){
+	if (file_exists($dataDir.'/filter_whitelist.txt') && file_exists($dataDir.'/filter_blacklist.txt')){
 		//first check whitelist
 		$file = fopen($dataDir.'/filter_whitelist.txt',"r");
 		while (($line = fgets($file)) !== false){
@@ -44,18 +44,41 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 			$file = fopen($dataDir.'/filter_blacklist.txt',"r");
 			while (($line = fgets($file)) !== false){
 				$line = rtrim($line);
-				//block if domain equal or if a subdomain of domain
-				if ($line != '' && ($line == $data['url'] || strstr($data['url'],$line)) !== false){
-					if ($_config['filterviaserverShowBlockPage']){
-						$action='BLOCKPAGE';
+				$line = explode("\t",$line);
+
+				$action = $_config['filterviaserverShowBlockPage'] ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
+				$types = $_config['filterviaserverDefaultFilterTypes'];
+				$url = '';
+				switch(count($line)){
+					case 1:
+						if ($line[0] != '') $url = $line[0];
+						break;
+					case 2:
+						if ($line[0] != '') $action = $line[0];
+						if ($line[1] != '') $url = $line[1];
+						break;
+					case 3:
+						if ($line[0] != '') $action = $line[0];
+						if ($line[1] != '') $types = explode(',',$line[1]);
+						if ($line[2] != '') $url = $line[2];
+						break;
+				}
+
+				if (substr($action,0,9) == 'REDIRECT:'){
+					$redirectUrl = substr($action,9);
+					$action = 'REDIRECT';
+				}
+
+
+				if ($url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || $url == $data['url'] || strstr($data['url'],$url)) !== false){
+					if ($action == 'BLOCKPAGE'){
 						$toReturn['commands'][] = array(
 							'action'=>'BLOCKPAGE',
-							'data'=>'url_host='.urlencode($data['url']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']).'&filter_keyword='.urlencode($line),
+							'data'=>'url_host='.urlencode($data['url']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']).'&filter_keyword='.urlencode($url),
 						);
 						$toReturn['return']['cancel'] = true;
-					} else {
+					} elseif ($action == 'BLOCKNOTIFY') {
 						//show notification instead
-						$action='BLOCKNOTIFY';
 						$toReturn['commands'][] = array('action'=>'BLOCK');
 						$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
 							'requireInteraction'=>false,
@@ -65,6 +88,13 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
 						$toReturn['return']['cancel'] = true;
+					} elseif ($action == 'BLOCK') {
+						$toReturn['commands'][] = array('action'=>'BLOCK');
+						$toReturn['return']['cancel'] = true;
+					} elseif ($action == 'CANCEL') {
+						$toReturn['return']['cancel'] = true;
+					} elseif ($action == 'REDIRECT') {
+						$toReturn['return']['redirectUrl'] = $redirectUrl;
 					}
 					break;
 				}

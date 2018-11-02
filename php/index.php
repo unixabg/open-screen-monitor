@@ -319,13 +319,13 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	} elseif (isset($_GET['serverfilter']) && $_SESSION['admin']) {
 		echo "<h2>Server Filter List</h2>";
 		if (isset($_POST['blacklist'])){
-			if (file_put_contents($dataDir.'/filter_blacklist.txt',$_POST['blacklist']))
+			if (file_put_contents($dataDir.'/filter_blacklist.txt',$_POST['blacklist']) !== false)
 				echo "<h3>Successfully Saved Blacklist</h3>";
 			else
 				echo "<h3>Error Saving Blacklist</h3>";
 		}
 		if (isset($_POST['whitelist'])){
-			if (file_put_contents($dataDir.'/filter_whitelist.txt',$_POST['whitelist']))
+			if (file_put_contents($dataDir.'/filter_whitelist.txt',$_POST['whitelist']) !== false)
 				echo "<h3>Successfully Saved Whitelist</h3>";
 			else
 				echo "<h3>Error Saving Whitelist</h3>";
@@ -336,7 +336,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 
 		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
 		echo "<h2>Blacklist</h2>";
-		echo "<textarea name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+		echo "<br />Three entry formats:<ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>";
+		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
+		echo "<br />Action can be: <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>";
+		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
+		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
 		echo "<h2>Whitelist</h2>";
