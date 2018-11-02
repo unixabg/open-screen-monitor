@@ -192,6 +192,11 @@ if (isset($_POST['data'])) {
 	if ($_config['filterviaserver'] != $data['filterviaserver'])
 		$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>$_config['filterviaserver']);
 
+	//update resource types that the filter processes
+	if (implode($_config['filterresourcetypes']) != implode($data['filterresourcetypes']))
+		$toReturn['commands'][] = array('action'=>'setData','key'=>'filterresourcetypes','value'=>$_config['filterresourcetypes']);
+
+
 	//show startup notification
 	if ($_config['showStartupNotification'] && !isset($data['startupNotification'])){
 		$toReturn['commands'][] = array('action'=>'setData','key'=>'startupNotification','value'=>true);

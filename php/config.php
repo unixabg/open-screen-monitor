@@ -33,8 +33,10 @@ $_config['filterMessage'] = array(
 );
 
 $_config['showStartupNotification'] = false;
+$_config['filterresourcetypes'] = array("main_frame","sub_frame","xmlhttprequest");
 $_config['filterviaserver'] = false;
 $_config['filterviaserverShowBlockPage'] = false;
+$_config['filterviaserverDefaultFilterTypes'] = array('main_frame','sub_frame');
 $_config['mode'] = 'device';
 
 
