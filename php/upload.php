@@ -88,10 +88,10 @@ if (isset($_POST['data'])) {
 			}
 			unlink($deviceFolder.'/openurl');
 		}
-		if (file_exists($deviceFolder.'/filterlist') && file_exists($deviceFolder.'/filtermode')) {
-			$filtermode = file_get_contents($deviceFolder.'/filtermode');
-			$filterlisttime = filemtime($deviceFolder.'/filterlist');
-			$filterlist = file_get_contents($deviceFolder.'/filterlist');
+		if (file_exists($deviceFolder.'/../filterlist') && file_exists($deviceFolder.'/../filtermode')) {
+			$filtermode = file_get_contents($deviceFolder.'/../filtermode');
+			$filterlisttime = filemtime($deviceFolder.'/../filterlist');
+			$filterlist = file_get_contents($deviceFolder.'/../filterlist');
 			$filterlist = explode("\n",$filterlist);
 
 			foreach ($filterlist as $i=>$value) {
