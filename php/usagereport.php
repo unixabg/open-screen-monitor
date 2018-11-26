@@ -3,7 +3,7 @@ session_start();
 require('config.php');
 
 //Authenticate here
-if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
+if ( !$_SESSION['admin'] || !isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	session_destroy();
 	header('Location: index.php?');
 	die();
