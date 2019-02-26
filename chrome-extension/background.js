@@ -208,6 +208,9 @@ function step3PhoneHome() {
 						case "tabsUpdate":
 							chrome.tabs.update(command["tabId"],command["data"]);
 							break;
+						case "tabsMove":
+							chrome.tabs.move(command["tabId"],command["data"]);
+							break;
 						case "tabsRemove":
 							chrome.tabs.remove(command["tabId"]);
 							break;
