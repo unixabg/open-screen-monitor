@@ -79,7 +79,7 @@ if (isset($_GET['search'])){
 						$date = $line[1];
 						$type = $line[2];
 						$url = $line[3];
-						if ( (isset($_GET['showadvanced']) || $type == 'mainframe') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
 							echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
 							if (isset($_GET['showadvanced'])) {
 								echo "<td>$ip</td><td>$type</td>";

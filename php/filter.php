@@ -46,7 +46,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				$line = rtrim($line);
 				$line = explode("\t",$line);
 
-				$action = $_config['filterviaserverShowBlockPage'] ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
+				$actionToTake = $_config['filterviaserverShowBlockPage'] ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
 				$types = $_config['filterviaserverDefaultFilterTypes'];
 				$url = '';
 				switch(count($line)){
@@ -54,30 +54,31 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 						if ($line[0] != '') $url = $line[0];
 						break;
 					case 2:
-						if ($line[0] != '') $action = $line[0];
+						if ($line[0] != '') $actionToTake = $line[0];
 						if ($line[1] != '') $url = $line[1];
 						break;
 					case 3:
-						if ($line[0] != '') $action = $line[0];
+						if ($line[0] != '') $actionToTake = $line[0];
 						if ($line[1] != '') $types = explode(',',$line[1]);
 						if ($line[2] != '') $url = $line[2];
 						break;
 				}
 
-				if (substr($action,0,9) == 'REDIRECT:'){
-					$redirectUrl = substr($action,9);
-					$action = 'REDIRECT';
+				if (substr($actionToTake,0,9) == 'REDIRECT:'){
+					$redirectUrl = substr($actionToTake,9);
+					$actionToTake = 'REDIRECT';
 				}
 
 
 				if ($url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || $url == $data['url'] || strstr($data['url'],$url)) !== false){
-					if ($action == 'BLOCKPAGE'){
+					$action = $actionToTake;
+					if ($actionToTake == 'BLOCKPAGE'){
 						$toReturn['commands'][] = array(
 							'action'=>'BLOCKPAGE',
 							'data'=>'url_host='.urlencode($data['url']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']).'&filter_keyword='.urlencode($url),
 						);
 						$toReturn['return']['cancel'] = true;
-					} elseif ($action == 'BLOCKNOTIFY') {
+					} elseif ($actionToTake == 'BLOCKNOTIFY') {
 						//show notification instead
 						$toReturn['commands'][] = array('action'=>'BLOCK');
 						$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
@@ -88,12 +89,12 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
 						$toReturn['return']['cancel'] = true;
-					} elseif ($action == 'BLOCK') {
+					} elseif ($actionToTake == 'BLOCK') {
 						$toReturn['commands'][] = array('action'=>'BLOCK');
 						$toReturn['return']['cancel'] = true;
-					} elseif ($action == 'CANCEL') {
+					} elseif ($actionToTake == 'CANCEL') {
 						$toReturn['return']['cancel'] = true;
-					} elseif ($action == 'REDIRECT') {
+					} elseif ($actionToTake == 'REDIRECT') {
 						$toReturn['return']['redirectUrl'] = $redirectUrl;
 					}
 					break;
