@@ -21,6 +21,13 @@ if ($deviceID == "") $deviceID = "*";
 $date = date("Ymd", (isset($_GET['date']) && $_SESSION['admin'] ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
 $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
+if ($action == 'ALLOW'){
+	$actiontype = array("ALLOW");
+} elseif ($action == 'BLOCK'){
+	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
+} else {
+	$actiontype = array();
+}
 
 ?><html>
 <head>
@@ -46,8 +53,8 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 <br />Date: <input type="text" name="date" value="<?php echo htmlentities($date);?>" />
 <br />Action: <select name="action">
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
-	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">ALLOW</option>
-	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">BLOCK</option>
+	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
+	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
 	</select>
 <br /><input type="submit" name="search" value="Search" />
 </form>
@@ -79,7 +86,7 @@ if (isset($_GET['search'])){
 						$date = $line[1];
 						$type = $line[2];
 						$url = $line[3];
-						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
 							echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
 							if (isset($_GET['showadvanced'])) {
 								echo "<td>$ip</td><td>$type</td>";
