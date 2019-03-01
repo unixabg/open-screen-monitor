@@ -21,9 +21,9 @@ if ($deviceID == "") $deviceID = "*";
 $date = date("Ymd", (isset($_GET['date']) && $_SESSION['admin'] ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
 $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
-if ($action == 'ALLOW'){
+if ($action == 'ALLOW' || $action == 'ALLOWGLOBAL'){
 	$actiontype = array("ALLOW");
-} elseif ($action == 'BLOCK'){
+} elseif ($action == 'BLOCK' || $action == 'BLOCKGLOBAL'){
 	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
 } else {
 	$actiontype = array();
@@ -55,6 +55,18 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
 	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
 	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
+	<?php if ($_SESSION['admin']){ //allow global serch by admin
+		if ($action == 'ALLOWGLOBAL'){
+			echo '<option selected="selected" value="ALLOWGLOBAL">Global Allowed Requests</option>
+			<option value="BLOCKGLOBAL">Global Filtered Requests</option>';
+		} elseif ($action == 'BLOCKGLOBAL') {
+			echo '<option value="ALLOWGLOBAL">Global Allowed Requests</option>
+			<option selected="selected" value="BLOCKGLOBAL">Global Filtered Requests</option>';
+		} else {
+			echo '<option value="ALLOWGLOBAL">Global Allowed Requests</option>
+			<option value="BLOCKGLOBAL">Global Filtered Requests</option>';
+		}
+	} ?>
 	</select>
 <br /><input type="submit" name="search" value="Search" />
 </form>
@@ -76,7 +88,7 @@ if (isset($_GET['search'])){
 		$deviceID = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if (isset($_SESSION['alloweddevices'][$deviceID])){
+		if ((isset($_SESSION['alloweddevices'][$deviceID])) || ($_SESSION['admin'] && ($action == 'ALLOWGLOBAL' || $action == 'BLOCKGLOBAL'))){
 			if ($file = fopen($_logfile,"r")){
 				$device = htmlentities($_SESSION['alloweddevices'][$deviceID]);
 				while (($line = fgets($file)) !== false) {
