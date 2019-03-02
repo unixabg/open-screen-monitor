@@ -21,9 +21,9 @@ if ($deviceID == "") $deviceID = "*";
 $date = date("Ymd", (isset($_GET['date']) && $_SESSION['admin'] ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
 $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
-if ($action == 'ALLOW' || $action == 'ALLOWGLOBAL'){
+if ($action == 'ALLOW'){
 	$actiontype = array("ALLOW");
-} elseif ($action == 'BLOCK' || $action == 'BLOCKGLOBAL'){
+} elseif ($action == 'BLOCK'){
 	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
 } else {
 	$actiontype = array();
@@ -55,27 +55,14 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
 	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
 	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
-	<?php if ($_SESSION['admin']){ //allow global serch by admin
-		if ($action == 'ALLOWGLOBAL'){
-			echo '<option selected="selected" value="ALLOWGLOBAL">Global Allowed Requests</option>
-			<option value="BLOCKGLOBAL">Global Filtered Requests</option>';
-		} elseif ($action == 'BLOCKGLOBAL') {
-			echo '<option value="ALLOWGLOBAL">Global Allowed Requests</option>
-			<option selected="selected" value="BLOCKGLOBAL">Global Filtered Requests</option>';
-		} else {
-			echo '<option value="ALLOWGLOBAL">Global Allowed Requests</option>
-			<option value="BLOCKGLOBAL">Global Filtered Requests</option>';
-		}
-	} ?>
 	</select>
+<br /><input type="checkbox" name="showadvanced" value="1" <?php if (isset($_GET['showadvanced'])) echo 'checked="checked"'; ?> />Show Advanced
 <br /><input type="submit" name="search" value="Search" />
 </form>
 <?php
 //only show results if something was searched
 if (isset($_GET['search'])){
-	echo "<table class=\"w3-table-all\"><col width=\"130\"><col width=\"300\"><col width=\"130\"><thead>";
-	echo "<tr><td>Action</td><td>Date</td><td>Username</td><td>Device</td>".(isset($_GET['showadvanced'])?"<td>IP</td><td>Request Type</td>":"")."<td>URL</td></tr>";
-	echo "</thead><tbody>";
+	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
 
 	$logfiles = glob("$dataDir/logs/$date/$username/$deviceID/*.tsv");
 	$_myTmpCnt=0;
@@ -88,9 +75,9 @@ if (isset($_GET['search'])){
 		$deviceID = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if ((isset($_SESSION['alloweddevices'][$deviceID])) || ($_SESSION['admin'] && ($action == 'ALLOWGLOBAL' || $action == 'BLOCKGLOBAL'))){
+		if (isset($_SESSION['alloweddevices'][$deviceID]) || $_SESSION['admin']){
 			if ($file = fopen($_logfile,"r")){
-				$device = htmlentities($_SESSION['alloweddevices'][$deviceID]);
+				$device = isset($_SESSION['alloweddevices'][$deviceID]) ? htmlentities($_SESSION['alloweddevices'][$deviceID]) : $ip;
 				while (($line = fgets($file)) !== false) {
 					$line = explode("\t",$line);
 					if (count($line) == 4){
@@ -99,11 +86,16 @@ if (isset($_GET['search'])){
 						$type = $line[2];
 						$url = $line[3];
 						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
-							echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
+							echo "<tr><td>";
+							echo "Action: $lineaction<br />";
+							echo "Date: $date<br />";
+							echo "User: ".htmlentities($username)."<br />";
+							echo "Device: $device";
 							if (isset($_GET['showadvanced'])) {
-								echo "<td>$ip</td><td>$type</td>";
+								echo "<br />IP: $ip";
+								echo "<br />Type: $type";
 							}
-							echo "<td>".htmlentities($url)."</td></tr>";
+							echo "</td><td>".htmlentities($url)."</td></tr>";
 						}
 					}
 				}

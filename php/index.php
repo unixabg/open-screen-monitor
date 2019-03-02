@@ -122,6 +122,28 @@ if (isset($_GET['logout'])) {
 		header('Location: ?');
 	}
 	die();
+} elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
+	//they have permission to this lab
+	$_SESSION['alloweddevices'] = array();
+	//prefix data dir to each device
+	foreach ($labs as $lab){
+		foreach ($lab as $deviceID=>$deviceInfo) {
+			unset($deviceInfo[0]);
+			unset($deviceInfo[1]);
+			foreach($deviceInfo as $i => $value) {
+				if ($value == "") unset($deviceInfo[$i]);
+			}
+			$description = implode(" - ",$deviceInfo);
+			$_SESSION['lab'] = $_GET['lab'];
+			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+		}
+
+		//sort the allowed devices array
+		asort($_SESSION['alloweddevices']);
+
+		header('Location: filterlog.php');
+	}
+	die();
 } elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if ($_config['mode'] == 'user') {
 		//sync devices
@@ -415,7 +437,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<li><a href="?serverfilter">Server Filter Lists</a></li>
 				<li><a href="?syncdevices" >Sync Devices</a></li>
 				<li><a href="usagereport.php" >Usage Report</a></li>
-				<li><a href="filterlog.php">View Browsing History</a></li>
+				<li><a href="?adminfilterlog">View Browsing History</a></li>
 			</ul>
 		</div>
 		<?php
