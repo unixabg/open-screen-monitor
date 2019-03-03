@@ -361,6 +361,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<br />Three entry formats:<ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>";
 		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
 		echo "<br />Action can be: <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>";
+		echo "<br />You can also add +EMAIL to any of these actions to receive an email on that rule being tripped (if filterAlertEmail is set in the config).<br />";
 		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
