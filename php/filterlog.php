@@ -75,7 +75,7 @@ if (isset($_GET['search'])){
 		$deviceID = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if (isset($_SESSION['alloweddevices'][$deviceID]) || $_SESSION['admin']){
+		if (isset($_SESSION['alloweddevices'][$deviceID])){
 			if ($file = fopen($_logfile,"r")){
 				$device = isset($_SESSION['alloweddevices'][$deviceID]) ? htmlentities($_SESSION['alloweddevices'][$deviceID]) : $ip;
 				while (($line = fgets($file)) !== false) {
