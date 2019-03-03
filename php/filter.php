@@ -25,6 +25,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$toReturn = array();
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
+	$sendEmail = false;
 
 	if (file_exists($dataDir.'/filter_whitelist.txt') && file_exists($dataDir.'/filter_blacklist.txt')){
 		//first check whitelist
@@ -69,9 +70,16 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					$actionType = 'REDIRECT';
 				}
 
+				$actionEmail = false;
+				if (strpos($actionType,"+EMAIL") !== false){
+					$actionEmail = true;
+					$actionType = str_replace("+EMAIL","",$actionType);
+				}
+
 
 				if ($url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || $url == $data['url'] || strstr($data['url'],$url)) !== false){
 					$action = $actionType; //set SENTRY to action type since we hit something
+					if ($actionEmail) {$sendEmail = true;}
 					if ($actionType == 'BLOCKPAGE'){
 						$toReturn['commands'][] = array(
 							'action'=>'BLOCKPAGE',
@@ -121,6 +129,15 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	if (!file_exists($logFile)) touch($logFile);
 	file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 
+	//email it
+	if ($sendEmail && $_config['filterAlertEmail'] != ''){
+		$header = "From: Open Screen Monitor <".$_config['filterAlertEmail'].">\r\n";
+		$raw = $data['username']."_".$data['domain']
+			."\n".$data['deviceID']
+			."\n".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
+			."\n".str_replace("\t","\n",$logentry);
+		mail($_config['filterAlertEmail'], "OSM Filter Alert", $raw, $header);
+	}
 
 	//send it back
 	die(json_encode($toReturn));
