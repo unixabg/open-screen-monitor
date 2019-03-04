@@ -139,6 +139,12 @@ function filterPage(nextPageDetails) {
 	}
 };
 chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"]},["blocking"]);
+function filterHistoryPage(details) {
+	details.type = "main_frame";
+	filterPage(details);
+}
+chrome.webNavigation.onHistoryStateUpdated.addListener(filterHistoryPage);
+
 
 ////////////////////////
 //setup the window lock
