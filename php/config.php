@@ -37,8 +37,8 @@ $_config['filterresourcetypes'] = array("main_frame","sub_frame","xmlhttprequest
 $_config['filterviaserver'] = false;
 $_config['filterviaserverShowBlockPage'] = false;
 $_config['filterviaserverDefaultFilterTypes'] = array('main_frame','sub_frame');
+$_config['filterviaserverDefaultTriggerTypes'] = array('main_frame','sub_frame');
 $_config['mode'] = 'device';
-$_config['filterAlertEmail'] = '';
 
 //overlay settings from config file
 if (file_exists($dataDir.'/config.json')){
