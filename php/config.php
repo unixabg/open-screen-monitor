@@ -17,6 +17,9 @@ $_config['version']='0.2.0.12-next';
 //set the default time chrome will wait between phone home attempst to the upload script
 $_config['uploadRefreshTime']=9000;
 
+//set the default time chrome will scan the active tab for flagged words
+$_config['screenscrapeTime']=20000;
+
 //set lock file timeout to avoid locking on stale lock request
 $_config['lockTimeout']=300;
 
@@ -39,6 +42,7 @@ $_config['filterviaserverShowBlockPage'] = false;
 $_config['filterviaserverDefaultFilterTypes'] = array('main_frame','sub_frame');
 $_config['filterviaserverDefaultTriggerTypes'] = array('main_frame','sub_frame');
 $_config['mode'] = 'device';
+$_config['screenscrape'] = false;
 
 //overlay settings from config file
 if (file_exists($dataDir.'/config.json')){

@@ -74,8 +74,8 @@ if (isset($_POST['data'])) {
 			unlink($deviceFolder.'/tabs');
 		}
 		//send commands back
-		//set the refresh time
 		$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_config['uploadRefreshTime']);
+		$toReturn['commands'][] = array('action'=>'changeScreenscrapeTime','time'=>$_config['screenscrapeTime']);
 		if (file_exists($deviceFolder.'/openurl')) {
 			$urls = file_get_contents($deviceFolder.'/openurl');
 			$urls = explode("\n",$urls);
@@ -203,6 +203,10 @@ if (isset($_POST['data'])) {
 	//(de)activate server side filter
 	if ($_config['filterviaserver'] != $data['filterviaserver'])
 		$toReturn['commands'][] = array('action'=>'setData','key'=>'filterviaserver','value'=>$_config['filterviaserver']);
+
+	//(de)activate screen scrapeer
+	if ($_config['screenscrape'] != $data['screenscrape'])
+		$toReturn['commands'][] = array('action'=>'setData','key'=>'screenscrape','value'=>$_config['screenscrape']);
 
 	//update resource types that the filter processes
 	if (implode($_config['filterresourcetypes']) != implode($data['filterresourcetypes']))
