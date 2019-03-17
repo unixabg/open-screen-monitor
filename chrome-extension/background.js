@@ -2,13 +2,14 @@
 
 //define variables
 
-//this needs to be set for this extention to function
+//this needs to be set for this extension to function
 //it can only be set via managed policy (no default value) thus ensuring it poses no harm to users outside a managed environment
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 var uploadURL = "";
 
 var monitorTimer = null;
+var screenscrapeTimer = null;
 var data = {
 	deviceID:"",
 	username:"",
@@ -24,6 +25,8 @@ var data = {
 	filtermessage:[],
 	filterviaserver:false,
 	filterresourcetypes:["main_frame","sub_frame","xmlhttprequest"],
+	screenscrape:false,
+	screenscrapeTime:15000,
 	uploadInProgress:false
 }
 //get deviceID
@@ -242,7 +245,15 @@ function step3PhoneHome() {
 								data.refreshTime = command["time"];
 								clearInterval(monitorTimer);
 								monitorTimer = setInterval(step1RefreshTabs,data.refreshTime);
-								console.log("Timer updated to: " + data.refreshTime);
+								console.log("Upload Timer updated to: " + data.refreshTime);
+							}
+							break;
+						case "changeScreenscrapeTime":
+							if (data.screenscrapeTime != command["time"]){
+								data.screenscrapeTime = command["time"];
+								clearInterval(screenscrapeTimer);
+								screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);
+								console.log("ScreenScrape Timer updated to: " + data.screenscrapeTime);
 							}
 							break;
 						case "setData":
@@ -267,4 +278,65 @@ function step3PhoneHome() {
 		console.log("Skipping upload since one is already in progress");
 	}
 }
+///////////////////////
+///Setup Screen Scrape
+//////////////////////
+function runScreenscrape(){
+	if (uploadURL != '' && data.screenscrape){
+		//restrict to only active tab
+		chrome.tabs.query({active: true}, function (tabarray) {
+			for (var i=0;i<tabarray.length;i++) {
+				try{
+					var tab = tabarray[i];
+					chrome.tabs.executeScript(tab.id,{allFrames:true,code:"document.body.innerText"},function(results){
+						if (results && results.length > 0){
+							results = results.join(' ').replace(/[^ a-zA-Z0-9]+/g,' ').replace(/ +/g,' ');
+							results = {
+								text:results,
+								url:tab.url,
+								username:data.username,
+								domain:data.domain,
+								deviceID:data.deviceID
+							};
+
+							var xhttp = new XMLHttpRequest();
+							xhttp.open("POST", uploadURL+'screenscrape.php', false);
+							xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+							xhttp.send("data=" + encodeURIComponent(JSON.stringify(results)));
+
+							var response = {};
+							try {
+								response = JSON.parse(xhttp.responseText);
+							} catch (e) {console.log(e);}
+
+							if ("commands" in response) {
+								for (var i=0;i<response["commands"].length;i++) {
+									var command = response["commands"][i];
+									try {
+										switch (command["action"]) {
+											case "BLOCK":
+												console.log("Blocking tab: " + tab.url);
+												chrome.tabs.remove(tab.id);
+												break;
+											case "BLOCKPAGE":
+												console.log("Blockpaging tab: " + tab.url);
+												chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
+												break;
+											case "NOTIFY":
+												console.log("Notification: " + tab.url);
+												chrome.notifications.create("",command['data']);
+												break;
+										}
+									} catch (e) {console.log(e);}
+								}
+							}
+						}
+					});
+				} catch (e) {console.log(e);}
+			}
+		});
+	}
+}
+
 monitorTimer = setInterval(step1RefreshTabs,data.refreshTime);
+screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);

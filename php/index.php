@@ -137,6 +137,7 @@ if (isset($_GET['logout'])) {
 			$_SESSION['lab'] = $_GET['lab'];
 			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
 		}
+		$_SESSION['alloweddevices']['unknown'] = '- Non-Enterprise device';
 
 		//sort the allowed devices array
 		asort($_SESSION['alloweddevices']);
@@ -358,6 +359,12 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			else
 				echo "<h3>Error Saving Trigger List</h3>";
 		}
+		if (isset($_POST['screenscrapelist'])){
+			if (file_put_contents($dataDir.'/screenscrape.txt',$_POST['screenscrapelist']) !== false)
+				echo "<h3>Successfully Saved Page Content Bad Word list</h3>";
+			else
+				echo "<h3>Error Saving Page Content Bad Word list</h3>";
+		}
 
 		echo "<hr />";
 		echo "<form method=\"post\">";
@@ -380,6 +387,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
 		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"triggerlist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+
+		$data = file_exists($dataDir.'/screenscrape.txt') ? file_get_contents($dataDir.'/screenscrape.txt') : '';
+		echo "<h2>Page Content Bad Word list</h2>";
+		echo "<br />Three entry formats:<ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>";
+		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"screenscrapelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
 	} else {
