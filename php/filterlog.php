@@ -18,7 +18,7 @@ $deviceID = isset($_GET['deviceID']) ? preg_replace("/[^a-z0-9-]/","",$_GET['dev
 if ($deviceID == "") $deviceID = "*";
 
 
-$date = date("Ymd", (isset($_GET['date']) && $_SESSION['admin'] ? strtotime($_GET['date']) : time()));
+$date = date("Ymd", (isset($_GET['date']) ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
 $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
 if ($action == 'ALLOW'){
