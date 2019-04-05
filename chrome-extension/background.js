@@ -2,13 +2,14 @@
 
 //define variables
 
-//this needs to be set for this extention to function
+//this needs to be set for this extension to function
 //it can only be set via managed policy (no default value) thus ensuring it poses no harm to users outside a managed environment
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 var uploadURL = "";
 
 var monitorTimer = null;
+var screenscrapeTimer = null;
 var data = {
 	deviceID:"",
 	username:"",
@@ -22,8 +23,10 @@ var data = {
 	filterlist:[],
 	filterlisttime:0,
 	filtermessage:[],
-	filterblockpage:"",
 	filterviaserver:false,
+	filterresourcetypes:["main_frame","sub_frame","xmlhttprequest"],
+	screenscrape:false,
+	screenscrapeTime:15000,
 	uploadInProgress:false
 }
 //get deviceID
@@ -41,15 +44,7 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 
 		if (uploadURL == ''){
 			//try and guess uploadURL based on domain
-			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", 'https://osm.'+data.domain+'/upload.php', true);
-			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-			xhttp.onload = function() {
-				if (this.responseText == 'SUCCESS'){
-					uploadURL = "https://osm." + data.domain + "/";
-				}
-			};
-			xhttp.send("connectiontest");
+			uploadURL = "https://osm." + data.domain + "/";
 		}
 	}
 });
@@ -100,7 +95,7 @@ function filterPage(nextPageDetails) {
 
 	//this has to be turned on via the regular syncing mechanism
 	//it defaults to off
-	if (data.filterviaserver){
+	if (data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
 		var tempdata = {
 			url:nextPageDetails.url,
 			type:nextPageDetails.type,
@@ -113,36 +108,46 @@ function filterPage(nextPageDetails) {
 		xhttp.open("POST", uploadURL+'filter.php', false);
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send("data=" + encodeURIComponent(JSON.stringify(tempdata)));
-		var response = xhttp.responseText.split("\n");
+
+		var response = {};
 		try {
-			switch (response[0]) {
-				case 'ALLOW':
-					//do nothing
-					break;
-				case 'BLOCK':
-					console.log("Blocking tab: " + nextPageDetails.url);
-					chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+response[1]});
-					break;
-				case 'BLOCKNOTIFY':
-					console.log("Blocking tab with notification: " + nextPageDetails.url);
-					//strip "BLOCKNOTIFY\n" from response, parse as json, create notification, and close tab
-					var notification = JSON.parse(xhttp.responseText.substring(12));
-					chrome.notifications.create("",notification);
-					chrome.tabs.remove(nextPageDetails.tabId);
-					break;
-				case 'NOTIFY':
-					console.log("Notification: " + nextPageDetails.url);
-					//strip "NOTIFY\n" from response, parse as json, and create notification
-					var notification = JSON.parse(xhttp.responseText.substring(7));
-					chrome.notifications.create("",notification);
-					break;
-				default:
-					console.log("Unknown filter action from server of: " + response[0]);
-			}
+			response = JSON.parse(xhttp.responseText);
 		} catch (e) {console.log(e);}
+
+		if ("commands" in response) {
+			for (var i=0;i<response["commands"].length;i++) {
+				var command = response["commands"][i];
+				try {
+					switch (command["action"]) {
+						case "BLOCK":
+							console.log("Blocking tab: " + nextPageDetails.url);
+							chrome.tabs.remove(nextPageDetails.tabId);
+							break;
+						case "BLOCKPAGE":
+							console.log("Blockpaging tab: " + nextPageDetails.url);
+							chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+command['data']});
+							break;
+						case "NOTIFY":
+							console.log("Notification: " + nextPageDetails.url);
+							chrome.notifications.create("",command['data']);
+							break;
+					}
+				} catch (e) {console.log(e);}
+			}
+		}
+
+		if ("return" in response){
+			return response["return"];
+		}
 	}
 };
-chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"],types:["main_frame","sub_frame","xmlhttprequest"]},["blocking"]);
+chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"]},["blocking"]);
+function filterHistoryPage(details) {
+	details.type = "main_frame";
+	filterPage(details);
+}
+chrome.webNavigation.onHistoryStateUpdated.addListener(filterHistoryPage);
+
 
 ////////////////////////
 //setup the window lock
@@ -196,7 +201,11 @@ function step3PhoneHome() {
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.onload = function() {
 		//see if we need to do anything
-		var response = JSON.parse(this.responseText);
+		var response = {};
+		try {
+			response = JSON.parse(this.responseText);
+		} catch (e) {console.log(e);}
+
 		if ("commands" in response) {
 			for (var i=0;i<response["commands"].length;i++) {
 				var command = response["commands"][i];
@@ -207,6 +216,9 @@ function step3PhoneHome() {
 							break;
 						case "tabsUpdate":
 							chrome.tabs.update(command["tabId"],command["data"]);
+							break;
+						case "tabsMove":
+							chrome.tabs.move(command["tabId"],command["data"]);
 							break;
 						case "tabsRemove":
 							chrome.tabs.remove(command["tabId"]);
@@ -233,7 +245,15 @@ function step3PhoneHome() {
 								data.refreshTime = command["time"];
 								clearInterval(monitorTimer);
 								monitorTimer = setInterval(step1RefreshTabs,data.refreshTime);
-								console.log("Timer updated to: " + data.refreshTime);
+								console.log("Upload Timer updated to: " + data.refreshTime);
+							}
+							break;
+						case "changeScreenscrapeTime":
+							if (data.screenscrapeTime != command["time"]){
+								data.screenscrapeTime = command["time"];
+								clearInterval(screenscrapeTimer);
+								screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);
+								console.log("ScreenScrape Timer updated to: " + data.screenscrapeTime);
 							}
 							break;
 						case "setData":
@@ -258,4 +278,65 @@ function step3PhoneHome() {
 		console.log("Skipping upload since one is already in progress");
 	}
 }
+///////////////////////
+///Setup Screen Scrape
+//////////////////////
+function runScreenscrape(){
+	if (uploadURL != '' && data.screenscrape){
+		//restrict to only active tab
+		chrome.tabs.query({active: true}, function (tabarray) {
+			for (var i=0;i<tabarray.length;i++) {
+				try{
+					var tab = tabarray[i];
+					chrome.tabs.executeScript(tab.id,{allFrames:true,code:"document.body.innerText"},function(results){
+						if (results && results.length > 0){
+							results = results.join(' ').replace(/[^ a-zA-Z0-9]+/g,' ').replace(/ +/g,' ');
+							results = {
+								text:results,
+								url:tab.url,
+								username:data.username,
+								domain:data.domain,
+								deviceID:data.deviceID
+							};
+
+							var xhttp = new XMLHttpRequest();
+							xhttp.open("POST", uploadURL+'screenscrape.php', false);
+							xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+							xhttp.send("data=" + encodeURIComponent(JSON.stringify(results)));
+
+							var response = {};
+							try {
+								response = JSON.parse(xhttp.responseText);
+							} catch (e) {console.log(e);}
+
+							if ("commands" in response) {
+								for (var i=0;i<response["commands"].length;i++) {
+									var command = response["commands"][i];
+									try {
+										switch (command["action"]) {
+											case "BLOCK":
+												console.log("Blocking tab: " + tab.url);
+												chrome.tabs.remove(tab.id);
+												break;
+											case "BLOCKPAGE":
+												console.log("Blockpaging tab: " + tab.url);
+												chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
+												break;
+											case "NOTIFY":
+												console.log("Notification: " + tab.url);
+												chrome.notifications.create("",command['data']);
+												break;
+										}
+									} catch (e) {console.log(e);}
+								}
+							}
+						}
+					});
+				} catch (e) {console.log(e);}
+			}
+		});
+	}
+}
+
 monitorTimer = setInterval(step1RefreshTabs,data.refreshTime);
+screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);

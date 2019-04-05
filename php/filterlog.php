@@ -18,9 +18,16 @@ $deviceID = isset($_GET['deviceID']) ? preg_replace("/[^a-z0-9-]/","",$_GET['dev
 if ($deviceID == "") $deviceID = "*";
 
 
-$date = date("Ymd", (isset($_GET['date']) && $_SESSION['admin'] ? strtotime($_GET['date']) : time()));
+$date = date("Ymd", (isset($_GET['date']) ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
 $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
+if ($action == 'ALLOW'){
+	$actiontype = array("ALLOW");
+} elseif ($action == 'BLOCK'){
+	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
+} else {
+	$actiontype = array();
+}
 
 ?><html>
 <head>
@@ -32,6 +39,8 @@ $action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) :
 	</style>
 </head>
 <body>
+<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
+<hr />
 <form method="get">
 Username: <input type="text" name="username" value="<?php echo htmlentities($username == '*' ? '' : $username);?>" />
 <br />Device: <select name="deviceID">
@@ -44,17 +53,16 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 <br />Date: <input type="text" name="date" value="<?php echo htmlentities($date);?>" />
 <br />Action: <select name="action">
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
-	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">ALLOW</option>
-	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">BLOCK</option>
+	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
+	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
 	</select>
+<br /><input type="checkbox" name="showadvanced" value="1" <?php if (isset($_GET['showadvanced'])) echo 'checked="checked"'; ?> />Show Advanced
 <br /><input type="submit" name="search" value="Search" />
 </form>
 <?php
 //only show results if something was searched
 if (isset($_GET['search'])){
-	echo "<table class=\"w3-table-all\"><col width=\"130\"><col width=\"300\"><col width=\"130\"><thead>";
-	echo "<tr><td>Action</td><td>Date</td><td>Username</td><td>Device</td>".(isset($_GET['showadvanced'])?"<td>IP</td><td>Request Type</td>":"")."<td>URL</td></tr>";
-	echo "</thead><tbody>";
+	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
 
 	$logfiles = glob("$dataDir/logs/$date/$username/$deviceID/*.tsv");
 	$_myTmpCnt=0;
@@ -69,7 +77,7 @@ if (isset($_GET['search'])){
 		$url = $ip;
 		if (isset($_SESSION['alloweddevices'][$deviceID])){
 			if ($file = fopen($_logfile,"r")){
-				$device = htmlentities($_SESSION['alloweddevices'][$deviceID]);
+				$device = isset($_SESSION['alloweddevices'][$deviceID]) ? htmlentities($_SESSION['alloweddevices'][$deviceID]) : $ip;
 				while (($line = fgets($file)) !== false) {
 					$line = explode("\t",$line);
 					if (count($line) == 4){
@@ -77,12 +85,17 @@ if (isset($_GET['search'])){
 						$date = $line[1];
 						$type = $line[2];
 						$url = $line[3];
-						if ( (isset($_GET['showadvanced']) || $type == 'mainframe') && ($action == '' || $action == $lineaction) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
-							echo "<tr><td>$lineaction</td><td>$date</td><td>".htmlentities($username)."</td><td>$device</td>";
+						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+							echo "<tr><td>";
+							echo "Action: $lineaction<br />";
+							echo "Date: $date<br />";
+							echo "User: ".htmlentities($username)."<br />";
+							echo "Device: $device";
 							if (isset($_GET['showadvanced'])) {
-								echo "<td>$ip</td><td>$type</td>";
+								echo "<br />IP: $ip";
+								echo "<br />Type: $type";
 							}
-							echo "<td>".htmlentities($url)."</td></tr>";
+							echo "</td><td>".htmlentities($url)."</td></tr>";
 						}
 					}
 				}

@@ -25,7 +25,6 @@ upgrade:
 	@echo "Upgrading Open Screen Monitor ..."
 
 	# Upgrading php related files
-	rm -rf $(DESTDIR)/var/www/html/osm/*
 	cp -a php/* $(DESTDIR)/var/www/html/osm
 	chown -R www-data:www-data $(DESTDIR)/var/www/html/osm
 

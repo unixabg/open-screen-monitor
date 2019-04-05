@@ -13,7 +13,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	if ($data['deviceID'] == '') $data['deviceID'] = 'unknown';
 
 	if (!isset($data['type']))$data['type'] = 'unknown';
-	$data['type'] = preg_replace("/[^a-z0-9-]/","",$data['type']);
+	$data['type'] = preg_replace("/[^a-z0-9_]/","",$data['type']);
 	if ($data['type'] == '') $data['type'] = 'unknown';
 
 
@@ -22,17 +22,17 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 
 	//determine action
+	$toReturn = array();
 	$action = 'SENTRY'; //set to SENTRY for whitelist and blacklist testing
 	$parameters = '';
-	$url = parse_url($data['url']);
 
-	if (($data['type'] == 'mainframe' || $data['type'] == 'subframe') && isset($url['host']) && file_exists($dataDir.'/filter_domainwhitelist.txt') && file_exists($dataDir.'/filter_domainblacklist.txt')){
+	if (file_exists($dataDir.'/filter_whitelist.txt') && file_exists($dataDir.'/filter_blacklist.txt')){
 		//first check whitelist
-		$file = fopen($dataDir.'/filter_domainwhitelist.txt',"r");
+		$file = fopen($dataDir.'/filter_whitelist.txt',"r");
 		while (($line = fgets($file)) !== false){
 			$line = rtrim($line);
 			//pass if domain equal or if a subdomain of domain
-			if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
+			if ($line != '' && ($line == $data['url'] || strstr($data['url'],$line)) !== false){
 				$action = 'ALLOW';
 				break;
 			}
@@ -41,27 +41,62 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 		//if no match in whitelist test against the blacklist
 		if ($action == 'SENTRY'){
-			$file = fopen($dataDir.'/filter_domainblacklist.txt',"r");
+			$file = fopen($dataDir.'/filter_blacklist.txt',"r");
 			while (($line = fgets($file)) !== false){
 				$line = rtrim($line);
-				//block if domain equal or if a subdomain of domain
-				if ($line != '' && ($line == $url['host'] || stripos($url['host'],'.'.$line)) !== false){
-					if ($_config['filterviaserverShowBlockPage']){
-						$action='BLOCK';
-						//todo: pass parameters to block page here
-						$parameters = 'url_host='.$url['host'].'&data_type='.$data['type'].'&data_username='.$data['username'];
+				$line = explode("\t",$line);
+
+				$actionType = $_config['filterviaserverShowBlockPage'] ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
+				$types = $_config['filterviaserverDefaultFilterTypes'];
+				$url = '';
+				switch(count($line)){
+					case 1:
+						if ($line[0] != '') $url = $line[0];
 						break;
-					} else {
+					case 2:
+						if ($line[0] != '') $actionType = $line[0];
+						if ($line[1] != '') $url = $line[1];
+						break;
+					case 3:
+						if ($line[0] != '') $actionType = $line[0];
+						if ($line[1] != '') $types = explode(',',$line[1]);
+						if ($line[2] != '') $url = $line[2];
+						break;
+				}
+
+				if (substr($actionType,0,9) == 'REDIRECT:'){
+					$redirectUrl = substr($actionType,9);
+					$actionType = 'REDIRECT';
+				}
+
+				if ($url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+					$action = $actionType; //set SENTRY to action type since we hit something
+					if ($actionType == 'BLOCKPAGE'){
+						$toReturn['commands'][] = array(
+							'action'=>'BLOCKPAGE',
+							'data'=>'url_host='.urlencode($data['url']).'&data_type='.urlencode($data['type']).'&data_username='.urlencode($data['username']).'&filter_keyword='.urlencode($url),
+						);
+						$toReturn['return']['cancel'] = true;
+					} elseif ($actionType == 'BLOCKNOTIFY') {
 						//show notification instead
-						$action='BLOCKNOTIFY';
-						$parameters = json_encode(array(
+						$toReturn['commands'][] = array('action'=>'BLOCK');
+						$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
 							'requireInteraction'=>false,
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
-							'message'=>'Tab with the url of '.$url['host'].' was blocked by OSM',
+							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
+						$toReturn['return']['cancel'] = true;
+					} elseif ($actionType == 'BLOCK') {
+						$toReturn['commands'][] = array('action'=>'BLOCK');
+						$toReturn['return']['cancel'] = true;
+					} elseif ($actionType == 'CANCEL') {
+						$toReturn['return']['cancel'] = true;
+					} elseif ($actionType == 'REDIRECT') {
+						$toReturn['return']['redirectUrl'] = $redirectUrl;
 					}
+					break;
 				}
 			}
 			fclose($file);
@@ -85,9 +120,42 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	if (!file_exists($logFile)) touch($logFile);
 	file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 
+	//look for email triggers
+	if (file_exists($dataDir.'/triggerlist.txt')){
+		$file = fopen($dataDir.'/triggerlist.txt',"r");
+		while (($line = fgets($file)) !== false){
+			$line = rtrim($line);
+			$line = explode("\t",$line);
+
+			$types = $_config['filterviaserverDefaultTriggerTypes'];
+			$url = '';
+			$email = '';
+			switch(count($line)){
+				case 2:
+					if ($line[0] != '') $email = $line[0];
+					if ($line[1] != '') $url = $line[1];
+					break;
+				case 3:
+					if ($line[0] != '') $email = $line[0];
+					if ($line[1] != '') $types = explode(',',$line[1]);
+					if ($line[2] != '') $url = $line[2];
+					break;
+			}
+
+			if ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				$header = "From: Open Screen Monitor <".$email.">\r\n";
+				$raw = "User: ".$data['username']."_".$data['domain']
+					."\nDevice: ".$data['deviceID']
+					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
+					."\n".str_replace("\t","\n",$logentry);
+				mail($email, "OSM Trigger Alert", $raw, $header);
+			}
+		}
+		fclose($file);
+	}
 
 	//send it back
-	die($action.($parameters != '' ? "\n".$parameters : ""));
+	die(json_encode($toReturn));
 }
 //if we get here, there has been a problem
 die("Error in request");

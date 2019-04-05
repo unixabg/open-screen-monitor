@@ -50,10 +50,6 @@ function checkToken($token) {
 		$data = json_decode($data);
 
 		if ($data->aud == $client_secret->web->client_id && $data->exp > time() && $data->iss == "https://accounts.google.com") {
-			if (count($permissions) > 0 && !isset($permissions[$data->email])) {
-				die("<h1>Credentials valid. No Permissions</h1>");
-			}
-
 			//they are good
 			$_SESSION['token'] = $token;
 			$_SESSION['email'] = $data->email;
@@ -96,6 +92,8 @@ if (isset($_GET['logout'])) {
 	if (!checkToken($token))
 		die("Error has occured validating token");
 
+	file_put_contents($logDir.'login.log', date('YmdHis',time())."\t".$_SESSION['email']."\t".$_SERVER['REMOTE_ADDR']."\n" ,FILE_APPEND);
+
 	//redirect them back to self, except this time they will be logged in
 	header('Location: ?');
 	die();
@@ -123,6 +121,71 @@ if (isset($_GET['logout'])) {
 		//they don't have permission to this lab but are valid, redirect back
 		header('Location: ?');
 	}
+	die();
+} elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
+	//they have permission to this lab
+	$_SESSION['alloweddevices'] = array();
+	//prefix data dir to each device
+	foreach ($labs as $lab){
+		foreach ($lab as $deviceID=>$deviceInfo) {
+			unset($deviceInfo[0]);
+			unset($deviceInfo[1]);
+			foreach($deviceInfo as $i => $value) {
+				if ($value == "") unset($deviceInfo[$i]);
+			}
+			$description = implode(" - ",$deviceInfo);
+			$_SESSION['lab'] = $_GET['lab'];
+			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+		}
+		$_SESSION['alloweddevices']['unknown'] = '- Non-Enterprise device';
+
+		//sort the allowed devices array
+		asort($_SESSION['alloweddevices']);
+
+		header('Location: filterlog.php');
+	}
+	die();
+} elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
+	if ($_config['mode'] == 'user') {
+		//sync devices
+		$context = stream_context_create(array('http' =>array(
+			'method'=>'GET',
+			'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
+		)));
+
+		//links below are a reference for request and response
+		//https://developers.google.com/classroom/reference/rest/v1/courses.students/list
+		$students = array();
+		$url = 'https://classroom.googleapis.com/v1/courses/'.urlencode($_GET['course']).'/students?pageSize=100';
+		$data = file_get_contents($url, false, $context);
+		if ($data !== false) {
+			$data = json_decode($data,true);
+			if (isset($data['students'])){
+				$students = $data['students'];
+				while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
+					$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
+					if ($data === false) return false;
+						$data = json_decode($data,true);
+					$students = array_merge($students,$data['students']);
+				}
+			}
+		}
+		$_SESSION['alloweddevices'] = array();
+		foreach ($students as $student){
+			$email = $student['profile']['emailAddress'];
+			$email = str_replace("@","_",$email);
+			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
+			$_SESSION['alloweddevices'][$email] = $student['profile']['name']['fullName'];
+		}
+		if (count($_SESSION['alloweddevices']) > 0){
+			asort($_SESSION['alloweddevices']);
+			$_SESSION['lab'] = 'CLASS NAME GOES HERE';
+			header('Location: monitor.php');
+			die();
+		}
+	}
+	//they don't have permission to this lab but are valid, redirect back
+	header('Location: ?');
 	die();
 } elseif (isset($_GET['permissions']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']){
 	$changesMade = false;
@@ -180,7 +243,7 @@ if (isset($_GET['logout'])) {
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 </head>
 <body>
-<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="?logout">Logout</a><?php } ?>
+<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 <hr />
 <?php
 
@@ -279,28 +342,56 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	} elseif (isset($_GET['serverfilter']) && $_SESSION['admin']) {
 		echo "<h2>Server Filter List</h2>";
 		if (isset($_POST['blacklist'])){
-			if (file_put_contents($dataDir.'/filter_domainblacklist.txt',$_POST['blacklist']))
+			if (file_put_contents($dataDir.'/filter_blacklist.txt',$_POST['blacklist']) !== false)
 				echo "<h3>Successfully Saved Blacklist</h3>";
 			else
 				echo "<h3>Error Saving Blacklist</h3>";
 		}
 		if (isset($_POST['whitelist'])){
-			if (file_put_contents($dataDir.'/filter_domainwhitelist.txt',$_POST['whitelist']))
+			if (file_put_contents($dataDir.'/filter_whitelist.txt',$_POST['whitelist']) !== false)
 				echo "<h3>Successfully Saved Whitelist</h3>";
 			else
 				echo "<h3>Error Saving Whitelist</h3>";
+		}
+		if (isset($_POST['triggerlist'])){
+			if (file_put_contents($dataDir.'/triggerlist.txt',$_POST['triggerlist']) !== false)
+				echo "<h3>Successfully Saved Trigger List</h3>";
+			else
+				echo "<h3>Error Saving Trigger List</h3>";
+		}
+		if (isset($_POST['screenscrapelist'])){
+			if (file_put_contents($dataDir.'/screenscrape.txt',$_POST['screenscrapelist']) !== false)
+				echo "<h3>Successfully Saved Page Content Bad Word list</h3>";
+			else
+				echo "<h3>Error Saving Page Content Bad Word list</h3>";
 		}
 
 		echo "<hr />";
 		echo "<form method=\"post\">";
 
-		$data = file_exists($dataDir.'/filter_domainblacklist.txt') ? file_get_contents($dataDir.'/filter_domainblacklist.txt') : '';
+		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
 		echo "<h2>Blacklist</h2>";
-		echo "<textarea name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+		echo "<br />Three entry formats:<ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>";
+		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
+		echo "<br />Action can be: <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>";
+		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
+		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
-		$data = file_exists($dataDir.'/filter_domainwhitelist.txt') ? file_get_contents($dataDir.'/filter_domainwhitelist.txt') : '';
+		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
 		echo "<h2>Whitelist</h2>";
 		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+
+		$data = file_exists($dataDir.'/triggerlist.txt') ? file_get_contents($dataDir.'/triggerlist.txt') : '';
+		echo "<h2>Trigger list</h2>";
+		echo "<br />Three entry formats:<ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>";
+		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
+		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
+		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"triggerlist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
+
+		$data = file_exists($dataDir.'/screenscrape.txt') ? file_get_contents($dataDir.'/screenscrape.txt') : '';
+		echo "<h2>Page Content Bad Word list</h2>";
+		echo "<br />Three entry formats:<ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>";
+		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"screenscrapelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
 	} else {
@@ -308,31 +399,70 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		?>
 		<h2>Hello <?php echo htmlentities($_SESSION['name'].' ('.$_SESSION['email'].')');?></h2>
 		<div>
-			Here are the labs you have access to:
-			<ul style="text-align:left;">
+			<?php if ($_config['mode'] == 'device'){ ?>
+				Here are the labs you have access to:
+				<ul style="text-align:left;">
+				<?php
+				if ($_SESSION['admin']) {
+					//show all devices
+					foreach (array_keys($labs) as $lab) {
+						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+					}
+				} else {
+					//show just what they can access
+					foreach ($myPermissions as $permission) {
+						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+					}
+				}
+				?>
+				</ul>
 			<?php
-			if ($_SESSION['admin']) {
-				//show all devices
-				foreach (array_keys($labs) as $lab) {
-					echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+			} elseif ($_config['mode'] == 'user'){
+				//sync devices
+				$context = stream_context_create(array('http' =>array(
+					'method'=>'GET',
+					'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
+				)));
+
+				//links below are a reference for request and response
+				//https://developers.google.com/classroom/reference/rest/v1/courses/list
+				$courses = array();
+				$url = 'https://classroom.googleapis.com/v1/courses?pageSize=100&courseStates=ACTIVE'.($_SESSION['admin'] ? '':'&teacherId=me');
+				$data = file_get_contents($url, false, $context);
+				if ($data !== false) {
+					$data = json_decode($data,true);
+					$courses = $data['courses'];
+					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
+						$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
+						if ($data === false) return false;
+							$data = json_decode($data,true);
+						$courses = array_merge($courses,$data['courses']);
+					}
 				}
-			} else {
-				//show just what they can access
-				foreach ($myPermissions as $permission) {
-					echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+				echo "Here are your Google Classroom classes: <ul style=\"text-align:left;\">";
+				$_courses = array();
+				foreach ($courses as $course) {
+					$_courses[$course['id']]=$course['name'];
 				}
+				asort($_courses);
+				foreach($_courses as $id=>$name){
+					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
+				}
+
+				echo "</ul>";
 			}
 			?>
-			</ul>
 		</div>
 		<?php if ($_SESSION['admin'] || count($permissions) == 0) { ?>
 		<div>
 			<h2>Admin Tools</h2>
 			<ul style="text-align:left;">
-				<li><a href="?syncdevices" >Sync Devices</a></li>
-				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?config">Config Editor</a></li>
+				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?serverfilter">Server Filter Lists</a></li>
+				<li><a href="?syncdevices" >Sync Devices</a></li>
+				<li><a href="usagereport.php" >Usage Report</a></li>
+				<li><a href="?adminfilterlog">View Browsing History</a></li>
 			</ul>
 		</div>
 		<?php
@@ -347,13 +477,12 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	</center>
 	<?php
 	echo "<a href=\"https://accounts.google.com/o/oauth2/v2/auth?scope="
-		.urlencode("profile email https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly")
+		.urlencode("profile email https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/classroom.profile.emails")
 		."&response_type=code"
 		."&client_id=".$client_secret->web->client_id
 		."&redirect_uri=".urlencode($client_secret->web->redirect_uris[0])
 		."\"><img src=\"google_signin.png\" alt=\"Google Signin\" /></a><br />";
 }
-echo "<br />Version ".$_config['version'];
 ?>
 </body>
 </html>
