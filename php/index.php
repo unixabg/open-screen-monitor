@@ -383,7 +383,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 
 		$data = file_exists($dataDir.'/triggerlist.txt') ? file_get_contents($dataDir.'/triggerlist.txt') : '';
 		echo "<h2>Trigger list</h2>";
-		echo "<br />Three entry formats:<ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>";
+		echo "<br />Two entry formats:<ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>";
 		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
 		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"triggerlist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
