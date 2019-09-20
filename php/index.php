@@ -391,6 +391,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		$data = file_exists($dataDir.'/screenscrape.txt') ? file_get_contents($dataDir.'/screenscrape.txt') : '';
 		echo "<h2>Page Content Bad Word list</h2>";
 		echo "<br />Three entry formats:<ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>";
+		echo "<br />Action can be: <ul><li>BLOCK</li><li>BLOCKNOTIFY</li><li>BLOCKPAGE</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"screenscrapelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
