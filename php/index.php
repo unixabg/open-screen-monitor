@@ -511,12 +511,12 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				if ($_SESSION['admin']) {
 					//show all devices
 					foreach (array_keys($labs) as $lab) {
-						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a> - (".count($labs[$lab])." devices)</li>";
 					}
 				} else {
 					//show just what they can access
 					foreach ($myPermissions as $permission) {
-						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a> - (".count($labs[$permission])." devices)</li>";
 					}
 				}
 				?>

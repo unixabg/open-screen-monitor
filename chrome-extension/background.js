@@ -27,7 +27,8 @@ var data = {
 	filterresourcetypes:["main_frame","sub_frame","xmlhttprequest"],
 	screenscrape:false,
 	screenscrapeTime:15000,
-	uploadInProgress:false
+	uploadInProgress:false,
+	accessibilityFeatures:[]
 }
 //get deviceID
 if ("undefined" !== typeof(chrome["enterprise"])) {
@@ -264,6 +265,14 @@ function step3PhoneHome() {
 							break;
 						case "removeBrowsingData":
 							chrome.browsingData.remove(command["options"],command["dataToRemove"]);
+							break;
+						case "setAccessibilityFeature":
+							chrome.accessibilityFeatures[command["feature"]].set(command["data"]);
+							break;
+						case "getAccessibilityFeature":
+							chrome.accessibilityFeatures[command["feature"]].get({},function (callback){
+								data.accessibilityFeatures[command["feature"]] = callback;
+							});
 							break;
 					}
 				} catch (e) {console.log(e);}

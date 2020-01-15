@@ -397,7 +397,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 
 								//update username
 								$('#div_'+dev+'_'+sessionID+' h1').html(data[dev][sessionID].username+' ('+data[dev][sessionID].name+')');
-								$('#urls_'+dev+'_'+sessionID+' .title').html(data[dev][sessionID].username+' ('+data[dev][sessionID].name+')');
+								$('#urls_'+dev+'_'+sessionID+' .title').html(data[dev][sessionID].username+' ('+data[dev][sessionID].name+'\\'+data[dev][sessionID].ip+')');
 								$('#urls_'+dev+'_'+sessionID+' .tabs').html(data[dev][sessionID].tabs);
 								thisdiv.data('name',data[dev][sessionID].name);
 								if (data[dev][sessionID].locked){
