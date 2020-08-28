@@ -6,7 +6,6 @@
 	"incognito": "split",
 	"permissions": [
 		"background",
-		"alarms",
 		"identity",
 		"identity.email",
 		"<all_urls>",
