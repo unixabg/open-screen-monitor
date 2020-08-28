@@ -412,7 +412,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
   <tr>
     <th>Trigger List Entry Formats</th>
     <td>
-      <ul><ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>
+      <ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>
     </td>
   </tr>
   <tr>
