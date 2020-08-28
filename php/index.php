@@ -370,25 +370,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<form method=\"post\">";
 
 		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
-		echo "<style>
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  border: 1px solid #ddd;
-}
-
-th, td {
-  text-align: left;
-  border: 1px solid #ddd;
-  padding: 16px;
-}
-
-tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-</style>
-
-<table>
+		echo "<table>
   <tr>
     <th>Blacklist & Whitelist Entry Formats</th>
     <td>
