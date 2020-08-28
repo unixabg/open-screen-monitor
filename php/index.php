@@ -370,11 +370,52 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<form method=\"post\">";
 
 		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
+		echo "<style>
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid #ddd;
+}
+
+th, td {
+  text-align: left;
+  border: 1px solid #ddd;
+  padding: 16px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+</style>
+
+<table>
+  <tr>
+    <th>Blacklist & Whitelist Entry Formats</th>
+    <td>
+      <ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+      <ul><li>An actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+</table>
+";
 		echo "<h2>Blacklist</h2>";
-		echo "<br />Three entry formats:<ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>";
-		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
-		echo "<br />Action can be: <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>";
-		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
@@ -382,16 +423,52 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/triggerlist.txt') ? file_get_contents($dataDir.'/triggerlist.txt') : '';
-		echo "<h2>Trigger list</h2>";
-		echo "<br />Two entry formats:<ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>";
-		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
-		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
+		echo "<br />";
+		echo "<table align=\"center\" border=\"1px\">
+<table>
+
+  <tr>
+    <th>Trigger List Entry Formats</th>
+    <td>
+      <ul><ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+        <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+</table>
+";
+		echo "<h2>Trigger List</h2>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"triggerlist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/screenscrape.txt') ? file_get_contents($dataDir.'/screenscrape.txt') : '';
-		echo "<h2>Page Content Bad Word list</h2>";
-		echo "<br />Three entry formats:<ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>";
-		echo "<br />Action can be: <ul><li>BLOCK</li><li>BLOCKNOTIFY</li><li>BLOCKPAGE</li></ul>";
+		echo "<br />";
+		echo "<table align=\"center\" border=\"1px\">
+<table>
+
+  <tr>
+    <th>Page Content Bad Word List Formats</th>
+    <td>
+      <ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>BLOCK</li><li>BLOCKNOTIFY</li><li>BLOCKPAGE</li></ul>
+    </td>
+  </tr>
+</table>
+";		echo "<h2>Page Content Bad Word List</h2>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"screenscrapelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
