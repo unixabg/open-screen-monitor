@@ -405,7 +405,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
   <tr>
     <th>Whitelist Entry Formats</th>
     <td>
-      <ul><li>url</li></ul>
+      <ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li><li>action -tab- resourceType -tab- url -tab- customNotificationMessage</li></ul>
     </td>
   </tr>
   <tr>
@@ -417,13 +417,19 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
   <tr>
     <th>Actions</th>
     <td>
-      <ul><li>FIXME</li></ul>
+      <ul><li>NOTIFY</li></ul>
     </td>
   </tr>
   <tr>
     <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
     <td>
-      <ul><li>FIXME</li></ul>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>CustomNotificationMessage</th>
+    <td>
+      <ul><li>Custom message you want in notification.</li></ul>
     </td>
   </tr>
 </table>
