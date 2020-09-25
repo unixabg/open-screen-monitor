@@ -372,7 +372,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
 		echo "<table>
   <tr>
-    <th>Blacklist & Whitelist Entry Formats</th>
+    <th>Blacklist Entry Formats</th>
     <td>
       <ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>
     </td>
@@ -401,6 +401,33 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
+		echo "<table>
+  <tr>
+    <th>Whitelist Entry Formats</th>
+    <td>
+      <ul><li>url</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+      <ul><li>An actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>FIXME</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>FIXME</li></ul>
+    </td>
+  </tr>
+</table>
+";
 		echo "<h2>Whitelist</h2>";
 		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
