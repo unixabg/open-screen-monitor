@@ -522,7 +522,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				$courses = array();
 				$url = 'https://classroom.googleapis.com/v1/courses?pageSize=100&courseStates=ACTIVE'.($_SESSION['admin'] ? '':'&teacherId=me');
 				$data = file_get_contents($url, false, $context);
-				if ($data !== false) {
+				if (!empty($data)) {
 					$data = json_decode($data,true);
 					$courses = $data['courses'];
 					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
