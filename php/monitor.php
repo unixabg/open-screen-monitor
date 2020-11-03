@@ -40,7 +40,7 @@ if (isset($_GET['images'])) {
 	$toReturn = array();
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$files = glob($dataDir.'/devices/'.$deviceID.'/*',GLOB_ONLYDIR);
+		$files = glob($dataDir.'/clients/'.$deviceID.'/*',GLOB_ONLYDIR);
 		foreach ($files as $file){
 			$sessionID = basename($file);
 			$file .= '/screenshot.jpg';
@@ -63,7 +63,7 @@ if (isset($_GET['images'])) {
 // Actions are passed with the device id in the $_POST[] to get the full path we append that device id to the $dataDir.'/devices'
 if (isset($_POST['log'])){
 	if (isset($_SESSION['alloweddevices'][$_POST['log']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['log'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['log'];
 		die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($_actionPath.'/log')));
 	}
 	die();
@@ -71,7 +71,7 @@ if (isset($_POST['log'])){
 
 if (isset($_POST['lock'])){
 	if(isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['lock']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['lock'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['lock'].'/'.$_POST['sessionID'];
 		touch($_actionPath.'/lock');
 		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
 	}
@@ -80,7 +80,7 @@ if (isset($_POST['lock'])){
 
 if (isset($_POST['unlock'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['unlock']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['unlock'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['unlock'].'/'.$_POST['sessionID'];
 		if (file_exists($_actionPath.'/lock')) unlink($_actionPath.'/lock');
 		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 		touch($_actionPath.'/unlock');
@@ -90,7 +90,7 @@ if (isset($_POST['unlock'])){
 
 if (isset($_POST['openurl']) && isset($_POST['url'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['openurl']]) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['openurl'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['openurl'].'/'.$_POST['sessionID'];
 		file_put_contents($_actionPath.'/openurl',$_POST['url']);
 		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
 	}
@@ -99,7 +99,7 @@ if (isset($_POST['openurl']) && isset($_POST['url'])){
 
 if (isset($_POST['closetab']) && isset($_POST['tabid'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['closetab']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['closetab'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['closetab'].'/'.$_POST['sessionID'];
 		file_put_contents($_actionPath.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 		//FIXME - add title of tab later
 		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
@@ -109,7 +109,7 @@ if (isset($_POST['closetab']) && isset($_POST['tabid'])){
 
 if (isset($_POST['closeAllTabs'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['closeAllTabs']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['closeAllTabs'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['closeAllTabs'].'/'.$_POST['sessionID'];
 		if (file_exists($_actionPath.'/tabs')) {
 			$temp = json_decode(file_get_contents($_actionPath.'/tabs'),true);
 			foreach ($temp as $tab) {
@@ -125,7 +125,7 @@ if (isset($_POST['closeAllTabs'])){
 
 if (isset($_POST['sendmessage'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_POST['message']) && isset($_SESSION['alloweddevices'][$_POST['sendmessage']])) {
-		$_actionPath = $dataDir.'/devices/'.$_POST['sendmessage'].'/'.$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['sendmessage'].'/'.$_POST['sessionID'];
 		file_put_contents($_actionPath.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
 		logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
 	}
@@ -134,7 +134,7 @@ if (isset($_POST['sendmessage'])){
 
 if (isset($_POST['screenshot'])){
 	if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID']) && isset($_SESSION['alloweddevices'][$_POST['screenshot']])){
-		$_actionPath = $dataDir.'/devices/'.$_POST['screenshot']."/".$_POST['sessionID'];
+		$_actionPath = $dataDir.'/clients/'.$_POST['screenshot']."/".$_POST['sessionID'];
 		if (file_exists($_actionPath."/screenshot.jpg")){
 			logger(dirname($_actionPath).'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tscreenshot\t\n", $_config['logmax']);
 
@@ -178,7 +178,7 @@ if (isset($_GET['update'])) {
 	$data = array();
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
 		$data[$deviceID] = array();
-		$folders = glob($dataDir.'/devices/'.$deviceID.'/*',GLOB_ONLYDIR);
+		$folders = glob($dataDir.'/clients/'.$deviceID.'/*',GLOB_ONLYDIR);
 		foreach ($folders as $folder){
 			$sessionID = basename($folder);
 			$folder .= '/';
@@ -210,7 +210,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
 	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
-		$_actionPath = $dataDir.'/devices/'.$deviceID.'/';
+		$_actionPath = $dataDir.'/clients/'.$deviceID.'/';
 		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
 		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
 		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
@@ -590,9 +590,9 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	$deviceID = array_keys($_SESSION['alloweddevices'])[0];
 	$filtermode = "";
 	$filterlist = "";
-	if (file_exists($dataDir.'/devices/'.$deviceID.'/filtermode') && file_exists($dataDir.'/devices/'.$deviceID.'/filterlist')){
-		$filtermode = file_get_contents($dataDir.'/devices/'.$deviceID.'/filtermode');
-		$filterlist = file_get_contents($dataDir.'/devices/'.$deviceID.'/filterlist');
+	if (file_exists($dataDir.'/clients/'.$deviceID.'/filtermode') && file_exists($dataDir.'/clients/'.$deviceID.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/clients/'.$deviceID.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/clients/'.$deviceID.'/filterlist');
 	} else {
 		$filtermode = "disabled";
 	}

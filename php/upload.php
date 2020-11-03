@@ -14,7 +14,7 @@ if (isset($_POST['data'])) {
 
 	if ($deviceID != "") {
 		//create device folder if it doesn't exist
-		$deviceFolder = $dataDir.'/devices/'.$deviceID;
+		$deviceFolder = $dataDir.'/clients/'.$deviceID;
 		if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 
 		//create sessionID if it doesn't exist

@@ -4,7 +4,7 @@ $dataDir = '../osm-data';
 
 if (!file_exists($dataDir)) die('Missing osm-data directory');
 
-if (!file_exists($dataDir.'/devices')) mkdir($dataDir.'/devices',0755,true);
+if (!file_exists($dataDir.'/clients')) mkdir($dataDir.'/clients',0755,true);
 
 $logDir = $dataDir.'/logs/';
 if (!file_exists($logDir)) mkdir($logDir,0755,true);
