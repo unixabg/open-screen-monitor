@@ -36,6 +36,9 @@
     - **Please be mindful** to apply appropiate security and permissions to the client_secret.json file
 
 ### Other notes (ymmv)
+- If using mode user on pristine install, you will need to create a permissions.tsv in the osm-data folder.
+  - Create an entry for your admin user something like: username@yourdomain.com<TAB>admin
+  - Remember to make set the permissions correct on the file.
 - Self Signed Certificate
  - **Note: Officially Signed Certificates are recommended for safety and security**
  - If you choose to use a self signed certificate you can install it in the Google Admin Console
