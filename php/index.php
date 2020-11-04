@@ -179,7 +179,7 @@ if (isset($_GET['logout'])) {
 		}
 		if (count($_SESSION['alloweddevices']) > 0){
 			asort($_SESSION['alloweddevices']);
-			$_SESSION['lab'] = 'CLASS NAME GOES HERE';
+			$_SESSION['lab'] = $_GET['courseName'].' #'.$_GET['course'];
 			header('Location: monitor.php');
 			die();
 		}
@@ -539,7 +539,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				}
 				asort($_courses);
 				foreach($_courses as $id=>$name){
-					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
+					echo "<li><a href=\"?course=".urlencode($id)."&courseName=".urlencode($name)."\">".htmlentities($name)."</a></li>";
 				}
 
 				echo "</ul>";
