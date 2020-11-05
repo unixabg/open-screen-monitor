@@ -250,7 +250,7 @@ if (isset($_GET['logout'])) {
 if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	//user is authenticated
 
-	if (isset($_GET['syncdevices']) ) {
+	if (isset($_GET['syncdevices']) && $_config['mode'] == 'device') {
 		//sync devices
 		$context = stream_context_create(array('http' =>array(
 			'method'=>'GET',
@@ -553,7 +553,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<li><a href="?config">Config Editor</a></li>
 				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?serverfilter">Server Filter Lists</a></li>
-				<li><a href="?syncdevices" >Sync Devices</a></li>
+				<?php if ($_config['mode'] == 'device') {echo '<li><a href="?syncdevices" >Sync Devices</a></li>';} ?>
 				<li><a href="usagereport.php" >Usage Report</a></li>
 				<li><a href="?adminfilterlog">View Browsing History</a></li>
 			</ul>
