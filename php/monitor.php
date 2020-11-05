@@ -219,6 +219,23 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
 
+if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab'])) {
+	// Set the lastLab to the new lab
+	$_SESSION['lastLab'] = $_SESSION['lab'];
+	// Drop filterlist and filterlmode on clients for sanity on a new lab session
+	foreach ($_SESSION['alloweddevices'] as $deviceID=>$deviceName) {
+		$_actionPath = $dataDir.'/clients/'.$deviceID.'/';
+		if (file_exists($_actionPath.'/filtermode')) {
+			unlink($_actionPath.'/filtermode');
+			logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tsanity-check\tNew lab session reset dropping filtermode\n", $_config['logmax']);
+		}
+		if (file_exists($_actionPath.'/filterlist')) {
+			unlink($_actionPath.'/filterlist');
+			logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tsanity-check\tNew lab session reset dropping filterlist\n", $_config['logmax']);
+		}
+	}
+}
+
 ?><html>
 <head>
 	<title>Open Screen Monitor</title>
