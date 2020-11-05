@@ -147,7 +147,7 @@ if (isset($_GET['logout'])) {
 	die();
 } elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if ($_config['mode'] == 'user') {
-		//sync devices
+		//sync clients in course
 		$context = stream_context_create(array('http' =>array(
 			'method'=>'GET',
 			'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
@@ -511,7 +511,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				</ul>
 			<?php
 			} elseif ($_config['mode'] == 'user'){
-				//sync devices
+				//sync courses
 				$context = stream_context_create(array('http' =>array(
 					'method'=>'GET',
 					'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
