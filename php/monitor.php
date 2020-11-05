@@ -39,16 +39,16 @@ if (isset($_GET['images'])) {
 	ini_set('memory_limit','256M');
 	$toReturn = array();
 
-	foreach ($_SESSION['allowedclients'] as $deviceID=>$deviceName) {
-		$files = glob($dataDir.'/clients/'.$deviceID.'/*',GLOB_ONLYDIR);
+	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
+		$files = glob($dataDir.'/clients/'.$clientID.'/*',GLOB_ONLYDIR);
 		foreach ($files as $file){
 			$sessionID = basename($file);
 			$file .= '/screenshot.jpg';
 			// Assure who needs access here FIXME
 			if (is_readable($file) && filemtime($file) >= time() - 30 ) {
-				$toReturn[$deviceID.'_'.$sessionID] = base64_encode(file_get_contents($file));
+				$toReturn[$clientID.'_'.$sessionID] = base64_encode(file_get_contents($file));
 			} else {
-				$toReturn[$deviceID.'_'.$sessionID] = '';
+				$toReturn[$clientID.'_'.$sessionID] = '';
 			}
 		}
 	}
@@ -176,23 +176,23 @@ if (isset($_POST['screenshot'])){
 
 if (isset($_GET['update'])) {
 	$data = array();
-	foreach ($_SESSION['allowedclients'] as $deviceID=>$deviceName) {
-		$data[$deviceID] = array();
-		$folders = glob($dataDir.'/clients/'.$deviceID.'/*',GLOB_ONLYDIR);
+	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
+		$data[$clientID] = array();
+		$folders = glob($dataDir.'/clients/'.$clientID.'/*',GLOB_ONLYDIR);
 		foreach ($folders as $folder){
 			$sessionID = basename($folder);
 			$folder .= '/';
-			$data[$deviceID][$sessionID] = array('name'=>$deviceName,'username'=>'','tabs'=>array());
+			$data[$clientID][$sessionID] = array('name'=>$clientName,'username'=>'','tabs'=>array());
 
 			if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
-				$data[$deviceID][$sessionID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
-				$data[$deviceID][$sessionID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
-				$data[$deviceID][$sessionID]['tabs'] = "";
-				$data[$deviceID][$sessionID]['locked'] = file_exists($folder.'lock');
+				$data[$clientID][$sessionID]['ip'] = (file_exists($folder.'ip') ? file_get_contents($folder.'ip') : "Unknown IP");
+				$data[$clientID][$sessionID]['username'] = (file_exists($folder.'username') ? file_get_contents($folder.'username') : "Unknown User");
+				$data[$clientID][$sessionID]['tabs'] = "";
+				$data[$clientID][$sessionID]['locked'] = file_exists($folder.'lock');
 				if (file_exists($folder.'tabs')) {
 					$temp = json_decode(file_get_contents($folder.'tabs'),true);
 					foreach ($temp as $tab) {
-						$data[$deviceID][$sessionID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$deviceID."_".$sessionID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\" title=\"Close this tab.\"></i></a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
+						$data[$clientID][$sessionID]['tabs'] .= "<a href=\"#\" onmousedown=\"javscript:closeTab('".$clientID."_".$sessionID."','".$tab['id']."');return false;\"><i class=\"fas fa-trash\" title=\"Close this tab.\"></i></a> ".htmlspecialchars($tab['title']).'<br />'.substr(htmlspecialchars($tab['url']),0,500).'<br />';
 					}
 				}
 			}
@@ -209,8 +209,8 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	//let us do a second pass to drop empty lines and correctly format
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
-	foreach ($_SESSION['allowedclients'] as $deviceID=>$deviceName) {
-		$_actionPath = $dataDir.'/clients/'.$deviceID.'/';
+	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
+		$_actionPath = $dataDir.'/clients/'.$clientID.'/';
 		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
 		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
 		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
@@ -223,8 +223,8 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 	// Set the lastLab to the new lab
 	$_SESSION['lastLab'] = $_SESSION['lab'];
 	// Drop filterlist and filterlmode on clients for sanity on a new lab session
-	foreach ($_SESSION['allowedclients'] as $deviceID=>$deviceName) {
-		$_actionPath = $dataDir.'/clients/'.$deviceID.'/';
+	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
+		$_actionPath = $dataDir.'/clients/'.$clientID.'/';
 		if (file_exists($_actionPath.'/filtermode')) {
 			unlink($_actionPath.'/filtermode');
 			logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tsanity-check\tNew lab session reset dropping filtermode\n", $_config['logmax']);
@@ -248,7 +248,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 	<script type="text/javascript">
 		var imgcss = {'width':400,'height':300,'fontsize':14,'multiplier':1};
-		var deviceNames = <?php echo json_encode($_SESSION['allowedclients']); ?>
+		var clientNames = <?php echo json_encode($_SESSION['allowedclients']); ?>
 
 		function enableDevice(dev){
 			var img = $('<img />');
@@ -431,7 +431,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 					}
 
 					if (!_active){
-						$('#inactivedevs').append("<div id=\"div_" + dev + "\" class=\"dev\">"+deviceNames[dev]+"</div>");
+						$('#inactivedevs').append("<div id=\"div_" + dev + "\" class=\"dev\">"+clientNames[dev]+"</div>");
 					}
 				}
 
@@ -604,12 +604,12 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 	<div id="menu">
 	<?php
 	//FIXME get the filter list from first device ... not the best method but this is beta
-	$deviceID = array_keys($_SESSION['allowedclients'])[0];
+	$clientID = array_keys($_SESSION['allowedclients'])[0];
 	$filtermode = "";
 	$filterlist = "";
-	if (file_exists($dataDir.'/clients/'.$deviceID.'/filtermode') && file_exists($dataDir.'/clients/'.$deviceID.'/filterlist')){
-		$filtermode = file_get_contents($dataDir.'/clients/'.$deviceID.'/filtermode');
-		$filterlist = file_get_contents($dataDir.'/clients/'.$deviceID.'/filterlist');
+	if (file_exists($dataDir.'/clients/'.$clientID.'/filtermode') && file_exists($dataDir.'/clients/'.$clientID.'/filterlist')){
+		$filtermode = file_get_contents($dataDir.'/clients/'.$clientID.'/filtermode');
+		$filterlist = file_get_contents($dataDir.'/clients/'.$clientID.'/filterlist');
 	} else {
 		$filtermode = "disabled";
 	}

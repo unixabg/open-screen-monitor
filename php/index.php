@@ -102,15 +102,15 @@ if (isset($_GET['logout'])) {
 		//they have permission to this lab
 		$_SESSION['allowedclients'] = array();
 		//prefix data dir to each device
-		foreach ($labs[$_GET['lab']] as $deviceID=>$deviceInfo) {
-			unset($deviceInfo[0]);
-			unset($deviceInfo[1]);
-			foreach($deviceInfo as $i => $value) {
-				if ($value == "") unset($deviceInfo[$i]);
+		foreach ($labs[$_GET['lab']] as $clientID=>$clientInfo) {
+			unset($clientInfo[0]);
+			unset($clientInfo[1]);
+			foreach($clientInfo as $i => $value) {
+				if ($value == "") unset($clientInfo[$i]);
 			}
-			$description = implode(" - ",$deviceInfo);
+			$description = implode(" - ",$clientInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['allowedclients'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$clientID] = ($description != "" ? $description : $clientID);
 		}
 
 		//sort the allowed devices array
@@ -127,15 +127,15 @@ if (isset($_GET['logout'])) {
 	$_SESSION['allowedclients'] = array();
 	//prefix data dir to each device
 	foreach ($labs as $lab){
-		foreach ($lab as $deviceID=>$deviceInfo) {
-			unset($deviceInfo[0]);
-			unset($deviceInfo[1]);
-			foreach($deviceInfo as $i => $value) {
-				if ($value == "") unset($deviceInfo[$i]);
+		foreach ($lab as $clientID=>$clientInfo) {
+			unset($clientInfo[0]);
+			unset($clientInfo[1]);
+			foreach($clientInfo as $i => $value) {
+				if ($value == "") unset($clientInfo[$i]);
 			}
-			$description = implode(" - ",$deviceInfo);
+			$description = implode(" - ",$clientInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['allowedclients'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$clientID] = ($description != "" ? $description : $clientID);
 		}
 		$_SESSION['allowedclients']['unknown'] = '- Non-Enterprise device';
 

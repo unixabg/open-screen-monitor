@@ -4,17 +4,17 @@ require('config.php');
 $toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
-	$deviceID = '';
+	$clientID = '';
 
 	if ($_config['mode'] == 'device' && isset($data['deviceID'])){
-		$deviceID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
+		$clientID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	} elseif ($_config['mode'] == 'user' && isset($data['username']) && isset($data['domain'])) {
-		$deviceID = preg_replace("/[^a-zA-Z0-9-_]/","",$data['username'].'_'.$data['domain']);
+		$clientID = preg_replace("/[^a-zA-Z0-9-_]/","",$data['username'].'_'.$data['domain']);
 	}
 
-	if ($deviceID != "") {
+	if ($clientID != "") {
 		//create device folder if it doesn't exist
-		$deviceFolder = $dataDir.'/clients/'.$deviceID;
+		$deviceFolder = $dataDir.'/clients/'.$clientID;
 		if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
 
 		//create sessionID if it doesn't exist
@@ -194,7 +194,7 @@ if (isset($_POST['data'])) {
 			));
 		}
 	} else {
-		//deviceID not set
+		//clientID not set
 
 		//up the refresh since this is probably a personal or atleast non-chromebook device and
 		//we don't really care except for maybe eventually enabling the filter so it follows them even on those devices
