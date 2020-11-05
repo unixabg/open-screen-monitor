@@ -46,7 +46,7 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 <br />Device: <select name="deviceID">
 	<option value=""></option>
 	<?php
-	foreach ($_SESSION['alloweddevices'] as $_deviceID => $_deviceName) echo "<option value=\"$_deviceID\" ".($_deviceID == $deviceID ? 'selected="selected"':'').">".htmlentities($_deviceName)."</option>";
+	foreach ($_SESSION['allowedclients'] as $_deviceID => $_deviceName) echo "<option value=\"$_deviceID\" ".($_deviceID == $deviceID ? 'selected="selected"':'').">".htmlentities($_deviceName)."</option>";
 	?>
 </select>
 <br />URL Filter: <input type="text" name="urlfilter" value="<?php echo htmlentities($urlfilter);?>" />
@@ -75,9 +75,9 @@ if (isset($_GET['search'])){
 		$deviceID = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if (isset($_SESSION['alloweddevices'][$deviceID])){
+		if (isset($_SESSION['allowedclients'][$deviceID])){
 			if ($file = fopen($_logfile,"r")){
-				$device = isset($_SESSION['alloweddevices'][$deviceID]) ? htmlentities($_SESSION['alloweddevices'][$deviceID]) : $ip;
+				$device = isset($_SESSION['allowedclients'][$deviceID]) ? htmlentities($_SESSION['allowedclients'][$deviceID]) : $ip;
 				while (($line = fgets($file)) !== false) {
 					$line = explode("\t",$line);
 					if (count($line) == 4){

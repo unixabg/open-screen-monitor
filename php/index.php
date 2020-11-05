@@ -100,7 +100,7 @@ if (isset($_GET['logout'])) {
 } elseif (isset($_GET['lab']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || $_SESSION['admin'] )) {
 		//they have permission to this lab
-		$_SESSION['alloweddevices'] = array();
+		$_SESSION['allowedclients'] = array();
 		//prefix data dir to each device
 		foreach ($labs[$_GET['lab']] as $deviceID=>$deviceInfo) {
 			unset($deviceInfo[0]);
@@ -110,11 +110,11 @@ if (isset($_GET['logout'])) {
 			}
 			$description = implode(" - ",$deviceInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$deviceID] = ($description != "" ? $description : $deviceID);
 		}
 
 		//sort the allowed devices array
-		asort($_SESSION['alloweddevices']);
+		asort($_SESSION['allowedclients']);
 
 		header('Location: monitor.php');
 	} else {
@@ -124,7 +124,7 @@ if (isset($_GET['logout'])) {
 	die();
 } elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
 	//they have permission to this lab
-	$_SESSION['alloweddevices'] = array();
+	$_SESSION['allowedclients'] = array();
 	//prefix data dir to each device
 	foreach ($labs as $lab){
 		foreach ($lab as $deviceID=>$deviceInfo) {
@@ -135,12 +135,12 @@ if (isset($_GET['logout'])) {
 			}
 			$description = implode(" - ",$deviceInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$deviceID] = ($description != "" ? $description : $deviceID);
 		}
-		$_SESSION['alloweddevices']['unknown'] = '- Non-Enterprise device';
+		$_SESSION['allowedclients']['unknown'] = '- Non-Enterprise device';
 
 		//sort the allowed devices array
-		asort($_SESSION['alloweddevices']);
+		asort($_SESSION['allowedclients']);
 
 		header('Location: filterlog.php');
 	}
@@ -170,15 +170,15 @@ if (isset($_GET['logout'])) {
 				}
 			}
 		}
-		$_SESSION['alloweddevices'] = array();
+		$_SESSION['allowedclients'] = array();
 		foreach ($students as $student){
 			$email = $student['profile']['emailAddress'];
 			$email = str_replace("@","_",$email);
 			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
-			$_SESSION['alloweddevices'][$email] = $student['profile']['name']['fullName'];
+			$_SESSION['allowedclients'][$email] = $student['profile']['name']['fullName'];
 		}
-		if (count($_SESSION['alloweddevices']) > 0){
-			asort($_SESSION['alloweddevices']);
+		if (count($_SESSION['allowedclients']) > 0){
+			asort($_SESSION['allowedclients']);
 			$_SESSION['lab'] = $_GET['courseName'].' #'.$_GET['course'];
 			header('Location: monitor.php');
 			die();
