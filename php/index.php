@@ -123,6 +123,7 @@ if (isset($_GET['logout'])) {
 	}
 	die();
 } elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
+	/*
 	//they have permission to this lab
 	$_SESSION['allowedclients'] = array();
 	//prefix data dir to each device
@@ -141,9 +142,10 @@ if (isset($_GET['logout'])) {
 
 		//sort the allowed devices array
 		asort($_SESSION['allowedclients']);
-
 		header('Location: filterlog.php');
 	}
+	*/
+	header('Location: filterlog.php');
 	die();
 } elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if ($_config['mode'] == 'user') {
