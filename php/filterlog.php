@@ -44,7 +44,7 @@ if ($action == 'ALLOW'){
 <form method="get">
 <?php
 	if ($_SESSION['admin']) {
-		echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).' />';
+		echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).'" />';
 		echo '</select><br />Device: <input type="text" name="device" value="'.htmlentities($device == '*' ? '' : $device).'" />';
 	} else {
 		if ($_config['mode'] == 'user') {
@@ -52,7 +52,7 @@ if ($action == 'ALLOW'){
 			foreach ($_SESSION['allowedclients'] as $_clientID => $_clientName) echo '<option value="'.$_clientID.'" '.($_clientID == $username ? 'selected="selected"':'').'>'.htmlentities($_clientName).'</option>';
 			echo '</select><br />Device: <input type="text" name="device" value="'.htmlentities($device == '*' ? '' : $device).'" />';
 		} elseif ($_config['mode'] == 'device') {
-			echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).' />';
+			echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).'" />';
 			echo '<br />Device: <select name="device"><option value=""></option>';
 			foreach ($_SESSION['alloweddevices'] as $_device => $_deviceName) echo "<option value=\"$_device\" ".($_device == $device ? 'selected="selected"':'').">".htmlentities($_deviceName)."</option>";
 			echo '</select>';
