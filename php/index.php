@@ -100,21 +100,21 @@ if (isset($_GET['logout'])) {
 } elseif (isset($_GET['lab']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if (isset($labs[$_GET['lab']]) && (in_array($_GET['lab'],$permissions[$_SESSION['email']]) || $_SESSION['admin'] )) {
 		//they have permission to this lab
-		$_SESSION['alloweddevices'] = array();
+		$_SESSION['allowedclients'] = array();
 		//prefix data dir to each device
-		foreach ($labs[$_GET['lab']] as $deviceID=>$deviceInfo) {
-			unset($deviceInfo[0]);
-			unset($deviceInfo[1]);
-			foreach($deviceInfo as $i => $value) {
-				if ($value == "") unset($deviceInfo[$i]);
+		foreach ($labs[$_GET['lab']] as $clientID=>$clientInfo) {
+			unset($clientInfo[0]);
+			unset($clientInfo[1]);
+			foreach($clientInfo as $i => $value) {
+				if ($value == "") unset($clientInfo[$i]);
 			}
-			$description = implode(" - ",$deviceInfo);
+			$description = implode(" - ",$clientInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$clientID] = ($description != "" ? $description : $clientID);
 		}
 
 		//sort the allowed devices array
-		asort($_SESSION['alloweddevices']);
+		asort($_SESSION['allowedclients']);
 
 		header('Location: monitor.php');
 	} else {
@@ -123,31 +123,33 @@ if (isset($_GET['logout'])) {
 	}
 	die();
 } elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
+	/*
 	//they have permission to this lab
-	$_SESSION['alloweddevices'] = array();
+	$_SESSION['allowedclients'] = array();
 	//prefix data dir to each device
 	foreach ($labs as $lab){
-		foreach ($lab as $deviceID=>$deviceInfo) {
-			unset($deviceInfo[0]);
-			unset($deviceInfo[1]);
-			foreach($deviceInfo as $i => $value) {
-				if ($value == "") unset($deviceInfo[$i]);
+		foreach ($lab as $clientID=>$clientInfo) {
+			unset($clientInfo[0]);
+			unset($clientInfo[1]);
+			foreach($clientInfo as $i => $value) {
+				if ($value == "") unset($clientInfo[$i]);
 			}
-			$description = implode(" - ",$deviceInfo);
+			$description = implode(" - ",$clientInfo);
 			$_SESSION['lab'] = $_GET['lab'];
-			$_SESSION['alloweddevices'][$deviceID] = ($description != "" ? $description : $deviceID);
+			$_SESSION['allowedclients'][$clientID] = ($description != "" ? $description : $clientID);
 		}
-		$_SESSION['alloweddevices']['unknown'] = '- Non-Enterprise device';
+		$_SESSION['allowedclients']['unknown'] = '- Non-Enterprise device';
 
 		//sort the allowed devices array
-		asort($_SESSION['alloweddevices']);
-
+		asort($_SESSION['allowedclients']);
 		header('Location: filterlog.php');
 	}
+	*/
+	header('Location: filterlog.php');
 	die();
 } elseif (isset($_GET['course']) && isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	if ($_config['mode'] == 'user') {
-		//sync devices
+		//sync clients in course
 		$context = stream_context_create(array('http' =>array(
 			'method'=>'GET',
 			'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
@@ -170,16 +172,16 @@ if (isset($_GET['logout'])) {
 				}
 			}
 		}
-		$_SESSION['alloweddevices'] = array();
+		$_SESSION['allowedclients'] = array();
 		foreach ($students as $student){
 			$email = $student['profile']['emailAddress'];
 			$email = str_replace("@","_",$email);
 			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
-			$_SESSION['alloweddevices'][$email] = $student['profile']['name']['fullName'];
+			$_SESSION['allowedclients'][$email] = $student['profile']['name']['fullName'];
 		}
-		if (count($_SESSION['alloweddevices']) > 0){
-			asort($_SESSION['alloweddevices']);
-			$_SESSION['lab'] = 'CLASS NAME GOES HERE';
+		if (count($_SESSION['allowedclients']) > 0){
+			asort($_SESSION['allowedclients']);
+			$_SESSION['lab'] = $_GET['courseName'].' #'.$_GET['course'];
 			header('Location: monitor.php');
 			die();
 		}
@@ -250,7 +252,7 @@ if (isset($_GET['logout'])) {
 if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 	//user is authenticated
 
-	if (isset($_GET['syncdevices']) ) {
+	if (isset($_GET['syncdevices']) && $_config['mode'] == 'device') {
 		//sync devices
 		$context = stream_context_create(array('http' =>array(
 			'method'=>'GET',
@@ -370,27 +372,120 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 		echo "<form method=\"post\">";
 
 		$data = file_exists($dataDir.'/filter_blacklist.txt') ? file_get_contents($dataDir.'/filter_blacklist.txt') : '';
+		echo "<table>
+  <tr>
+    <th>Blacklist Entry Formats</th>
+    <td>
+      <ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+      <ul><li>An actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+</table>
+";
 		echo "<h2>Blacklist</h2>";
-		echo "<br />Three entry formats:<ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li></ul>";
-		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
-		echo "<br />Action can be: <ul><li>BLOCKPAGE</li><li>BLOCKNOTIFY</li><li>BLOCK</li><li>CANCEL</li><li>REDIRECT:http://google.com</li></ul>";
-		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"blacklist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/filter_whitelist.txt') ? file_get_contents($dataDir.'/filter_whitelist.txt') : '';
+		echo "<table>
+  <tr>
+    <th>Whitelist Entry Formats</th>
+    <td>
+      <ul><li>url</li><li>action -tab- url</li><li>action -tab- resourceType -tab- url</li><li>action -tab- resourceType -tab- url -tab- customNotificationMessage</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+      <ul><li>An actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>NOTIFY</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>CustomNotificationMessage</th>
+    <td>
+      <ul><li>Custom message you want in notification.</li></ul>
+    </td>
+  </tr>
+</table>
+";
 		echo "<h2>Whitelist</h2>";
 		echo "<textarea name=\"whitelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/triggerlist.txt') ? file_get_contents($dataDir.'/triggerlist.txt') : '';
-		echo "<h2>Trigger list</h2>";
-		echo "<br />Three entry formats:<ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>";
-		echo "<br />URL can be: <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>";
-		echo "<br />If the type is also enabled in the config variable 'filterresourcetypes', ResourceType can be: <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>";
+		echo "<br />";
+		echo "<table align=\"center\" border=\"1px\">
+<table>
+
+  <tr>
+    <th>Trigger List Entry Formats</th>
+    <td>
+      <ul><li>email -tab- url</li><li>email -tab- resourceType -tab- url</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>URL</th>
+    <td>
+        <ul><li>*</li><li>an actual url</li><li>a substring of a URL</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
+    <td>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+    </td>
+  </tr>
+</table>
+";
+		echo "<h2>Trigger List</h2>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"triggerlist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		$data = file_exists($dataDir.'/screenscrape.txt') ? file_get_contents($dataDir.'/screenscrape.txt') : '';
-		echo "<h2>Page Content Bad Word list</h2>";
-		echo "<br />Three entry formats:<ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>";
+		echo "<br />";
+		echo "<table align=\"center\" border=\"1px\">
+<table>
+
+  <tr>
+    <th>Page Content Bad Word List Formats</th>
+    <td>
+      <ul><li>word</li><li>word -tab- count</li><li>action -tab- word -tab- count</li></ul>
+    </td>
+  </tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+      <ul><li>BLOCK</li><li>BLOCKNOTIFY</li><li>BLOCKPAGE</li></ul>
+    </td>
+  </tr>
+</table>
+";		echo "<h2>Page Content Bad Word List</h2>";
 		echo "<textarea onkeydown=\"if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}\" name=\"screenscrapelist\" style=\"width:50%;height:400px;\">".htmlentities($data)."</textarea><br />";
 
 		echo "<input type=\"submit\" value=\"Save Config\"/></form>";
@@ -418,7 +513,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				</ul>
 			<?php
 			} elseif ($_config['mode'] == 'user'){
-				//sync devices
+				//sync courses
 				$context = stream_context_create(array('http' =>array(
 					'method'=>'GET',
 					'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
@@ -429,7 +524,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				$courses = array();
 				$url = 'https://classroom.googleapis.com/v1/courses?pageSize=100&courseStates=ACTIVE'.($_SESSION['admin'] ? '':'&teacherId=me');
 				$data = file_get_contents($url, false, $context);
-				if ($data !== false) {
+				if (!empty($data)) {
 					$data = json_decode($data,true);
 					$courses = $data['courses'];
 					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
@@ -446,7 +541,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				}
 				asort($_courses);
 				foreach($_courses as $id=>$name){
-					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
+					echo "<li><a href=\"?course=".urlencode($id)."&courseName=".urlencode($name)."\">".htmlentities($name)."</a></li>";
 				}
 
 				echo "</ul>";
@@ -460,7 +555,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<li><a href="?config">Config Editor</a></li>
 				<li><a href="?permissions">Permissions</a></li>
 				<li><a href="?serverfilter">Server Filter Lists</a></li>
-				<li><a href="?syncdevices" >Sync Devices</a></li>
+				<?php if ($_config['mode'] == 'device') {echo '<li><a href="?syncdevices" >Sync Devices</a></li>';} ?>
 				<li><a href="usagereport.php" >Usage Report</a></li>
 				<li><a href="?adminfilterlog">View Browsing History</a></li>
 			</ul>

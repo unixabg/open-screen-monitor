@@ -6,7 +6,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 	$data['username'] = preg_replace("/[^a-z0-9-_\.]/","",$data['username']);
 	if ($data['username'] == '') $data['username'] = 'unknown';
 
-	$data['domain'] = preg_replace("/[^a-z0-9-_\.]/","",$data['domain']);
+	$data['domain'] = preg_replace("/[^a-z0-9-_]/","",$data['domain']);
 	if ($data['domain'] == '') $data['domain'] = 'unknown';
 
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
@@ -31,9 +31,49 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 		$file = fopen($dataDir.'/filter_whitelist.txt',"r");
 		while (($line = fgets($file)) !== false){
 			$line = rtrim($line);
-			//pass if domain equal or if a subdomain of domain
-			if ($line != '' && ($line == $data['url'] || strstr($data['url'],$line)) !== false){
-				$action = 'ALLOW';
+			$line = explode("\t",$line);
+
+			$actionType = '';
+			$types = $_config['filterviaserverDefaultFilterTypes'];
+			$url = '';
+			$message = '';
+			switch(count($line)){
+				case 1:
+					if ($line[0] != '') $url = $line[0];
+					break;
+				case 2:
+					if ($line[0] != '') $actionType = $line[0];
+					if ($line[1] != '') $url = $line[1];
+					break;
+				case 3:
+					if ($line[0] != '') $actionType = $line[0];
+					if ($line[1] != '') $types = explode(',',$line[1]);
+					if ($line[2] != '') $url = $line[2];
+					break;
+				case 4:
+					if ($line[0] != '') $actionType = $line[0];
+					if ($line[1] != '') $types = explode(',',$line[1]);
+					if ($line[2] != '') $url = $line[2];
+					if ($line[3] != '') $message = $line[3];
+					break;
+			}
+
+			if ($url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				$action = 'ALLOW'; //set SENTRY to action type since we hit something to whitelist
+				if ($actionType == 'NOTIFY') {
+					//show notification
+					if ($message == ''){
+						$message = 'Tab was allowed with a filter_keyword on the url '.$data['url'].' by OSM admin filter.';
+					}
+					$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
+						'requireInteraction'=>false,
+						'type'=>'basic',
+						'iconUrl'=>'icon.png',
+						'title'=>'Allowed Tab',
+						'message'=> $message,
+						));
+					//$toReturn['return']['cancel'] = true;
+				}
 				break;
 			}
 		}

@@ -18,9 +18,9 @@
 - Configure the chrome-extension for your deployment (FIXME)
 - Install the server side PHP
 - Make the data directory **Attention - DO NOT make this folder a public access folder from the web!**
- - The defaults assume that you overload your dns for https://osm
-   - https://osm/osm is the default location for the osm php files
-   - ../../osm-data is the default data location relative to the default osm php files
+ - The defaults will attempt to add osm to your domain name. So something like osm.yourdomain.com .
+   - https://osm.yourdomain.com/ is the default location for the osm php files
+   - ../osm-data is the default data location relative to the default osm php files
 - Configure OAuth access to your Organizational Unit of your domain
  - Go to  https://console.developers.google.com/
  - Create a new API Project with name OpenScreenMonitor
@@ -36,6 +36,9 @@
     - **Please be mindful** to apply appropiate security and permissions to the client_secret.json file
 
 ### Other notes (ymmv)
+- If using mode user on pristine install, you will need to create a permissions.tsv in the osm-data folder.
+  - Create an entry for your admin user something like: username@yourdomain.com<TAB>admin
+  - Remember to make set the permissions correct on the file.
 - Self Signed Certificate
  - **Note: Officially Signed Certificates are recommended for safety and security**
  - If you choose to use a self signed certificate you can install it in the Google Admin Console

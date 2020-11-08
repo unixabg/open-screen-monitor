@@ -47,7 +47,7 @@ if (isset($_GET['date'])){
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
 		$activeUsers[$username] = $username;
-		if (true || isset($_SESSION['alloweddevices'][$deviceID])){
+		if (true || isset($_SESSION['allowedclients'][$deviceID])){
 			if ($file = fopen($_logfile,"r")){
 				while (($line = fgets($file)) !== false) {
 					$line = explode("\t",$line);

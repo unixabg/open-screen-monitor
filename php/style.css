@@ -105,6 +105,25 @@ html, body, div, h1 {
 
 
 /* ************************ */
+/* table format             */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid #ddd;
+}
+
+th, td {
+  text-align: left;
+  border: 1px solid #ddd;
+  padding: 16px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+
+/* ************************ */
 /* Start Fancy radiobuttons */
 .section {
   padding: 5px;

@@ -14,8 +14,8 @@ $username = isset($_GET['username']) ? preg_replace("/[^a-z0-9-_\.@]/","",$_GET[
 $username = str_replace("@","_",$username);
 if ($username == "") $username = "*";
 
-$deviceID = isset($_GET['deviceID']) ? preg_replace("/[^a-z0-9-]/","",$_GET['deviceID']) : '';
-if ($deviceID == "") $deviceID = "*";
+$device = isset($_GET['device']) ? preg_replace("/[^a-z0-9-]/","",$_GET['device']) : '';
+if ($device == "") $device = "*";
 
 
 $date = date("Ymd", (isset($_GET['date']) ? strtotime($_GET['date']) : time()));
@@ -42,13 +42,25 @@ if ($action == 'ALLOW'){
 <h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 <hr />
 <form method="get">
-Username: <input type="text" name="username" value="<?php echo htmlentities($username == '*' ? '' : $username);?>" />
-<br />Device: <select name="deviceID">
-	<option value=""></option>
-	<?php
-	foreach ($_SESSION['alloweddevices'] as $_deviceID => $_deviceName) echo "<option value=\"$_deviceID\" ".($_deviceID == $deviceID ? 'selected="selected"':'').">".htmlentities($_deviceName)."</option>";
-	?>
-</select>
+<?php
+	if ($_SESSION['admin']) {
+		echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).'" />';
+		echo '</select><br />Device: <input type="text" name="device" value="'.htmlentities($device == '*' ? '' : $device).'" />';
+	} else {
+		if ($_config['mode'] == 'user') {
+			echo 'Username: <select name="username">';
+			foreach ($_SESSION['allowedclients'] as $_clientID => $_clientName) echo '<option value="'.$_clientID.'" '.($_clientID == $username ? 'selected="selected"':'').'>'.htmlentities($_clientName).'</option>';
+			echo '</select><br />Device: <input type="text" name="device" value="'.htmlentities($device == '*' ? '' : $device).'" />';
+		} elseif ($_config['mode'] == 'device') {
+			echo 'Username: <input type="text" name="username" value="'.htmlentities($username == '*' ? '' : $username).'" />';
+			echo '<br />Device: <select name="device"><option value=""></option>';
+			foreach ($_SESSION['alloweddevices'] as $_device => $_deviceName) echo "<option value=\"$_device\" ".($_device == $device ? 'selected="selected"':'').">".htmlentities($_deviceName)."</option>";
+			echo '</select>';
+		} else {
+			echo 'Query error.';
+		}
+	}
+?>
 <br />URL Filter: <input type="text" name="urlfilter" value="<?php echo htmlentities($urlfilter);?>" />
 <br />Date: <input type="text" name="date" value="<?php echo htmlentities($date);?>" />
 <br />Action: <select name="action">
@@ -63,8 +75,7 @@ Username: <input type="text" name="username" value="<?php echo htmlentities($use
 //only show results if something was searched
 if (isset($_GET['search'])){
 	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
-
-	$logfiles = glob("$dataDir/logs/$date/$username/$deviceID/*.tsv");
+	$logfiles = glob("$dataDir/logs/$date/$username/$device/*.tsv");
 	$_myTmpCnt=0;
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
@@ -72,12 +83,19 @@ if (isset($_GET['search'])){
 		$datapos=sizeof($logfile);
 		$date = $logfile[$datapos-4];
 		$username = $logfile[$datapos-3];
-		$deviceID = $logfile[$datapos-2];
+		$device = $logfile[$datapos-2];
 		$ip = substr($logfile[$datapos-1],0,-4);
 		$url = $ip;
-		if (isset($_SESSION['alloweddevices'][$deviceID])){
+		if ($_config['mode'] == 'user') {
+			$clientID = $username;
+		} elseif ($_config['mode'] == 'device') {
+			$clientID = $device;
+		} else {
+			echo 'Error setting $clientID!';
+		}
+		if (isset($_SESSION['allowedclients'][$clientID]) || $_SESSION['admin']){
 			if ($file = fopen($_logfile,"r")){
-				$device = isset($_SESSION['alloweddevices'][$deviceID]) ? htmlentities($_SESSION['alloweddevices'][$deviceID]) : $ip;
+				//$device = isset($_SESSION['allowedclients'][$clientID]) ? htmlentities($_SESSION['allowedclients'][$clientID]) : $ip;
 				while (($line = fgets($file)) !== false) {
 					$line = explode("\t",$line);
 					if (count($line) == 4){
