@@ -187,6 +187,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				$raw = "User: ".$data['username']."_".$data['domain']
 					."\nDevice: ".$data['deviceID']
 					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
+					."\nTriggered on keyword or url of: $url"
 					."\n".str_replace("\t","\n",$logentry);
 				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
