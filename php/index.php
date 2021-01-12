@@ -459,7 +459,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
   <tr>
     <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
     <td>
-      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>trigger_exempt</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
     </td>
   </tr>
 </table>
