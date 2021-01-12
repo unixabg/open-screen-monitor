@@ -20,11 +20,13 @@ if ($device == "") $device = "*";
 
 $date = date("Ymd", (isset($_GET['date']) ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
-$action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
+$action = isset($_GET['action']) ? preg_replace("/[^A-Z_]/","",$_GET['action']) : '';
 if ($action == 'ALLOW'){
 	$actiontype = array("ALLOW");
 } elseif ($action == 'BLOCK'){
 	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
+} elseif ($action == 'TRIGGER_EXEMPTION'){
+	$actiontype = array("TRIGGER_EXEMPTION");
 } else {
 	$actiontype = array();
 }
@@ -67,6 +69,7 @@ if ($action == 'ALLOW'){
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
 	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
 	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
+	<option <?php if ($action == 'TRIGGER_EXEMPTION') echo 'selected="selected"'; ?> value="TRIGGER_EXEMPTION">Trigger Exemptions</option>
 	</select>
 <br /><input type="checkbox" name="showadvanced" value="1" <?php if (isset($_GET['showadvanced'])) echo 'checked="checked"'; ?> />Show Advanced
 <br /><input type="submit" name="search" value="Search" />
@@ -103,7 +106,7 @@ if (isset($_GET['search'])){
 						$date = $line[1];
 						$type = $line[2];
 						$url = $line[3];
-						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+						if ( (isset($_GET['showadvanced']) || $type == 'main_frame' || $type == 'trigger_exempt') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
 							echo "<tr><td>";
 							echo "Action: $lineaction<br />";
 							echo "Date: $date<br />";
