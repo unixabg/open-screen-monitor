@@ -189,12 +189,54 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				break;
 			} elseif ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				// Find the users active session to grab image
+				// First get mode
+				if ($_config['mode'] == 'user') {
+					$clientID = $data['username']."_".$data['domain'];
+				} elseif ($_config['mode'] == 'device') {
+					$clientID = $data['deviceID'];
+				} else {
+					die("Error in attempting to determine clientID mode in filter.php");
+				}
+				// set a local var for screenshot path
+				$_screenshotPath='';
+				// Next find active ping for path to screenshot.jpg
+				$folders = glob($dataDir.'/clients/'.$clientID.'/*',GLOB_ONLYDIR);
+				foreach ($folders as $folder){
+					$sessionID = basename($folder);
+					$folder .= '/';
+					if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
+						// We can stop looking, $folder holds the path to the screenshot
+						$_screenshotPath=$folder.'screenshot.jpg';
+						break;
+					}
+				}
+
+
+				$uid = md5(uniqid(time()));
+				// header
 				$header = "From: Open Screen Monitor <".$email.">\r\n";
-				$raw = "User: ".$data['username']."_".$data['domain']
+				$header .= "MIME-Version: 1.0\r\n";
+				$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
+				// message & attachment
+				$raw = "--".$uid."\r\n";
+				$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
+				$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+				$raw .= "User: ".$data['username']."_".$data['domain']
 					."\nDevice: ".$data['deviceID']
 					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
 					."\nTriggered on keyword or url of: $url"
-					."\n".str_replace("\t","\n",$logentry);
+					."\n".str_replace("\t","\n",$logentry)
+					."\r\n\r\n";
+				if (file_exists($_screenshotPath)) {
+					$raw .= "--".$uid."\r\n";
+					$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
+					$raw .= "Content-Transfer-Encoding: base64\r\n";
+					$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
+					$raw .= chunk_split(base64_encode(file_get_contents($_screenshotPath)))."\r\n\r\n";
+				}
+				$raw .= "--".$uid."--";
+
 				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
 		}
