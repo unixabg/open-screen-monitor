@@ -189,6 +189,8 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				break;
 			} elseif ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				$logentry = 'TRIGGER'."\t".date('YmdHis',time())."\t".'trigger'."\t".'Trigger on keyword or url of: '.$url.' : '.$data['url']."'\n";
+				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				// Find the users active session to grab image
 				// First get mode
 				if ($_config['mode'] == 'user') {
