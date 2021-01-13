@@ -81,7 +81,7 @@ if ($action == 'ALLOW'){
 //only show results if something was searched
 if (isset($_GET['search'])){
 	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
-	$logfiles = glob("$dataDir/logs/$date/$username/$device/*.tsv");
+	$logfiles = glob("$dataDir/logs/$date/*$username*/$device/*.tsv");
 	$_myTmpCnt=0;
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
