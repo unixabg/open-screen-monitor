@@ -45,6 +45,10 @@ if ($action == 'ALLOW'){
 <body>
 <h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 <hr />
+
+<table style="width:100%">
+	<tbody>
+		<tr><td style="width=35%;">
 <form method="get">
 <?php
 	if ($_SESSION['admin']) {
@@ -77,6 +81,12 @@ if ($action == 'ALLOW'){
 <br /><input type="checkbox" name="showadvanced" value="1" <?php if (isset($_GET['showadvanced'])) echo 'checked="checked"'; ?> />Show Advanced
 <br /><input type="submit" name="search" value="Search" />
 </form>
+		</td><td>
+PLACEHOLDER FIXME
+		</tr></td>
+	</tbody>
+</table>
+
 <?php
 //only show results if something was searched
 if (isset($_GET['search'])){
