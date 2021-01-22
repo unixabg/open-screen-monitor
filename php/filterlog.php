@@ -48,7 +48,7 @@ if ($action == 'ALLOW'){
 
 <table style="width:100%">
 	<tbody>
-		<tr><td style="width=35%;">
+		<tr><td style="width:25%">
 <form method="get">
 <?php
 	if ($_SESSION['admin']) {
@@ -82,7 +82,7 @@ if ($action == 'ALLOW'){
 <br /><input type="submit" name="search" value="Search" />
 </form>
 		</td><td>
-PLACEHOLDER FIXME
+<div id="reports"><h3>Report Summary</h3></div>
 		</tr></td>
 	</tbody>
 </table>
@@ -92,7 +92,9 @@ PLACEHOLDER FIXME
 if (isset($_GET['search'])){
 	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
 	$logfiles = glob("$dataDir/logs/$date/*$username*/$device/*.tsv");
-	$_myTmpCnt=0;
+	$_records=0;
+	$_htmlRecords=array();
+	$_htmlRecordAction=array();
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
 		//get the data positions
@@ -120,16 +122,9 @@ if (isset($_GET['search'])){
 						$type = $line[2];
 						$url = $line[3];
 						if ( (isset($_GET['showadvanced']) || $type == 'main_frame' || $type == 'trigger' || $type == 'trigger_exempt') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
-							echo "<tr><td>";
-							echo "Action: $lineaction<br />";
-							echo "Date: $date<br />";
-							echo "User: ".htmlentities($username)."<br />";
-							echo "Device: $device";
-							if (isset($_GET['showadvanced'])) {
-								echo "<br />IP: $ip";
-								echo "<br />Type: $type";
-							}
-							echo "</td><td>".htmlentities($url)."</td></tr>";
+							$_htmlRecords[$_records]="$date,$username,$lineaction,$device,$ip,$type,$url";
+							$_records++;
+							$_htmlRecordAction[$lineaction]++;
 						}
 					}
 				}
@@ -139,8 +134,35 @@ if (isset($_GET['search'])){
 			}
 		}
 	}
-
-
+	asort($_htmlRecords);
+	foreach($_htmlRecords as $line) {
+		$line = explode(",",$line);
+		$date = $line[0];
+		$username = $line[1];
+		$lineaction = $line[2];
+		$device = $line[3];
+		$ip = $line[4];
+		$type = $line[5];
+		$url = $line[6];
+		echo "<tr><td>";
+		echo "Action: $lineaction<br />";
+		echo "Date: $date<br />";
+		echo "User: ".htmlentities($username)."<br />";
+		echo "Device: $device";
+		if (isset($_GET['showadvanced'])) {
+			echo "<br />IP: $ip";
+			echo "<br />Type: $type";
+		}
+		echo "</td><td>".htmlentities($url)."</td></tr>";
+	}
+	$_myReturn = "Records Matched: $_records";
+	foreach($_htmlRecordAction as $key => $value) {
+		$_myReturn = $_myReturn."</br>$key: $value";
+	}
+	echo "<script>
+        document.getElementById(\"reports\").innerHTML +=
+        \"$_myReturn\";
+</script>";
 	echo "</tbody></table>";
 }
 ?>
