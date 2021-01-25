@@ -9,7 +9,6 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	die();
 }
 
-
 $username = isset($_GET['username']) ? preg_replace("/[^a-z0-9-_\.@]/","",$_GET['username']) : '';
 $username = str_replace("@","_",$username);
 if ($username == "") $username = "*";
@@ -83,7 +82,8 @@ if ($action == 'ALLOW'){
 </form>
 		</td><td>
 <div id="reports"><h3>Report Summary</h3></div>
-		</tr></td>
+	<td><div id="reportsurls"><h3>Sites</h3></div></td>
+	</tr></td>
 	</tbody>
 </table>
 
@@ -95,6 +95,7 @@ if (isset($_GET['search'])){
 	$_records=0;
 	$_htmlRecords=array();
 	$_htmlRecordAction=array();
+	$_htmlRecordURLs=array();
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
 		//get the data positions
@@ -125,6 +126,8 @@ if (isset($_GET['search'])){
 							$_htmlRecords[$_records]="$date,$username,$lineaction,$device,$ip,$type,$url";
 							$_records++;
 							$_htmlRecordAction[$lineaction]++;
+							$_urlParts = parse_url($url);
+							$_htmlRecordURLs[$_urlParts['host']]++;
 						}
 					}
 				}
@@ -159,9 +162,16 @@ if (isset($_GET['search'])){
 	foreach($_htmlRecordAction as $key => $value) {
 		$_myReturn = $_myReturn."</br>$key: $value";
 	}
+	arsort($_htmlRecordURLs);
+	$_myReturnURLs='';
+	foreach($_htmlRecordURLs as $key => $value) {
+		$_myReturnURLs = $_myReturnURLs."$key: $value</br>";
+	}
 	echo "<script>
         document.getElementById(\"reports\").innerHTML +=
         \"$_myReturn\";
+        document.getElementById(\"reportsurls\").innerHTML +=
+        \"$_myReturnURLs\";
 </script>";
 	echo "</tbody></table>";
 }
