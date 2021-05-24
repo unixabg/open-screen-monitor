@@ -185,11 +185,11 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 			# First test if trigger_exempt was passed
 			if ($email != '' && $url != '' && (in_array('*',$types) || in_array('trigger_exempt',$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
 				# Log exempt action to log file
-				$logentry = 'TRIGGER_EXEMPTION'."\t".date('YmdHis',time())."\t".'trigger_exempt'."\t".'Trigger exmption on keyword or url of: '.$url.' : '.$data['url']."'\n";
+				$logentry = 'TRIGGER_EXEMPTION'."\t".date('YmdHis',time())."\t".'trigger_exempt'."\t".$data['url']." ** trigger word: $url '\n";
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				break;
 			} elseif ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
-				$logentry = 'TRIGGER'."\t".date('YmdHis',time())."\t".'trigger'."\t".'Trigger on keyword or url of: '.$url.' : '.$data['url']."'\n";
+				$logentry = 'TRIGGER'."\t".date('YmdHis',time())."\t".'trigger'."\t".$data['url']." ** trigger word: $url '\n";
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				// Find the users active session to grab image
 				// First get mode
