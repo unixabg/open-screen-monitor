@@ -9,6 +9,11 @@ if (!file_exists($dataDir.'/clients')) mkdir($dataDir.'/clients',0755,true);
 $logDir = $dataDir.'/logs/';
 if (!file_exists($logDir)) mkdir($logDir,0755,true);
 
+if (!file_exists($dataDir.'/config.json')) {
+	$file = fopen($dataDir.'/config.json', 'w') or die("can't open file $dataDir/config.json");
+	fclose($file);
+}
+
 //start config
 //Don't modify these values in this script. Use config.json in $dataDir instead.
 //set system wide version for php scripts
