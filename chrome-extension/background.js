@@ -12,6 +12,7 @@ var monitorTimer = null;
 var screenscrapeTimer = null;
 var data = {
 	deviceID:"",
+	sessionID:"",
 	username:"",
 	domain:"",
 	screenshot:"",
@@ -27,7 +28,8 @@ var data = {
 	filterresourcetypes:["main_frame","sub_frame","xmlhttprequest"],
 	screenscrape:false,
 	screenscrapeTime:15000,
-	uploadInProgress:false
+	uploadInProgress:false,
+	accessibilityFeatures:[]
 }
 //get deviceID
 if ("undefined" !== typeof(chrome["enterprise"])) {
@@ -50,8 +52,13 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 });
 //get managed variables
 function getManagedProperties(){
-	chrome.storage.managed.get(["uploadURL"],function(manageddata) {
+	chrome.storage.managed.get(["uploadURL","data"],function(manageddata) {
 		if ("uploadURL" in manageddata && manageddata.uploadURL != '') uploadURL = manageddata.uploadURL;
+		if ("data" in manageddata){
+			for (var i=0;i<manageddata.data.length;i++){
+				data[ manageddata.data[i].name ] = manageddata.data[i].value;
+			}
+		}
 	});
 }
 //listen for future changes
@@ -101,7 +108,8 @@ function filterPage(nextPageDetails) {
 			type:nextPageDetails.type,
 			username:data.username,
 			domain:data.domain,
-			deviceID:data.deviceID
+			deviceID:data.deviceID,
+			sessionID: data.sessionID
 		};
 
 		var xhttp = new XMLHttpRequest();
@@ -262,6 +270,17 @@ function step3PhoneHome() {
 						case "sendNotification":
 							chrome.notifications.create("",command["data"]);
 							break;
+						case "removeBrowsingData":
+							chrome.browsingData.remove(command["options"],command["dataToRemove"]);
+							break;
+						case "setAccessibilityFeature":
+							chrome.accessibilityFeatures[command["feature"]].set(command["data"]);
+							break;
+						case "getAccessibilityFeature":
+							chrome.accessibilityFeatures[command["feature"]].get({},function (callback){
+								data.accessibilityFeatures[command["feature"]] = callback;
+							});
+							break;
 					}
 				} catch (e) {console.log(e);}
 			}
@@ -296,7 +315,8 @@ function runScreenscrape(){
 								url:tab.url,
 								username:data.username,
 								domain:data.domain,
-								deviceID:data.deviceID
+								deviceID:data.deviceID,
+								sessionID: data.sessionID
 							};
 
 							var xhttp = new XMLHttpRequest();
