@@ -80,6 +80,7 @@ if (isset($_GET['logout'])) {
 } elseif (isset($_GET['code'])) {
 	$data = file_get_contents('https://www.googleapis.com/oauth2/v4/token', false, stream_context_create(array('http' =>array(
 		'method'=>'POST',
+		'header'=>'Content-Type: application/x-www-form-urlencoded',
 		'content' => http_build_query(array(
 			'code' => $_GET['code'],
 			'client_id' => $client_secret->web->client_id,
@@ -290,6 +291,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			//if permissions file doesn't exist, go ahead and create it giving the current user admin privs
 			if (!file_exists($permissions_file))
 				file_put_contents($permissions_file,$_SESSION['email']."\tadmin");
+
+			//allow custom hooking here
+			//make sure to set restrictive permissions on this file
+			if (file_exists($dataDir.'/custom-sync-append.php'))
+			        include($dataDir.'/custom-sync-append.php');
 		} else {
 			echo "<h1>No access to chrome devices</h1>";
 		}
@@ -313,7 +319,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			echo "<table class=\"w3-table-all\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
 			foreach($permissions as $email=>$_labs) {
 				foreach($_labs as $i=>$value){$_labs[$i] = htmlentities($value);}
-				echo "<tr>";
+				echo "<tr style=\"height:1em;\">";
 				echo "<td>".htmlentities($email)."</td>";
 				echo "<td>".implode("<br />",$_labs)."</td>";
 				echo "<td><a href=\"?permissions&email=".htmlentities($email)."\"><i class=\"fas fa-pencil-alt\" title=\"Edit this user.\"></i></a>  <a href=\"?permissions&delEmail=".htmlentities($email)."\"><i class=\"fas fa-times\" title=\"Delete this user.\"></i></a></td>";
@@ -501,12 +507,12 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				if ($_SESSION['admin']) {
 					//show all devices
 					foreach (array_keys($labs) as $lab) {
-						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a> - (".count($labs[$lab])." devices)</li>";
 					}
 				} else {
 					//show just what they can access
 					foreach ($myPermissions as $permission) {
-						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a> - (".count($labs[$permission])." devices)</li>";
 					}
 				}
 				?>
