@@ -529,9 +529,14 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					$courses = $data['courses'];
 					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
 						$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
-						if ($data === false) return false;
+						if (!empty($data)) {
 							$data = json_decode($data,true);
-						$courses = array_merge($courses,$data['courses']);
+							if (!empty($data['courses'])) {
+								$courses = array_merge($courses,$data['courses']);
+							} else {
+								break;
+							}
+						}
 					}
 				}
 				echo "Here are your Google Classroom classes: <ul style=\"text-align:left;\">";
