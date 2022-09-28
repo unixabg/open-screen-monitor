@@ -15,6 +15,8 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 	$data['url'] = str_replace("\t","",$data['url']);
 	$data['url'] = str_replace("\n","",$data['url']);
 
+	//debug
+	//file_put_contents('/tmp/screenscrape.txt',$data['text']);
 
 	$toReturn = array();
 	if (file_exists($dataDir.'/screenscrape.txt')){
@@ -91,26 +93,26 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 			$line = explode("\t",$line);
 
 			$types = $_config['filterviaserverDefaultTriggerTypes'];
-			$url = '';
+			$word = '';
 			$email = '';
 			switch(count($line)){
 				case 2:
 					if ($line[0] != '') $email = $line[0];
-					if ($line[1] != '') $url = $line[1];
+					if ($line[1] != '') $word = $line[1];
 					break;
 				case 3:
 					if ($line[0] != '') $email = $line[0];
 					if ($line[1] != '') $types = explode(',',$line[1]);
-					if ($line[2] != '') $url = $line[2];
+					if ($line[2] != '') $word = $line[2];
 					break;
 			}
 
-			if ($email != '' && $url != '' && (in_array('*',$types) || in_array('screenscrape',$types) ) && (stripos($data['text'],$url) !== false)){
+			if ($email != '' && $word != '' && in_array('screenscrape',$types) && (stripos($data['text'],$word) !== false)){
 				$header = "From: Open Screen Monitor <".$email.">\r\n";
 				$raw = "User: ".$data['username']."_".$data['domain']
+					."\nURL: ".$data['url']
 					."\nDevice: ".$data['deviceID']
 					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
-					."\n".str_replace("\t","\n",$logentry)
 					."\n\n------------------\n".$data['text'];
 				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
