@@ -6,6 +6,8 @@
 	"incognito": "split",
 	"permissions": [
 		"background",
+		"browsingData",
+		"alarms",
 		"identity",
 		"identity.email",
 		"<all_urls>",

