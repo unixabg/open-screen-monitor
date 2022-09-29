@@ -275,7 +275,6 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 			img.on('contextmenu',function(){return false;});
 			img[0].onload = function(){setTimeout(function(){refreshImg(dev,sessionID);},1000+Math.random()*2000);};
 			img[0].onerror = function(){setTimeout(function(){refreshImg(dev,sessionID);},1000+Math.random()*2000);};
-			
 
 			var h1 = $('<h1></h1>');
 			h1.css({'font-size':imgcss.fontsize * imgcss.multiplier});
@@ -316,7 +315,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 			var url = "?action=getImage&id=" + dev + "&sessionID=" + sessionID + "&time=" + (new Date()).getTime();
 			$('#img_'+dev+'_'+sessionID).attr("src",url);
 		}
-		
+
 		function closeAllTabs(dev){
 			var div = $('#div_'+dev);
 			$.post('?',{action:'closeAllTabs',id:div.data('dev'),sessionID:div.data('sessionID')});
@@ -450,7 +449,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 
 				var count = $('div.active').length;
 				$('#activeCount').html(count);
-				
+
 				var newvalue = 1;
 				if (count > 0) {
 					newvalue =  Math.sqrt((window.innerWidth * window.innerHeight)/((imgcss.width+40) * (imgcss.height+40) * count))-0.05;
