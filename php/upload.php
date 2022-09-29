@@ -4,7 +4,7 @@ require('config.php');
 $toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
-	$clientID = '';
+	$clientID = $_config['showUnknownDevices'] ? 'unknown' : '';
 
 	if ($_config['mode'] == 'device' && isset($data['deviceID'])){
 		$clientID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);

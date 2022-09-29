@@ -57,7 +57,8 @@ function checkToken($token) {
 
 			//this is needed on the monitor page to check if they are authenticated
 			//we have too many requests there to constantly hit googles servers (they would blacklist us)
-			$_SESSION['validuntil'] = $data->exp;
+			//$_SESSION['validuntil'] = $data->exp;
+			$_SESSION['validuntil'] = strtotime('+12 hours');
 
 			$myPermissions = isset($permissions[$_SESSION['email']]) ? $permissions[$_SESSION['email']] : array();
 

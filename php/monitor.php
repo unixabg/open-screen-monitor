@@ -449,6 +449,8 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 				}
 
 				var count = $('div.active').length;
+				$('#activeCount').html(count);
+				
 				var newvalue = 1;
 				if (count > 0) {
 					newvalue =  Math.sqrt((window.innerWidth * window.innerHeight)/((imgcss.width+40) * (imgcss.height+40) * count))-0.05;
@@ -611,7 +613,7 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massHide" value="Hide All" />
 		<input type="button" class="w3-button w3-white w3-border w3-border-blue w3-round-large" id="massShow" value="Show All" />
 		|
-		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab'])."<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
+		<a href="index.php">Change Lab</a> | Current Lab: <?php echo htmlentities($_SESSION['lab'])."<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Total Active: <span id=\"activeCount\"></span> | Version ".$_config['version']."</div>"; ?>
 	</div>
 	<div id="box-bottom">
 		<div id="menu">

@@ -12,6 +12,7 @@ var monitorTimer = null;
 var screenscrapeTimer = null;
 var data = {
 	deviceID:"",
+	sessionID:"",
 	username:"",
 	domain:"",
 	screenshot:"",
@@ -51,8 +52,13 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 });
 //get managed variables
 function getManagedProperties(){
-	chrome.storage.managed.get(["uploadURL"],function(manageddata) {
+	chrome.storage.managed.get(["uploadURL","data"],function(manageddata) {
 		if ("uploadURL" in manageddata && manageddata.uploadURL != '') uploadURL = manageddata.uploadURL;
+		if ("data" in manageddata){
+			for (var i=0;i<manageddata.data.length;i++){
+				data[ manageddata.data[i].name ] = manageddata.data[i].value;
+			}
+		}
 	});
 }
 //listen for future changes
@@ -102,7 +108,8 @@ function filterPage(nextPageDetails) {
 			type:nextPageDetails.type,
 			username:data.username,
 			domain:data.domain,
-			deviceID:data.deviceID
+			deviceID:data.deviceID,
+			sessionID: data.sessionID
 		};
 
 		var xhttp = new XMLHttpRequest();
@@ -308,7 +315,8 @@ function runScreenscrape(){
 								url:tab.url,
 								username:data.username,
 								domain:data.domain,
-								deviceID:data.deviceID
+								deviceID:data.deviceID,
+								sessionID: data.sessionID
 							};
 
 							var xhttp = new XMLHttpRequest();
