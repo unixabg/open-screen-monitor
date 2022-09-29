@@ -13,14 +13,20 @@ if (isset($_POST['data'])) {
 	}
 
 	if ($clientID != "") {
-		//create device folder if it doesn't exist
-		$deviceFolder = $dataDir.'/clients/'.$clientID;
-		if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
+		//set path for config folder
+		$configFolder = $dataDir.'/config/'.$clientID;
+		//create config folder if it doesn't exist
+		if (!file_exists($configFolder)) mkdir($configFolder, 0755 , true);
+
+		//set path for client folder
+		$clientFolder = $dataDir.'/clients/'.$clientID;
+		//create client folder if it doesn't exist
+		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
 		//create sessionID if it doesn't exist
 		if (!isset($data['sessionID']) || !is_numeric($data['sessionID'])){
 			//use this time to clear any old sessions
-			$folders = glob($deviceFolder.'/*',GLOB_ONLYDIR);
+			$folders = glob($clientFolder.'/*',GLOB_ONLYDIR);
 			foreach ($folders as $folder){
 				if (!file_exists($folder.'/ping') || filemtime($folder.'/ping') < strtotime("-1 day")){
 					$files = glob($folder.'/*');
@@ -33,7 +39,7 @@ if (isset($_POST['data'])) {
 
 			$i = 0;
 			while (true){
-				if (!file_exists($deviceFolder.'/'.$i)){
+				if (!file_exists($clientFolder.'/'.$i)){
 					$data['sessionID'] = $i;
 					$toReturn['commands'][] = array('action'=>'setData','key'=>'sessionID','value'=>$data['sessionID']);
 					break;
@@ -42,14 +48,14 @@ if (isset($_POST['data'])) {
 				}
 			}
 		}
-		$deviceFolder .= '/'.$data['sessionID'];
-		if (!file_exists($deviceFolder)) mkdir($deviceFolder, 0755 , true);
+		$clientFolder .= '/'.$data['sessionID'];
+		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
 		//ping file for status
-		touch($deviceFolder.'/ping');
-		file_put_contents($deviceFolder.'/ip',$_SERVER['REMOTE_ADDR']);
+		touch($clientFolder.'/ping');
+		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
 		//debug
-		file_put_contents($deviceFolder.'/debug',$_POST['data']);
+		file_put_contents($clientFolder.'/debug',$_POST['data']);
 		$screenshot = '';
 		if (isset($data['screenshot'])) {
 			$screenshot = $data['screenshot'];
@@ -57,27 +63,27 @@ if (isset($_POST['data'])) {
 			$screenshot = base64_decode($screenshot);
 		}
 		if ($screenshot != "") {
-			file_put_contents($deviceFolder.'/screenshot.jpg',$screenshot);
-		} elseif (file_exists($deviceFolder.'/screenshot.jpg')) {
-			unlink($deviceFolder.'/screenshot.jpg');
+			file_put_contents($clientFolder.'/screenshot.jpg',$screenshot);
+		} elseif (file_exists($clientFolder.'/screenshot.jpg')) {
+			unlink($clientFolder.'/screenshot.jpg');
 		}
 		foreach (array('username','version','domain') as $field) {
 			if (isset($data[$field]) && $data[$field] != "") {
-				file_put_contents($deviceFolder.'/'.$field,$data[$field]);
-			} elseif (file_exists($deviceFolder.'/'.$field)) {
-				unlink($deviceFolder.'/'.$field);
+				file_put_contents($clientFolder.'/'.$field,$data[$field]);
+			} elseif (file_exists($clientFolder.'/'.$field)) {
+				unlink($clientFolder.'/'.$field);
 			}
 		}
 		if (isset($data['tabs'])) {
-			file_put_contents($deviceFolder.'/tabs',json_encode($data['tabs']));
-		} elseif (file_exists($deviceFolder.'/tabs')) {
-			unlink($deviceFolder.'/tabs');
+			file_put_contents($clientFolder.'/tabs',json_encode($data['tabs']));
+		} elseif (file_exists($clientFolder.'/tabs')) {
+			unlink($clientFolder.'/tabs');
 		}
 		//send commands back
 		$toReturn['commands'][] = array('action'=>'changeRefreshTime','time'=>$_config['uploadRefreshTime']);
 		$toReturn['commands'][] = array('action'=>'changeScreenscrapeTime','time'=>$_config['screenscrapeTime']);
-		if (file_exists($deviceFolder.'/openurl')) {
-			$urls = file_get_contents($deviceFolder.'/openurl');
+		if (file_exists($clientFolder.'/openurl')) {
+			$urls = file_get_contents($clientFolder.'/openurl');
 			$urls = explode("\n",$urls);
 			foreach ($urls as $i=>$url) {
 				if ((isset($data['tabs']) && count($data['tabs']) > 0) || $i > 0) {
@@ -86,12 +92,12 @@ if (isset($_POST['data'])) {
 					$toReturn['commands'][] = array('action'=>'windowsCreate','data'=>array('url'=>$url));
 				}
 			}
-			unlink($deviceFolder.'/openurl');
+			unlink($clientFolder.'/openurl');
 		}
-		if (file_exists($deviceFolder.'/../filterlist') && file_exists($deviceFolder.'/../filtermode')) {
-			$filtermode = file_get_contents($deviceFolder.'/../filtermode');
-			$filterlisttime = filemtime($deviceFolder.'/../filterlist');
-			$filterlist = file_get_contents($deviceFolder.'/../filterlist');
+		if (file_exists($configFolder.'/filterlist') && file_exists($configFolder.'/filtermode')) {
+			$filtermode = file_get_contents($configFolder.'/filtermode');
+			$filterlisttime = filemtime($configFolder.'/filterlist');
+			$filterlist = file_get_contents($configFolder.'/filterlist');
 			$filterlist = explode("\n",$filterlist);
 
 			foreach ($filterlist as $i=>$value) {
@@ -115,6 +121,7 @@ if (isset($_POST['data'])) {
 				foreach ($data['tabs'] as $tabs=>$tab) {
 					//test each tab against the filterlist
 					foreach ($filterlist as $i=>$value) {
+						$value = str_replace("/","\\/",$value);
 						$foundMatch = preg_match("/$value/i", $tab['url']);
 						if ($foundMatch) {
 							break;
@@ -122,9 +129,9 @@ if (isset($_POST['data'])) {
 					}
 					if (($filtermode == 'defaultdeny' && !$foundMatch) || ($filtermode == 'defaultallow' && $foundMatch)) {
 						//filter violation found so append to closetab
-						file_put_contents($deviceFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
+						file_put_contents($clientFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 						//notify the user we dropped the tab
-						file_put_contents($deviceFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
+						file_put_contents($clientFolder.'/messages',$_config['filterMessage']["title"]."\t".$_config['filterMessage']["message"]["opentab"].$tab['url']."\n",FILE_APPEND);
 					}
 				}
 			}
@@ -141,8 +148,8 @@ if (isset($_POST['data'])) {
 				}
 			}
 		}
-		if (file_exists($deviceFolder.'/closetab')) {
-			$tabs = file_get_contents($deviceFolder.'/closetab');
+		if (file_exists($clientFolder.'/closetab')) {
+			$tabs = file_get_contents($clientFolder.'/closetab');
 			$tabs = explode("\n",$tabs);
 			foreach ($tabs as $tab){
 				if ($tab != "") {
@@ -150,23 +157,22 @@ if (isset($_POST['data'])) {
 					$toReturn['commands'][] = array('action'=>'tabsRemove','tabId'=>$tab);
 				}
 			}
-			unlink($deviceFolder.'/closetab');
+			unlink($clientFolder.'/closetab');
 		}
-		if ((!isset($data['lock']) || !$data['lock']) && file_exists($deviceFolder.'/lock')) {
+		if ((!isset($data['lock']) || !$data['lock']) && file_exists($clientFolder.'/lock')) {
 			//avoid locking with stale lock file
-			if (filemtime($deviceFolder.'/lock') <= time() - $_config['lockTimeout'] ) {
-				unlink($deviceFolder.'/lock');
+			if (filemtime($clientFolder.'/lock') <= time() - $_config['lockTimeout'] ) {
+				unlink($clientFolder.'/lock');
 			} else {
 				$toReturn['commands'][] = array('action'=>'lock');
 			}
 		}
-		if (file_exists($deviceFolder.'/unlock')) {
+		if (isset($data['lock']) && $data['lock'] && !file_exists($clientFolder.'/lock')) {
 			$toReturn['commands'][] = array('action'=>'unlock');
-			unlink($deviceFolder.'/unlock');
 		}
 
-		if (file_exists($deviceFolder.'/messages')) {
-			$messages = file_get_contents($deviceFolder.'/messages');
+		if (file_exists($clientFolder.'/messages')) {
+			$messages = file_get_contents($clientFolder.'/messages');
 			$messages = explode("\n",$messages);
 			foreach ($messages as $message) {
 				$message = explode("\t",$message);
@@ -180,7 +186,7 @@ if (isset($_POST['data'])) {
 					));
 				}
 			}
-			unlink($deviceFolder.'/messages');
+			unlink($clientFolder.'/messages');
 		}
 
 		//populate filtermessage

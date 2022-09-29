@@ -4,6 +4,11 @@ $dataDir = '../osm-data';
 
 if (!file_exists($dataDir)) die('Missing osm-data directory');
 
+//folder to store some policy settings for client ou or classrooms depending on mode
+if (!file_exists($dataDir.'/config')) mkdir($dataDir.'/config',0755,true);
+
+//everything in this dir is only needed for a few seconds
+//this allows it to be mapped to a ramdisk to speed things up and cut down on disk writes
 if (!file_exists($dataDir.'/clients')) mkdir($dataDir.'/clients',0755,true);
 
 $logDir = $dataDir.'/logs/';
