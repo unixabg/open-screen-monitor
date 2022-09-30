@@ -140,6 +140,7 @@ if (isset($_POST['data'])) {
 			//test here for tabs that need dropped for filtering policy
 			if (isset($data['tabs'])) {
 				foreach ($data['tabs'] as $tabs=>$tab) {
+					$foundMatch = false;
 					//test each tab against the filterlist
 					foreach ($filterlist as $i=>$value) {
 						$value = str_replace("/","\\/",$value);
@@ -163,7 +164,7 @@ if (isset($_POST['data'])) {
 			foreach ($data['tabs'] as $tab){
 				if ($windowId === false){
 					$windowId = $tab['windowId'];
-				} elseif ($tab['windowId'] != $windowId) {
+				} elseif ($tab['windowId'] != $windowId && substr($tab['url'],0,9) != 'chrome://') {
 					$toReturn['commands'][] = array('action'=>'tabsMove','tabId'=>$tab['id'],'data'=>array('windowId'=>$windowId,'index'=>-1));
 				}
 			}
