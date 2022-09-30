@@ -143,16 +143,28 @@ if (isset($_POST['data'])) {
 					}
 				}
 			}
-			//if we are filtering force all the tabs to the same window
-			//otherwise a student can open two windows side by side and the teacher would never know
-			if (count($filterlist) > 0){
-				$windowId = false;
-				foreach ($data['tabs'] as $tab){
-					if ($windowId === false){
-						$windowId = $tab['windowId'];
-					} elseif ($tab['windowId'] != $windowId) {
-						$toReturn['commands'][] = array('action'=>'tabsMove','tabId'=>$tab['id'],'data'=>array('windowId'=>$windowId,'index'=>-1));
-					}
+		}
+		//give the option to force all the tabs to the same window
+		if ($_config['forceSingleWindow']){
+			$windowId = false;
+			foreach ($data['tabs'] as $tab){
+				if ($windowId === false){
+					$windowId = $tab['windowId'];
+				} elseif ($tab['windowId'] != $windowId) {
+					$toReturn['commands'][] = array('action'=>'tabsMove','tabId'=>$tab['id'],'data'=>array('windowId'=>$windowId,'index'=>-1));
+				}
+			}
+		}
+		//give the option to force all windows to a maximized state
+		//otherwise a student can open two windows side by side and the teacher would never know
+		if ($_config['forceMaximizedWindow']){
+			$windowIDs = array();
+			foreach ($data['tabs'] as $tab){
+				if (!in_array($tab['windowId'],$windowIDs)){
+					$windowIDs[] = $tab['windowId'];
+				}
+				foreach($windowIDs as $windowId){
+					$toReturn['commands'][] = array('action'=>'windowsUpdate','windowId'=>$windowId,'data'=>array('state'=>'maximized'));
 				}
 			}
 		}

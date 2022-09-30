@@ -56,6 +56,8 @@ $_config['mode'] = 'device';
 $_config['screenscrape'] = false;
 $_config['cacheCleanupOnStartup'] = false;
 $_config['cacheCleanupTime'] = 0;
+$_config['forceSingleWindow'] = false;
+$_config['forceMaximizedWindow'] = false;
 
 //overlay settings from config file
 if (file_exists($dataDir.'/config.json')){

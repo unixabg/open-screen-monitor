@@ -245,7 +245,6 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					$raw .= chunk_split(base64_encode(file_get_contents($_screenshotPath)))."\r\n\r\n";
 				}
 				$raw .= "--".$uid."--";
-
 				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
 		}
