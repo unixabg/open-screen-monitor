@@ -23,7 +23,7 @@ $action = isset($_GET['action']) ? preg_replace("/[^A-Z_]/","",$_GET['action']) 
 if ($action == 'ALLOW'){
 	$actiontype = array("ALLOW");
 } elseif ($action == 'BLOCK'){
-	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
+	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","KEYWORDBLOCK","REDIRECT","CANCEL");
 } elseif ($action == 'TRIGGER'){
 	$actiontype = array("TRIGGER");
 } elseif ($action == 'TRIGGER_EXEMPTION'){
