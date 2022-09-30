@@ -124,6 +124,12 @@ if (isset($_GET['logout'])) {
 		header('Location: ?');
 	}
 	die();
+} elseif (isset($_GET['unknowngroup']) && checkToken($_SESSION['token']) && $_SESSION['admin']){
+	$_SESSION['alloweddevices'] = array('unknown'=>'Unknown');
+	$_SESSION['lab'] = 'Unknown';
+	header('Location: monitor.php');
+
+	die();
 } elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
 	/*
 	//they have permission to this lab
@@ -574,6 +580,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<?php if ($_config['mode'] == 'device') {echo '<li><a href="?syncdevices" >Sync Devices</a></li>';} ?>
 				<li><a href="usagereport.php" >Usage Report</a></li>
 				<li><a href="?adminfilterlog">View Browsing History</a></li>
+				<?php if ($_config['showUnknownDevices']){echo '<li><a href="?unknowngroup">Unknown Group</a></li>';} ?>
 			</ul>
 		</div>
 		<?php

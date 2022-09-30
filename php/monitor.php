@@ -219,11 +219,13 @@ if (isset($_GET['update'])) {
 	die(json_encode($data));
 }
 
-if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny','disabled'))) {
+if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultallow']) && isset($_POST['filtermode']) && in_array($_POST['filtermode'],array('defaultallow','defaultdeny','disabled'))) {
 	//only allow printable characters and new lines
-	$_POST['filterlist'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlist']);
+	$_POST['filterlistdefaultdeny'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultdeny']);
+	$_POST['filterlistdefaultallow'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultallow']);
 	//let us do a second pass to drop empty lines and correctly format
-	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
+	$_POST['filterlistdefaultdeny'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny'])));
+	$_POST['filterlistdefaultallow'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow'])));
 
 	/* FIXME FIXME MERGE
 	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
@@ -237,9 +239,11 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	*/
 	$_actionPath = $dataDir.'/config/'.base64_encode($_SESSION['lab']).'/';
 	file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
-	file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
+	file_put_contents($_actionPath.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);
+	file_put_contents($_actionPath.'filterlist-defaultallow',$_POST['filterlistdefaultallow']);
 	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultdeny\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultdeny'])."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultallow\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultallow'])."\n", $_config['logmax']);
 
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
@@ -565,9 +569,6 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 			});
 
 			updateMeta();
-
-			$('#applyfilter').hide();
-
 			$("#logdialog").dialog({
 				dialogClass: 'logdialog',
 				show: {
@@ -596,15 +597,24 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 			});
 
 			/* logic trigger apply button for filter */
-			$('#filterlist').on('input propertychange', function() {
+			$('#filterlistdefaultdeny, #filterlistdefaultallow').on('input propertychange', function() {
 				if(this.value.length){
 					$('#applyfilter').show();
 				}
 			});
+			$('input[name=filtermode]').change(function(){
+				$('#filterlistdefaultdeny').hide();
+				$('#filterlistdefaultallow').hide();
+				$('#filterlistheader').show();
 
-			$('#applyfilter').click(function (){
-				$(this).hide();
+				if (this.value == 'defaultdeny'){$('#filterlistdefaultdeny').show();}
+				if (this.value == 'defaultallow'){$('#filterlistdefaultallow').show();}
+				if (this.value == 'disabled'){$('#filterlistheader').hide();}
+				$('#applyfilter').show();
 			});
+			$('input[name=filtermode]:checked').change();
+			$('#applyfilter').click(function (){$(this).hide();});
+			$('#applyfilter').hide();
 		});
 	</script>
 </head>
@@ -635,10 +645,12 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 				$filterlist = file_get_contents($dataDir.'/config/'.$clientID.'/filterlist');
 			*/
 			$filtermode = "disabled";
-			$filterlist = "";
-			if (file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filtermode') && file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist')){
+			$filterlistdefaultdeny = "";
+			$filterlistdefaultallow = "";
+			if (file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filtermode') && file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist-defaultdeny') && file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist-defaultallow')){
 				$filtermode = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filtermode');
-				$filterlist = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist');
+				$filterlistdefaultdeny = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist-defaultdeny');
+				$filterlistdefaultallow = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist-defaultallow');
 			}
 			?>
 			<div style="text-align:center;">
@@ -656,21 +668,22 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 			<form id="filter" method="post" target="_blank" action="?filter">
 				<section id="first" class="section">
 					<div class="container">
-						<input type="radio" id="left" name="filtermode" value="defaultallow" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />
+						<input type="radio" id="left" name="filtermode" value="defaultallow" <?php if ($filtermode == 'defaultallow') echo 'checked="checked"'; ?> />
 						<label for="left"><span class="radio"><div class="tooltip">Picket Fence<span class="tooltiptext">Block sites matching listed patterns.</span></div></span></label>
 					</div>
 					<div class="container">
-						<input type="radio" id="center" name="filtermode" value="defaultdeny" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />
+						<input type="radio" id="center" name="filtermode" value="defaultdeny" <?php if ($filtermode == 'defaultdeny') echo 'checked="checked"'; ?> />
 						<label for="center"><span class="radio"><div class="tooltip">Walled Garden<span class="tooltiptext">Allow only sites matching listed patterns.</span></div></span></label>
 					</div>
 					<div class="container">
-						<input type="radio" id="right" name="filtermode" value="disabled" onclick="$('#applyfilter').show();" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />
+						<input type="radio" id="right" name="filtermode" value="disabled" <?php if ($filtermode == 'disabled') echo 'checked="checked"'; ?> />
 						<label for="right"><span class="radio"><div class="tooltip">Disabled<span class="tooltiptext">Disable all filter operations.</span></div></span></label>
 					</div>
 				</section>
 				<div style="text-align:center;">
-					Site URLs or keywords (one per line):
-					<textarea name="filterlist" id="filterlist" style="text-align:left;width: 90%;height:200px;"><?php echo htmlentities($filterlist); ?></textarea>
+					<div id="filterlistheader">Site URLs or keywords (one per line):</div>
+					<textarea name="filterlistdefaultdeny" id="filterlistdefaultdeny" style="text-align:left;width: 90%;height:200px;"><?php echo htmlentities($filterlistdefaultdeny); ?></textarea>
+					<textarea name="filterlistdefaultallow" id="filterlistdefaultallow" style="text-align:left;width: 90%;height:200px;"><?php echo htmlentities($filterlistdefaultallow); ?></textarea>
 					<input type="submit" id="applyfilter" onclick="$('#applyfilter').hide();" value="Apply Changes" class="w3-button w3-white w3-border w3-border-blue w3-round-large" />
 				</div>
 			</form>
