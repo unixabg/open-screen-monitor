@@ -61,7 +61,7 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 						'type'=>'basic',
 						'iconUrl'=>'icon.png',
 						'title'=>'Blocked Tab',
-						'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
+						'message'=>'Tab was blocked from the screenscraper with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 					));
 				} elseif ($actionType == 'BLOCK') {
 					$toReturn['commands'][] = array('action'=>'BLOCK');

@@ -71,7 +71,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				if ($actionType == 'NOTIFY') {
 					//show notification
 					if ($message == ''){
-						$message = 'Tab was allowed with a filter_keyword on the url '.$data['url'].' by OSM admin filter.';
+						$message = 'Tab was allowed from the url filter with a filter_keyword on the url '.$data['url'].' by OSM admin filter.';
 					}
 					$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
 						'requireInteraction'=>false,
@@ -133,7 +133,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
-							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
+							'message'=>'Tab was blocked from the url filter with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
 						$toReturn['return']['cancel'] = true;
 					} elseif ($actionType == 'BLOCK') {
