@@ -65,7 +65,7 @@ if (isset($_GET['action'])){
 	$action = $_GET['action'];
 
 	//actions that require an (device\user) id
-	if (isset($_GET['id']) && isset($_SESSION['alloweddevices'][$_GET['id']]) && isset($_GET['sessionID']) && is_numeric($_GET['sessionID'])){
+	if (isset($_GET['id']) && isset($_SESSION['allowedclients'][$_GET['id']]) && isset($_GET['sessionID']) && is_numeric($_GET['sessionID'])){
 		//$configFolder = $dataDir.'/config/'.$_GET['id'];
 		$clientFolder = $dataDir.'/clients/'.$_GET['id'].'/'.$_GET['sessionID'];
 
