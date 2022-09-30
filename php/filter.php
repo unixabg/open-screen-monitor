@@ -1,6 +1,11 @@
 <?php
 require('config.php');
 
+//allow custom hooking here
+//make sure to set restrictive permissions on this file
+if (file_exists($dataDir.'/custom-filter-prepend.php'))
+	include($dataDir.'/custom-filter-prepend.php');
+
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url']) && $data['url'] != ''){
 	$data['username'] = preg_replace("/[^a-z0-9-_\.]/","",$data['username']);
@@ -11,6 +16,9 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	if ($data['deviceID'] == '') $data['deviceID'] = 'unknown';
+
+	if (!isset($data['sessionID']))$data['sessionID'] = 'unknown';
+	$data['sessionID'] = preg_replace("/[^0-9_]/","",$data['sessionID']);
 
 	if (!isset($data['type']))$data['type'] = 'unknown';
 	$data['type'] = preg_replace("/[^a-z0-9_]/","",$data['type']);
@@ -213,7 +221,6 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 						break;
 					}
 				}
-
 
 				$uid = md5(uniqid(time()));
 				// header

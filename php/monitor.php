@@ -89,11 +89,12 @@ if (isset($_POST['action'])){
 
 	//actions that require an (device\user) id
 	if (isset($_POST['id']) && isset($_SESSION['allowedclients'][$_POST['id']])){
-		$configFolder = $dataDir.'/config/'.$_POST['id'];
-		file_exists($configFolder) || mkdir($configFolder);
+		$logDir = $dataDir.'/logs';
+		file_exists($logDir) || mkdir($logDir);
+		$logFile = $logDir.'/'.$_POST['id'].'.log';
 
 		if ($action == 'log'){
-			die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($configFolder.'/log')));
+			die(preg_replace("/\r\n|\r|\n/",'<br />',file_get_contents($logFile)));
 		}
 
 		//actions that require a session
@@ -103,7 +104,7 @@ if (isset($_POST['action'])){
 			if ($action == 'openurl'){
 				if (isset($_POST['url']) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
 					file_put_contents($clientFolder.'/openurl',$_POST['url']);
-					logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
+					logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\topenurl\t".$_POST['url']."\n", $_config['logmax']);
 				}
 				die();
 			}
@@ -111,7 +112,7 @@ if (isset($_POST['action'])){
 				if (isset($_POST['tabid'])){
 					file_put_contents($clientFolder.'/closetab',$_POST['tabid']."\n",FILE_APPEND);
 					//FIXME - add title of tab later
-					logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
+					logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tclosetab\t\n", $_config['logmax']);
 				}
 				die();
 			}
@@ -122,31 +123,31 @@ if (isset($_POST['action'])){
 						//$tab['id']
 						file_put_contents($clientFolder.'/closetab',$tab['id']."\n",FILE_APPEND);
 						//FIXME - add title of tab later
-						logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tclosealltab\t\n", $_config['logmax']);
+						logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tclosealltab\t\n", $_config['logmax']);
 					}
 				}
 				die();
 			}
 			if ($action == 'lock'){
 				touch($clientFolder.'/lock');
-				logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
+				logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tlocked\t\n", $_config['logmax']);
 				die();
 			}
 			if ($action == 'unlock'){
 				if (file_exists($clientFolder.'/lock')) unlink($clientFolder.'/lock');
-				logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
+				logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tunlocked\t\n", $_config['logmax']);
 				die();
 			}
 			if ($action == 'sendmessage'){
 				if (isset($_POST['message'])) {
 					file_put_contents($clientFolder.'/messages',$_SESSION['name']." says ... \t".$_POST['message']."\n",FILE_APPEND);
-					logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
+					logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tmessages\t".$_POST['message']."\n", $_config['logmax']);
 				}
 				die();
 			}
 			if ($action == 'screenshot'){
 				if (file_exists($clientFolder."/screenshot.jpg")){
-					logger($configFolder.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tscreenshot\t\n", $_config['logmax']);
+					logger($logFile, date('YmdHis',time())."\t".$_SESSION['email']."\tscreenshot\t\n", $_config['logmax']);
 
 					$text = "Screenshot: ".date("Y-m-d h:i a")."\r\n\r\n";
 					if (file_exists($clientFolder.'/username')) $text .= "Username: ".file_get_contents($clientFolder.'/username')."\r\n";
@@ -224,6 +225,7 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 	//let us do a second pass to drop empty lines and correctly format
 	$_POST['filterlist'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlist'])));
 
+	/* FIXME FIXME MERGE
 	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
 		$_actionPath = $dataDir.'/config/'.$clientID.'/';
 		file_exists($_actionPath) || mkdir($_actionPath);
@@ -232,6 +234,13 @@ if (isset($_POST['filterlist']) && isset($_POST['filtermode']) && in_array($_POS
 		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
 		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
 	}
+	*/
+	$_actionPath = $dataDir.'/config/'.base64_encode($_SESSION['lab']).'/';
+	file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
+	file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
+	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
+
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
 
@@ -617,13 +626,19 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 	<div id="box-bottom">
 		<div id="menu">
 			<?php
-			//FIXME get the filter list from first device ... not the best method but this is beta
+			/* FIXME FIXME MERGE get the filter list from first device ... not the best method but this is beta
 			$clientID = array_keys($_SESSION['allowedclients'])[0];
 			$filtermode = "disabled";
 			$filterlist = "";
 			if (file_exists($dataDir.'/config/'.$clientID.'/filtermode') && file_exists($dataDir.'/config/'.$clientID.'/filterlist')){
 				$filtermode = file_get_contents($dataDir.'/config/'.$clientID.'/filtermode');
 				$filterlist = file_get_contents($dataDir.'/config/'.$clientID.'/filterlist');
+			*/
+			$filtermode = "disabled";
+			$filterlist = "";
+			if (file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filtermode') && file_exists($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist')){
+				$filtermode = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filtermode');
+				$filterlist = file_get_contents($dataDir.'/config/'.base64_encode($_SESSION['lab']).'/filterlist');
 			}
 			?>
 			<div style="text-align:center;">
@@ -653,9 +668,11 @@ if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab']))
 						<label for="right"><span class="radio"><div class="tooltip">Disabled<span class="tooltiptext">Disable all filter operations.</span></div></span></label>
 					</div>
 				</section>
-				Site URLs or keywords (one per line):
-				<textarea name="filterlist" id="filterlist" style="width: 90%;height:50px;"><?php echo htmlentities($filterlist); ?></textarea>
-				<input type="submit" id="applyfilter" onclick="$('#applyfilter').hide();" value="Apply Changes" class="w3-button w3-white w3-border w3-border-blue w3-round-large" />
+				<div style="text-align:center;">
+					Site URLs or keywords (one per line):
+					<textarea name="filterlist" id="filterlist" style="text-align:left;width: 90%;height:200px;"><?php echo htmlentities($filterlist); ?></textarea>
+					<input type="submit" id="applyfilter" onclick="$('#applyfilter').hide();" value="Apply Changes" class="w3-button w3-white w3-border w3-border-blue w3-round-large" />
+				</div>
 			</form>
 			<h5>Device URLs - Data</h5>
 			<div id="urls"></div>

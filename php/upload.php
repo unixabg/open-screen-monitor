@@ -1,6 +1,11 @@
 <?php
 require('config.php');
 
+//allow custom hooking here
+//make sure to set restrictive permissions on this file
+if (file_exists($dataDir.'/custom-upload-prepend.php'))
+	include($dataDir.'/custom-upload-prepend.php');
+
 $toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
@@ -108,6 +113,8 @@ if (isset($_POST['data'])) {
 			if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
 				//always allow the new tab page so they can atleast open the browser
 				$filterlist[] = "^https://www.google.com/_/chrome/newtab";
+				$filterlist[] = "^https://ogs.google.com/";
+				$filterlist[] = "^chrome://newtab/";
 				//always allow the google signin page for google
 				$filterlist[] = "^https://accounts.google.com/";
 			}
@@ -177,7 +184,7 @@ if (isset($_POST['data'])) {
 			$messages = explode("\n",$messages);
 			foreach ($messages as $message) {
 				$message = explode("\t",$message);
-				if (count($message == 2) && $message[0] != '' && $message[1] != '') {
+				if (count($message) == 2 && $message[0] != '' && $message[1] != '') {
 					$toReturn['commands'][] = array('action'=>'sendNotification','data'=>array(
 						'requireInteraction'=>true,
 						'type'=>'basic',
