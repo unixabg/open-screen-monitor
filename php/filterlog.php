@@ -154,7 +154,11 @@ if (isset($_GET['search'])){
 		echo "Device: $device";
 		if (isset($_GET['showadvanced'])) {
 			echo "<br />IP: $ip";
-			echo "<br />Type: $type";
+			if ($lineaction=="KEYWORDBLOCK") {
+				echo "<br />Key Word: $type";
+			} else {
+				echo "<br />Type: $type";
+			}
 		}
 		echo "</td><td>".htmlentities($url)."</td></tr>";
 	}
