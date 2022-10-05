@@ -130,6 +130,8 @@ if (isset($_POST['data'])) {
 				$filterlist[] = "^chrome://newtab/";
 				//always allow the google signin page for google
 				$filterlist[] = "^https://accounts.google.com/";
+				//always allow blank loading pages
+				$filterlist[] = "^$";
 			}
 
 			if ($data['filterlisttime'] < $filterlisttime) {
