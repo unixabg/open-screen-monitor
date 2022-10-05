@@ -227,16 +227,6 @@ if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultall
 	$_POST['filterlistdefaultdeny'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny'])));
 	$_POST['filterlistdefaultallow'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow'])));
 
-	/* FIXME FIXME MERGE
-	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
-		$_actionPath = $dataDir.'/config/'.$clientID.'/';
-		file_exists($_actionPath) || mkdir($_actionPath);
-		file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
-		file_put_contents($_actionPath.'filterlist',$_POST['filterlist']);
-		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
-		logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist\t".preg_replace('/\n/', " ", $_POST['filterlist'])."\n", $_config['logmax']);
-	}
-	*/
 	$_actionPath = $dataDir.'/config/'.base64_encode($_SESSION['lab']).'/';
 	file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
 	file_put_contents($_actionPath.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);
