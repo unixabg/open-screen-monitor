@@ -100,6 +100,8 @@ if (isset($_POST['action'])){
 		//actions that require a session
 		if (isset($_POST['sessionID']) && is_numeric($_POST['sessionID'])){
 			$clientFolder = $dataDir.'/clients/'.$_POST['id'].'/'.$_POST['sessionID'];
+			//create client folder if it doesn't exist
+			if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
 			if ($action == 'openurl'){
 				if (isset($_POST['url']) && filter_var($_POST['url'],FILTER_VALIDATE_URL,FILTER_FLAG_HOST_REQUIRED)) {
