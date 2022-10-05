@@ -221,6 +221,19 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 						break;
 					}
 				}
+				//find the device name
+				$niceDeviceName = $clientID;
+				if ($_config['mode'] == 'device') {
+					$devices = fopen($dataDir.'/devices.tsv','r');
+					while($line = trim(fgets($devices))){
+						$line = explode("\t",$line);
+						if ($line[0] == $clientID){
+							$niceDeviceName = implode(" - ",$line);
+							break;
+						}
+					}
+					fclose($devices);
+				}
 
 				$uid = md5(uniqid(time()));
 				// header
@@ -232,7 +245,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
 				$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
 				$raw .= "User: ".$data['username']."_".$data['domain']
-					."\nDevice: ".$data['deviceID']
+					."\nDevice: ".$niceDeviceName
 					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
 					."\nTriggered on keyword or url of: $url"
 					."\n".str_replace("\t","\n",$logentry)
