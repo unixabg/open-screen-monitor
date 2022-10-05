@@ -190,9 +190,9 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					break;
 			}
 
-			# First test if trigger_exempt was passed
+			// First test if trigger_exempt was passed
 			if ($email != '' && $url != '' && (in_array('*',$types) || in_array('trigger_exempt',$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
-				# Log exempt action to log file
+				// Log exempt action to log file
 				$logentry = 'TRIGGER_EXEMPTION'."\t".date('YmdHis',time())."\t".'trigger_exempt'."\t".$data['url']." ** trigger word: $url '\n";
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 				break;
