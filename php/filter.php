@@ -209,18 +209,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					die("Error in attempting to determine clientID mode in filter.php");
 				}
 				// set a local var for screenshot path
-				$_screenshotPath='';
-				// Next find active ping for path to screenshot.jpg
-				$folders = glob($dataDir.'/clients/'.$clientID.'/*',GLOB_ONLYDIR);
-				foreach ($folders as $folder){
-					$sessionID = basename($folder);
-					$folder .= '/';
-					if (file_exists($folder.'ping') && filemtime($folder.'ping') > time()-30) {
-						// We can stop looking, $folder holds the path to the screenshot
-						$_screenshotPath=$folder.'screenshot.jpg';
-						break;
-					}
-				}
+				$_screenshotPath = $dataDir.'/clients/'.$clientID.'/'.$data['sessionID'].'/screenshot.jpg';
 				//find the device name
 				$niceDeviceName = $clientID;
 				if ($_config['mode'] == 'device') {
