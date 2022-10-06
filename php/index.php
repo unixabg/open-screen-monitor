@@ -189,7 +189,7 @@ if (isset($_GET['logout'])) {
 		}
 		if (count($_SESSION['allowedclients']) > 0){
 			asort($_SESSION['allowedclients']);
-			$_SESSION['lab'] = $_GET['courseName'].' #'.$_GET['course'];
+			$_SESSION['lab'] = ($_SESSION['userLabNames'][ $_GET['course'] ] ?? 'Unknown').' #'.$_GET['course'];
 			header('Location: monitor.php');
 			die();
 		}
@@ -562,8 +562,10 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					$_courses[$course['id']]=$course['name'];
 				}
 				asort($_courses);
+				//save names so we can use them when a user activates a lab
+				$_SESSION['userLabNames'] = $_courses;
 				foreach($_courses as $id=>$name){
-					echo "<li><a href=\"?course=".urlencode($id)."&courseName=".urlencode($name)."\">".htmlentities($name)."</a></li>";
+					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
 				}
 
 				echo "</ul>";
