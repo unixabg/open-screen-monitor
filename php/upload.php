@@ -18,8 +18,30 @@ if (isset($_POST['data'])) {
 	}
 
 	if ($clientID != "") {
-		//set path for config folder
-		$configFolder = $dataDir.'/config/'.$clientID;
+		//default config if nothing is found, should just be empty folder
+		$configFolder = $dataDir.'/config/unknown';
+
+		if ($_config['mode' == 'device'){
+			$devices = fopen($dataDir.'/devices.tsv','r');
+			while($line = trim(fgets($devices))){
+				$line = explode("\t",$line);
+				if ($line[0] == $deviceID){
+					$configFolder = $dataDir.'/config/'.base64_encode($line[1]);
+					break;
+				}
+			}
+			fclose($devices);
+		} elseif ($config['mode'] == 'user'){
+			//we only set config folder if it exists because we are looking for a symlink
+			//to a class config folder for user mode
+			//if the user hasn't been claimed by a class they will use the unknown folder from above
+			//using file_exists() because it should error out if the target doesn't exist while
+			//is_link() will return true if the link has been created even to an invalid target
+			if (file_exists($dataDir.'/config/'.$clientID)){
+				$configFolder = $dataDir.'/config/'.$clientID;
+			}
+		}
+
 		//create config folder if it doesn't exist
 		if (!file_exists($configFolder)) mkdir($configFolder, 0755 , true);
 

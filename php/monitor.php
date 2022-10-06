@@ -34,6 +34,9 @@ function logger($filename, $information, $logmax) {
 	}
 }
 
+$labConfigDir = $dataDir.'/config/'.base64_encode($_SESSION['lab']).'/';
+if (!file_exists($labConfigDir)) mkdir($labConfigDir, 0755 , true);
+
 //return all images after ctime
 if (isset($_GET['images'])) {
 	ini_set('memory_limit','256M');
@@ -229,31 +232,24 @@ if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultall
 	$_POST['filterlistdefaultdeny'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny'])));
 	$_POST['filterlistdefaultallow'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow'])));
 
-	$_actionPath = $dataDir.'/config/'.base64_encode($_SESSION['lab']).'/';
-	file_put_contents($_actionPath.'filtermode',$_POST['filtermode']);
-	file_put_contents($_actionPath.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);
-	file_put_contents($_actionPath.'filterlist-defaultallow',$_POST['filterlistdefaultallow']);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultdeny\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultdeny'])."\n", $_config['logmax']);
-	logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultallow\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultallow'])."\n", $_config['logmax']);
+	file_put_contents($labConfigDir.'filtermode',$_POST['filtermode']);
+	file_put_contents($labConfigDir.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);
+	file_put_contents($labConfigDir.'filterlist-defaultallow',$_POST['filterlistdefaultallow']);
+	logger($labConfigDir.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfiltermode\t".$_POST['filtermode']."\n", $_config['logmax']);
+	logger($labConfigDir.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultdeny\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultdeny'])."\n", $_config['logmax']);
+	logger($labConfigDir.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tfilterlist-defaultallow\t".preg_replace('/\n/', " ", $_POST['filterlistdefaultallow'])."\n", $_config['logmax']);
 
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
 
-if (!isset($_SESSION['lastLab']) || ($_SESSION['lastLab'] !== $_SESSION['lab'])) {
-	// Set the lastLab to the new lab
-	$_SESSION['lastLab'] = $_SESSION['lab'];
-	// Drop filterlist and filterlmode on clients for sanity on a new lab session
+if ($config['mode'] == 'user'){
+	//take ownership of all users in this lab
 	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
-		$_actionPath = $dataDir.'/clients/'.$clientID.'/';
-		if (file_exists($_actionPath.'/filtermode')) {
-			unlink($_actionPath.'/filtermode');
-			logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tsanity-check\tNew lab session reset dropping filtermode\n", $_config['logmax']);
-		}
-		if (file_exists($_actionPath.'/filterlist')) {
-			unlink($_actionPath.'/filterlist');
-			logger($_actionPath.'/log', date('YmdHis',time())."\t".$_SESSION['email']."\tsanity-check\tNew lab session reset dropping filterlist\n", $_config['logmax']);
-		}
+		$_symlinkPath = $dataDir.'/config/'.$clientID;
+		//remove old symlink if exists
+		file_exists($_symlinkPath) && unlink($_symlinkPath);
+		//link client to this lab
+		symlink($labConfigDir,$_symlinkPath);
 	}
 }
 
