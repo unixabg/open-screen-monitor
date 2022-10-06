@@ -3,10 +3,10 @@ require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url'])){
-	$data['username'] = preg_replace("/[^a-z0-9-_\.]/","",$data['username']);
+	$data['username'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username']);
 	if ($data['username'] == '') $data['username'] = 'unknown';
 
-	$data['domain'] = preg_replace("/[^a-z0-9-_\.]/","",$data['domain']);
+	$data['domain'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['domain']);
 	if ($data['domain'] == '') $data['domain'] = 'unknown';
 
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);

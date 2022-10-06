@@ -9,7 +9,7 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	die();
 }
 
-$username = isset($_GET['username']) ? preg_replace("/[^a-z0-9-_\.@]/","",$_GET['username']) : '';
+$username = isset($_GET['username']) ? preg_replace("/[^a-zA-Z0-9-_\.@]/","",$_GET['username']) : '';
 $username = str_replace("@","_",$username);
 if ($username == "") $username = "*";
 
