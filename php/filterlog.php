@@ -125,8 +125,10 @@ if (isset($_GET['search'])){
 						if ( (isset($_GET['showadvanced']) || $type == 'main_frame' || $type == 'trigger' || $type == 'trigger_exempt') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
 							$_htmlRecords[$_records]="$date,$username,$lineaction,$device,$ip,$type,$url";
 							$_records++;
+							if (!isset($_htmlRecordAction[$lineaction])) {$_htmlRecordAction[$lineaction] = 0;}
 							$_htmlRecordAction[$lineaction]++;
 							$_urlParts = parse_url($url);
+							if (!isset($_htmlRecordURLs[$_urlParts['host']])) {$_htmlRecordURLs[$_urlParts['host']] = 0;}
 							$_htmlRecordURLs[$_urlParts['host']]++;
 						}
 					}
