@@ -242,7 +242,7 @@ if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultall
 	die("<h1>Filter updated</h1><script type=\"text/javascript\">setTimeout(function(){window.close();},1500);</script>");
 }
 
-if ($config['mode'] == 'user'){
+if ($_config['mode'] == 'user'){
 	//take ownership of all users in this lab
 	foreach ($_SESSION['allowedclients'] as $clientID=>$clientName) {
 		$_symlinkPath = $dataDir.'/config/'.$clientID;
