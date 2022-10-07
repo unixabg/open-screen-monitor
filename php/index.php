@@ -291,9 +291,9 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					if ($toSave != '') $toSave .= "\n";
 					$toSave .= $device['deviceId']."\t"
 						.$device['orgUnitPath']."\t"
-						.trim($device['annotatedUser'])."\t"
-						.trim($device['annotatedLocation'])."\t"
-						.trim($device['annotatedAssetId']);
+						.trim($device['annotatedUser'] ?? '')."\t"
+						.trim($device['annotatedLocation'] ?? '')."\t"
+						.trim($device['annotatedAssetId'] ?? '');
 				}
 			}
 			file_put_contents($devices_file,$toSave);
