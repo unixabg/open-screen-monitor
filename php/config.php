@@ -2,7 +2,11 @@
 
 $dataDir = '../osm-data';
 
-if (!file_exists($dataDir)) die('Missing osm-data directory');
+if (isset($_SERVER['OSM_DATA_DIR'])){
+	$dataDir = $_SERVER['OSM_DATA_DIR'];
+}
+
+if (!file_exists($dataDir)) die('Missing osm-data directory: '.$dataDir);
 
 //folder to store some policy settings for client ou or classrooms depending on mode
 if (!file_exists($dataDir.'/config')) mkdir($dataDir.'/config',0755,true);
