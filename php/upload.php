@@ -21,11 +21,11 @@ if (isset($_POST['data'])) {
 		//default config if nothing is found, should just be empty folder
 		$configFolder = $dataDir.'/config/unknown';
 
-		if ($_config['mode' == 'device'){
+		if ($_config['mode'] == 'device'){
 			$devices = fopen($dataDir.'/devices.tsv','r');
 			while($line = trim(fgets($devices))){
 				$line = explode("\t",$line);
-				if ($line[0] == $deviceID){
+				if ($line[0] == $clientID){
 					$configFolder = $dataDir.'/config/'.base64_encode($line[1]);
 					break;
 				}
