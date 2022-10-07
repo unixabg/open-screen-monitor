@@ -9,12 +9,16 @@ if (file_exists($dataDir.'/custom-upload-prepend.php'))
 $toReturn = array();
 if (isset($_POST['data'])) {
 	$data = json_decode($_POST['data'],true);
-	$clientID = $_config['showUnknownDevices'] ? 'unknown' : '';
 
+	$clientID = '';
 	if ($_config['mode'] == 'device' && isset($data['deviceID'])){
 		$clientID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	} elseif ($_config['mode'] == 'user' && isset($data['username']) && isset($data['domain'])) {
 		$clientID = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username'].'_'.$data['domain']);
+	}
+
+	if ($clientID == '' && $_config['showUnknownDevices']){
+		$clientID = 'unknown';
 	}
 
 	if ($clientID != "") {
