@@ -32,6 +32,19 @@ if ($action == 'ALLOW'){
 	$actiontype = array();
 }
 
+//find the device name
+$deviceNames = [];
+$devices = fopen($dataDir.'/devices.tsv','r');
+while($line = trim(fgets($devices))){
+        $line = explode("\t",$line);
+	foreach ($line as $i=>$j){
+		if ($j == '')unset($line[$i]);
+	}
+	$deviceNames[$line[0]] = implode("<br  />",$line);
+}
+fclose($devices);
+
+
 ?><html>
 <head>
 	<title>Open Screen Monitor - Log Viewer</title>
@@ -90,7 +103,7 @@ if ($action == 'ALLOW'){
 <?php
 //only show results if something was searched
 if (isset($_GET['search'])){
-	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
+	echo "<table class=\"w3-table-all\"><col width=\"500px\" /><tbody>";
 	$logfiles = glob("$dataDir/logs/$date/*$username*/$device/*.tsv");
 	$_records=0;
 	$_htmlRecords=array();
@@ -150,16 +163,16 @@ if (isset($_GET['search'])){
 		$type = $line[5];
 		$url = $line[6];
 		echo "<tr><td>";
-		echo "Action: $lineaction<br />";
-		echo "Date: $date<br />";
-		echo "User: ".htmlentities($username)."<br />";
-		echo "Device: $device";
+		echo "<b>Action:</b> $lineaction<br />";
+		echo "<b>Date:</b> $date<br />";
+		echo "<b>User:</b> ".htmlentities($username)."<br />";
+		echo "<b>Device:</b> ".($deviceNames[$device] ?? $device);
 		if (isset($_GET['showadvanced'])) {
-			echo "<br />IP: $ip";
+			echo "<br /><b>IP:</b> $ip";
 			if ($lineaction=="KEYWORDBLOCK") {
-				echo "<br />Key Word: $type";
+				echo "<br /><b>Key Word:</b> $type";
 			} else {
-				echo "<br />Type: $type";
+				echo "<br /><b>Type:</b> $type";
 			}
 		}
 		echo "</td><td>".htmlentities($url)."</td></tr>";
