@@ -9,8 +9,7 @@ if (!isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
 	die();
 }
 
-
-$username = isset($_GET['username']) ? preg_replace("/[^a-z0-9-_\.@]/","",$_GET['username']) : '';
+$username = isset($_GET['username']) ? preg_replace("/[^a-zA-Z0-9-_\.@]/","",$_GET['username']) : '';
 $username = str_replace("@","_",$username);
 if ($username == "") $username = "*";
 
@@ -20,14 +19,31 @@ if ($device == "") $device = "*";
 
 $date = date("Ymd", (isset($_GET['date']) ? strtotime($_GET['date']) : time()));
 $urlfilter = isset($_GET['urlfilter']) ? $_GET['urlfilter'] : '';
-$action = isset($_GET['action']) ? preg_replace("/[^A-Z]/","",$_GET['action']) : '';
+$action = isset($_GET['action']) ? preg_replace("/[^A-Z_]/","",$_GET['action']) : '';
 if ($action == 'ALLOW'){
 	$actiontype = array("ALLOW");
 } elseif ($action == 'BLOCK'){
-	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","REDIRECT","CANCEL");
+	$actiontype = array("BLOCK","BLOCKPAGE","BLOCKNOTIFY","KEYWORDBLOCK","REDIRECT","CANCEL");
+} elseif ($action == 'TRIGGER'){
+	$actiontype = array("TRIGGER");
+} elseif ($action == 'TRIGGER_EXEMPTION'){
+	$actiontype = array("TRIGGER_EXEMPTION");
 } else {
 	$actiontype = array();
 }
+
+//find the device name
+$deviceNames = [];
+$devices = fopen($dataDir.'/devices.tsv','r');
+while($line = trim(fgets($devices))){
+        $line = explode("\t",$line);
+	foreach ($line as $i=>$j){
+		if ($j == '')unset($line[$i]);
+	}
+	$deviceNames[$line[0]] = implode("<br  />",$line);
+}
+fclose($devices);
+
 
 ?><html>
 <head>
@@ -41,6 +57,10 @@ if ($action == 'ALLOW'){
 <body>
 <h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
 <hr />
+
+<table style="width:100%">
+	<tbody>
+		<tr><td style="width:25%">
 <form method="get">
 <?php
 	if ($_SESSION['admin']) {
@@ -67,16 +87,28 @@ if ($action == 'ALLOW'){
 	<option <?php if ($action == '') echo 'selected="selected"'; ?> value=""></option>
 	<option <?php if ($action == 'ALLOW') echo 'selected="selected"'; ?> value="ALLOW">Allowed Requests</option>
 	<option <?php if ($action == 'BLOCK') echo 'selected="selected"'; ?> value="BLOCK">Filtered Requests</option>
+	<option <?php if ($action == 'TRIGGER') echo 'selected="selected"'; ?> value="TRIGGER">Trigger</option>
+	<option <?php if ($action == 'TRIGGER_EXEMPTION') echo 'selected="selected"'; ?> value="TRIGGER_EXEMPTION">Trigger Exemptions</option>
 	</select>
 <br /><input type="checkbox" name="showadvanced" value="1" <?php if (isset($_GET['showadvanced'])) echo 'checked="checked"'; ?> />Show Advanced
 <br /><input type="submit" name="search" value="Search" />
 </form>
+		</td><td>
+<div id="reports"><h3>Report Summary</h3></div>
+	<td><div id="reportsurls"><h3>Sites</h3></div></td>
+	</tr></td>
+	</tbody>
+</table>
+
 <?php
 //only show results if something was searched
 if (isset($_GET['search'])){
-	echo "<table class=\"w3-table-all\"><col width=\"400\" /><tbody>";
-	$logfiles = glob("$dataDir/logs/$date/$username/$device/*.tsv");
-	$_myTmpCnt=0;
+	echo "<table class=\"w3-table-all\"><col width=\"500px\" /><tbody>";
+	$logfiles = glob("$dataDir/logs/$date/*$username*/$device/*.tsv");
+	$_records=0;
+	$_htmlRecords=array();
+	$_htmlRecordAction=array();
+	$_htmlRecordURLs=array();
 	foreach($logfiles as $_logfile){
 		$logfile = explode("/",$_logfile);
 		//get the data positions
@@ -103,17 +135,14 @@ if (isset($_GET['search'])){
 						$date = $line[1];
 						$type = $line[2];
 						$url = $line[3];
-						if ( (isset($_GET['showadvanced']) || $type == 'main_frame') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
-							echo "<tr><td>";
-							echo "Action: $lineaction<br />";
-							echo "Date: $date<br />";
-							echo "User: ".htmlentities($username)."<br />";
-							echo "Device: $device";
-							if (isset($_GET['showadvanced'])) {
-								echo "<br />IP: $ip";
-								echo "<br />Type: $type";
-							}
-							echo "</td><td>".htmlentities($url)."</td></tr>";
+						if ( (isset($_GET['showadvanced']) || $type == 'main_frame' || $type == 'trigger' || $type == 'trigger_exempt') && ($action == '' || in_array($lineaction, $actiontype)) && ($urlfilter == '' || preg_match("/$urlfilter/i", $url)) ){
+							$_htmlRecords[$_records]="$date,$username,$lineaction,$device,$ip,$type,$url";
+							$_records++;
+							if (!isset($_htmlRecordAction[$lineaction])) {$_htmlRecordAction[$lineaction] = 0;}
+							$_htmlRecordAction[$lineaction]++;
+							$_urlParts = parse_url($url);
+							if (!isset($_htmlRecordURLs[$_urlParts['host']])) {$_htmlRecordURLs[$_urlParts['host']] = 0;}
+							$_htmlRecordURLs[$_urlParts['host']]++;
 						}
 					}
 				}
@@ -123,8 +152,46 @@ if (isset($_GET['search'])){
 			}
 		}
 	}
-
-
+	asort($_htmlRecords);
+	foreach($_htmlRecords as $line) {
+		$line = explode(",",$line);
+		$date = $line[0];
+		$username = $line[1];
+		$lineaction = $line[2];
+		$device = $line[3];
+		$ip = $line[4];
+		$type = $line[5];
+		$url = $line[6];
+		echo "<tr><td>";
+		echo "<b>Action:</b> $lineaction<br />";
+		echo "<b>Date:</b> $date<br />";
+		echo "<b>User:</b> ".htmlentities($username)."<br />";
+		echo "<b>Device:</b> ".($deviceNames[$device] ?? $device);
+		if (isset($_GET['showadvanced'])) {
+			echo "<br /><b>IP:</b> $ip";
+			if ($lineaction=="KEYWORDBLOCK") {
+				echo "<br /><b>Key Word:</b> $type";
+			} else {
+				echo "<br /><b>Type:</b> $type";
+			}
+		}
+		echo "</td><td>".htmlentities($url)."</td></tr>";
+	}
+	$_myReturn = "Records Matched: $_records";
+	foreach($_htmlRecordAction as $key => $value) {
+		$_myReturn = $_myReturn."</br>$key: $value";
+	}
+	arsort($_htmlRecordURLs);
+	$_myReturnURLs='';
+	foreach($_htmlRecordURLs as $key => $value) {
+		$_myReturnURLs = $_myReturnURLs."$key: $value</br>";
+	}
+	echo "<script>
+        document.getElementById(\"reports\").innerHTML +=
+        \"$_myReturn\";
+        document.getElementById(\"reportsurls\").innerHTML +=
+        \"$_myReturnURLs\";
+</script>";
 	echo "</tbody></table>";
 }
 ?>

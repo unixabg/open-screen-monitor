@@ -3,10 +3,10 @@ require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url'])){
-	$data['username'] = preg_replace("/[^a-z0-9-_\.]/","",$data['username']);
+	$data['username'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username']);
 	if ($data['username'] == '') $data['username'] = 'unknown';
 
-	$data['domain'] = preg_replace("/[^a-z0-9-_\.]/","",$data['domain']);
+	$data['domain'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['domain']);
 	if ($data['domain'] == '') $data['domain'] = 'unknown';
 
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
@@ -15,6 +15,8 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 	$data['url'] = str_replace("\t","",$data['url']);
 	$data['url'] = str_replace("\n","",$data['url']);
 
+	//debug
+	//file_put_contents('/tmp/screenscrape.txt',$data['text']);
 
 	$toReturn = array();
 	if (file_exists($dataDir.'/screenscrape.txt')){
@@ -59,7 +61,7 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 						'type'=>'basic',
 						'iconUrl'=>'icon.png',
 						'title'=>'Blocked Tab',
-						'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
+						'message'=>'Tab was blocked from the screenscraper with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 					));
 				} elseif ($actionType == 'BLOCK') {
 					$toReturn['commands'][] = array('action'=>'BLOCK');
@@ -78,6 +80,41 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
 
 				break;
+			}
+		}
+		fclose($file);
+	}
+
+	//look for email triggers
+	if (file_exists($dataDir.'/triggerlist.txt')){
+		$file = fopen($dataDir.'/triggerlist.txt',"r");
+		while (($line = fgets($file)) !== false){
+			$line = rtrim($line);
+			$line = explode("\t",$line);
+
+			$types = $_config['filterviaserverDefaultTriggerTypes'];
+			$word = '';
+			$email = '';
+			switch(count($line)){
+				case 2:
+					if ($line[0] != '') $email = $line[0];
+					if ($line[1] != '') $word = $line[1];
+					break;
+				case 3:
+					if ($line[0] != '') $email = $line[0];
+					if ($line[1] != '') $types = explode(',',$line[1]);
+					if ($line[2] != '') $word = $line[2];
+					break;
+			}
+
+			if ($email != '' && $word != '' && in_array('screenscrape',$types) && (stripos($data['text'],$word) !== false)){
+				$header = "From: Open Screen Monitor <".$email.">\r\n";
+				$raw = "User: ".$data['username']."_".$data['domain']
+					."\nURL: ".$data['url']
+					."\nDevice: ".$data['deviceID']
+					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
+					."\n\n------------------\n".$data['text'];
+				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
 		}
 		fclose($file);

@@ -1,16 +1,24 @@
 <?php
 require('config.php');
 
+//allow custom hooking here
+//make sure to set restrictive permissions on this file
+if (file_exists($dataDir.'/custom-filter-prepend.php'))
+	include($dataDir.'/custom-filter-prepend.php');
+
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url']) && $data['url'] != ''){
-	$data['username'] = preg_replace("/[^a-z0-9-_\.]/","",$data['username']);
+	$data['username'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username']);
 	if ($data['username'] == '') $data['username'] = 'unknown';
 
-	$data['domain'] = preg_replace("/[^a-z0-9-_]/","",$data['domain']);
+	$data['domain'] = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['domain']);
 	if ($data['domain'] == '') $data['domain'] = 'unknown';
 
 	$data['deviceID'] = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	if ($data['deviceID'] == '') $data['deviceID'] = 'unknown';
+
+	if (!isset($data['sessionID']))$data['sessionID'] = 'unknown';
+	$data['sessionID'] = preg_replace("/[^0-9_]/","",$data['sessionID']);
 
 	if (!isset($data['type']))$data['type'] = 'unknown';
 	$data['type'] = preg_replace("/[^a-z0-9_]/","",$data['type']);
@@ -63,7 +71,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 				if ($actionType == 'NOTIFY') {
 					//show notification
 					if ($message == ''){
-						$message = 'Tab was allowed with a filter_keyword on the url '.$data['url'].' by OSM admin filter.';
+						$message = 'Tab was allowed from the url filter with a filter_keyword on the url '.$data['url'].' by OSM admin filter.';
 					}
 					$toReturn['commands'][] = array('action'=>'NOTIFY','data'=>array(
 						'requireInteraction'=>false,
@@ -125,7 +133,7 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 							'type'=>'basic',
 							'iconUrl'=>'icon.png',
 							'title'=>'Blocked Tab',
-							'message'=>'Tab was blocked with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
+							'message'=>'Tab was blocked from the url filter with a filter_keyword on the url '.$data['url'].' by OSM admin filter.',
 						));
 						$toReturn['return']['cancel'] = true;
 					} elseif ($actionType == 'BLOCK') {
@@ -182,12 +190,63 @@ if (isset($data['username']) && isset($data['domain']) && isset($data['deviceID'
 					break;
 			}
 
-			if ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+			// First test if trigger_exempt was passed
+			if ($email != '' && $url != '' && (in_array('*',$types) || in_array('trigger_exempt',$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				// Log exempt action to log file
+				$logentry = 'TRIGGER_EXEMPTION'."\t".date('YmdHis',time())."\t".'trigger_exempt'."\t".$data['url']." ** trigger word: $url '\n";
+				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
+				break;
+			} elseif ($email != '' && $url != '' && (in_array('*',$types) || in_array($data['type'],$types)) && ($url == '*' || stripos($data['url'],$url) !== false)){
+				$logentry = 'TRIGGER'."\t".date('YmdHis',time())."\t".'trigger'."\t".$data['url']." ** trigger word: $url '\n";
+				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
+				// Find the users active session to grab image
+				// First get mode
+				if ($_config['mode'] == 'user') {
+					$clientID = $data['username']."_".$data['domain'];
+				} elseif ($_config['mode'] == 'device') {
+					$clientID = $data['deviceID'];
+				} else {
+					die("Error in attempting to determine clientID mode in filter.php");
+				}
+				// set a local var for screenshot path
+				$_screenshotPath = $dataDir.'/clients/'.$clientID.'/'.$data['sessionID'].'/screenshot.jpg';
+				//find the device name
+				$niceDeviceName = $clientID;
+				if ($_config['mode'] == 'device') {
+					$devices = fopen($dataDir.'/devices.tsv','r');
+					while($line = trim(fgets($devices))){
+						$line = explode("\t",$line);
+						if ($line[0] == $clientID){
+							$niceDeviceName = implode(" - ",$line);
+							break;
+						}
+					}
+					fclose($devices);
+				}
+
+				$uid = md5(uniqid(time()));
+				// header
 				$header = "From: Open Screen Monitor <".$email.">\r\n";
-				$raw = "User: ".$data['username']."_".$data['domain']
-					."\nDevice: ".$data['deviceID']
+				$header .= "MIME-Version: 1.0\r\n";
+				$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
+				// message & attachment
+				$raw = "--".$uid."\r\n";
+				$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
+				$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+				$raw .= "User: ".$data['username']."_".$data['domain']
+					."\nDevice: ".$niceDeviceName
 					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
-					."\n".str_replace("\t","\n",$logentry);
+					."\nTriggered on keyword or url of: $url"
+					."\n".str_replace("\t","\n",$logentry)
+					."\r\n\r\n";
+				if (file_exists($_screenshotPath)) {
+					$raw .= "--".$uid."\r\n";
+					$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
+					$raw .= "Content-Transfer-Encoding: base64\r\n";
+					$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
+					$raw .= chunk_split(base64_encode(file_get_contents($_screenshotPath)))."\r\n\r\n";
+				}
+				$raw .= "--".$uid."--";
 				mail($email, "OSM Trigger Alert", $raw, $header);
 			}
 		}

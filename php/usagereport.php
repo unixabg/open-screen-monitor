@@ -9,6 +9,8 @@ if ( !$_SESSION['admin'] || !isset($_SESSION['validuntil']) || $_SESSION['validu
 	die();
 }
 
+//this script may take some time to run
+set_time_limit(0);
 
 ?>
 <html>

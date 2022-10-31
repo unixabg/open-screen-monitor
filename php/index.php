@@ -57,7 +57,8 @@ function checkToken($token) {
 
 			//this is needed on the monitor page to check if they are authenticated
 			//we have too many requests there to constantly hit googles servers (they would blacklist us)
-			$_SESSION['validuntil'] = $data->exp;
+			//$_SESSION['validuntil'] = $data->exp;
+			$_SESSION['validuntil'] = strtotime('+12 hours');
 
 			$myPermissions = isset($permissions[$_SESSION['email']]) ? $permissions[$_SESSION['email']] : array();
 
@@ -80,6 +81,7 @@ if (isset($_GET['logout'])) {
 } elseif (isset($_GET['code'])) {
 	$data = file_get_contents('https://www.googleapis.com/oauth2/v4/token', false, stream_context_create(array('http' =>array(
 		'method'=>'POST',
+		'header'=>'Content-Type: application/x-www-form-urlencoded',
 		'content' => http_build_query(array(
 			'code' => $_GET['code'],
 			'client_id' => $client_secret->web->client_id,
@@ -121,6 +123,12 @@ if (isset($_GET['logout'])) {
 		//they don't have permission to this lab but are valid, redirect back
 		header('Location: ?');
 	}
+	die();
+} elseif (isset($_GET['unknowngroup']) && checkToken($_SESSION['token']) && $_SESSION['admin']){
+	$_SESSION['alloweddevices'] = array('unknown'=>'Unknown');
+	$_SESSION['lab'] = 'Unknown';
+	header('Location: monitor.php');
+
 	die();
 } elseif (isset($_GET['adminfilterlog']) && isset($_SESSION['token']) && checkToken($_SESSION['token']) && $_SESSION['admin']) {
 	/*
@@ -176,12 +184,12 @@ if (isset($_GET['logout'])) {
 		foreach ($students as $student){
 			$email = $student['profile']['emailAddress'];
 			$email = str_replace("@","_",$email);
-			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
+			$email = preg_replace("/[^a-zA-Z0-9-_\.]/","",$email);
 			$_SESSION['allowedclients'][$email] = $student['profile']['name']['fullName'];
 		}
 		if (count($_SESSION['allowedclients']) > 0){
 			asort($_SESSION['allowedclients']);
-			$_SESSION['lab'] = $_GET['courseName'].' #'.$_GET['course'];
+			$_SESSION['lab'] = ($_SESSION['userLabNames'][ $_GET['course'] ] ?? 'Unknown').' #'.$_GET['course'];
 			header('Location: monitor.php');
 			die();
 		}
@@ -245,7 +253,11 @@ if (isset($_GET['logout'])) {
 	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 </head>
 <body>
-<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
+<div style="display:inline; float:right; padding-top:5px; padding-right:10px;">
+	Version <?php echo $_config['version']; ?>
+	<br /><a href="?">Home</a> <?php if (isset($_SESSION['token'])){echo '| <a href="?logout">Logout</a>';}?>
+</div>
+<h1 style="text-align:center;">Open Screen Monitor</h1>
 <hr />
 <?php
 
@@ -279,9 +291,9 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					if ($toSave != '') $toSave .= "\n";
 					$toSave .= $device['deviceId']."\t"
 						.$device['orgUnitPath']."\t"
-						.trim($device['annotatedUser'])."\t"
-						.trim($device['annotatedLocation'])."\t"
-						.trim($device['annotatedAssetId']);
+						.trim($device['annotatedUser'] ?? '')."\t"
+						.trim($device['annotatedLocation'] ?? '')."\t"
+						.trim($device['annotatedAssetId'] ?? '');
 				}
 			}
 			file_put_contents($devices_file,$toSave);
@@ -290,6 +302,11 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			//if permissions file doesn't exist, go ahead and create it giving the current user admin privs
 			if (!file_exists($permissions_file))
 				file_put_contents($permissions_file,$_SESSION['email']."\tadmin");
+
+			//allow custom hooking here
+			//make sure to set restrictive permissions on this file
+			if (file_exists($dataDir.'/custom-sync-append.php'))
+				include($dataDir.'/custom-sync-append.php');
 		} else {
 			echo "<h1>No access to chrome devices</h1>";
 		}
@@ -313,7 +330,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 			echo "<table class=\"w3-table-all\"><thead><tr><th>Email</th><th>Lab</th><th>&nbsp;</th></tr></thead><tbody>";
 			foreach($permissions as $email=>$_labs) {
 				foreach($_labs as $i=>$value){$_labs[$i] = htmlentities($value);}
-				echo "<tr>";
+				echo "<tr style=\"height:1em;\">";
 				echo "<td>".htmlentities($email)."</td>";
 				echo "<td>".implode("<br />",$_labs)."</td>";
 				echo "<td><a href=\"?permissions&email=".htmlentities($email)."\"><i class=\"fas fa-pencil-alt\" title=\"Edit this user.\"></i></a>  <a href=\"?permissions&delEmail=".htmlentities($email)."\"><i class=\"fas fa-times\" title=\"Delete this user.\"></i></a></td>";
@@ -459,7 +476,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
   <tr>
     <th>ResourceType<br />(must have config variable 'filterresourcetypes' enabled) </th>
     <td>
-      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
+      <ul><li>*</li><li>main_frame</li><li>sub_frame</li><li>image</li><li>media</li><li>trigger_exempt</li><li>... and any other valid resource type in Chrome<br />https://developer.chrome.com/extensions/webRequest#type-ResourceType</li></ul>
     </td>
   </tr>
 </table>
@@ -501,12 +518,12 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				if ($_SESSION['admin']) {
 					//show all devices
 					foreach (array_keys($labs) as $lab) {
-						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($lab)."\">".htmlentities($lab)."</a> - (".count($labs[$lab])." devices)</li>";
 					}
 				} else {
 					//show just what they can access
 					foreach ($myPermissions as $permission) {
-						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a></li>";
+						echo "<li><a href=\"?lab=".urlencode($permission)."\">".htmlentities($permission)."</a> - (".count($labs[$permission])." devices)</li>";
 					}
 				}
 				?>
@@ -529,9 +546,14 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					$courses = $data['courses'];
 					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
 						$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
-						if ($data === false) return false;
+						if (!empty($data)) {
 							$data = json_decode($data,true);
-						$courses = array_merge($courses,$data['courses']);
+							if (!empty($data['courses'])) {
+								$courses = array_merge($courses,$data['courses']);
+							} else {
+								break;
+							}
+						}
 					}
 				}
 				echo "Here are your Google Classroom classes: <ul style=\"text-align:left;\">";
@@ -540,8 +562,10 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 					$_courses[$course['id']]=$course['name'];
 				}
 				asort($_courses);
+				//save names so we can use them when a user activates a lab
+				$_SESSION['userLabNames'] = $_courses;
 				foreach($_courses as $id=>$name){
-					echo "<li><a href=\"?course=".urlencode($id)."&courseName=".urlencode($name)."\">".htmlentities($name)."</a></li>";
+					echo "<li><a href=\"?course=".urlencode($id)."\">".htmlentities($name)."</a></li>";
 				}
 
 				echo "</ul>";
@@ -558,6 +582,7 @@ if (isset($_SESSION['token']) && checkToken($_SESSION['token'])) {
 				<?php if ($_config['mode'] == 'device') {echo '<li><a href="?syncdevices" >Sync Devices</a></li>';} ?>
 				<li><a href="usagereport.php" >Usage Report</a></li>
 				<li><a href="?adminfilterlog">View Browsing History</a></li>
+				<?php if ($_config['showUnknownDevices']){echo '<li><a href="?unknowngroup">Unknown Group</a></li>';} ?>
 			</ul>
 		</div>
 		<?php
