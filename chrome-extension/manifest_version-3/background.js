@@ -44,7 +44,7 @@ function getManagedProperties(){
 				chrome.storage.local.set({[manageddata.data[i].name]: manageddata.data[i].value});
 			}
 		}
-		
+
 		//tick the alarm just to jump start everything
 		alarmTick();
 	});
@@ -74,7 +74,7 @@ function filterPage(nextPageDetails) {
 		if (typeof(data['filterlist']) == "undefined") {data['filterlist'] = [];}
 		if (typeof(data['filterviaserver']) == "undefined") {data['filterviaserver'] = false;}
 		if (typeof(data['filterresourcetypes']) == "undefined") {data['filterresourcetypes'] = ["main_frame","sub_frame","xmlhttprequest"];}
-	
+
 		//any page on the osm server can be skipped
 		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
 
@@ -198,7 +198,7 @@ chrome.tabs.onUpdated.addListener(lockOpenWindows);
 function alarmTick() {
 	console.log("Alarm ticked");
 	console.log(Date());
-	
+
 	//get tab info
 	chrome.tabs.query({})
 	.then(tabarray => {
@@ -224,10 +224,10 @@ function phoneHome() {
 	chrome.storage.local.get(null, function(data) {
 		if (!data['uploadURL']){
 			console.log(data);
-			console.log('No uploadURL, no phoneHome');	
+			console.log('No uploadURL, no phoneHome');
 			return;
 		}
-		
+
 		if (data['disableScreenshot']){
 			data['screenshot'] = null;
 		}
