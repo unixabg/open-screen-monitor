@@ -27,7 +27,7 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 		chrome.storage.managed.get(['uploadURL'],function(data) {
 			if (!data['uploadURL']){
 				//try and guess uploadURL based on domain
-				chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
+				//chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
 			}
 		});
 	}
@@ -311,6 +311,15 @@ function phoneHome() {
 									setUpTicks(periodInMinutes,ticksperalarm);
 								}
 								break;
+							case "changeScreenscrapeTime":
+								if (data['screenscrapeTime'] != command["time"]){
+									chrome.storage.local.set({screenscrapeTime: command["time"]});
+									chrome.storage.local.set({clearInterval: screenscrapeTimer});
+									//chrome.storage.local.set({screenscrapeTimer:  setInterval(runScreenscrape,data.screenscrapeTime)});
+									console.log('ScreenScrape Timer updated to: '+command['time']);
+								}
+								break;
+
 						}
 					} catch (e) {console.log(e);}
 				}
@@ -326,8 +335,10 @@ function phoneHome() {
 function OSMDumpBodyInnerText() {
   return document.body.innerText;
 }
-function runScreenscrape(){
-	if (uploadURL != '' && data.screenscrape){
+function screenscrapeTick(){
+	chrome.storage.local.get(null).then(data => {
+		//set default values
+		if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
 		//restrict to only active tab
 		chrome.tabs.query({active: true}, function (tabarray) {
 			for (var i=0;i<tabarray.length;i++) {
@@ -347,45 +358,47 @@ function runScreenscrape(){
 								deviceID:data.deviceID,
 								sessionID: data.sessionID
 							};
-
-							var xhttp = new XMLHttpRequest();
-							xhttp.open("POST", uploadURL+'screenscrape.php', false);
-							xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-							xhttp.send("data=" + encodeURIComponent(JSON.stringify(results)));
-
-							var response = {};
-							try {
-								response = JSON.parse(xhttp.responseText);
-							} catch (e) {console.log(e);}
-
-							if ("commands" in response) {
-								for (var i=0;i<response["commands"].length;i++) {
-									var command = response["commands"][i];
-									try {
-										switch (command["action"]) {
-											case "BLOCK":
-												console.log("Blocking tab: " + tab.url);
-												chrome.tabs.remove(tab.id);
-												break;
-											case "BLOCKPAGE":
-												console.log("Blockpaging tab: " + tab.url);
-												chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
-												break;
-											case "NOTIFY":
-												console.log("Notification: " + tab.url);
-												chrome.notifications.create("",command['data']);
-												break;
-										}
-									} catch (e) {console.log(e);}
+							fetch(data.uploadURL+'screenscrape.php',{
+								method: 'POST',
+								headers: {
+									"Content-type": "application/x-www-form-urlencoded"
+								},
+								body: "data=" + encodeURIComponent(JSON.stringify(results))
+							})
+							.then(response => response.json())
+							.then(response => {
+								//see if we need to do anything
+								console.log(response);
+								if ("commands" in response) {
+									for (var i=0;i<response["commands"].length;i++) {
+										var command = response["commands"][i];
+										try {
+											switch (command["action"]) {
+												case "BLOCK":
+													console.log("Blocking tab: " + tab.url);
+													chrome.tabs.remove(tab.id);
+													break;
+												case "BLOCKPAGE":
+													console.log("Blockpaging tab: " + tab.url);
+													chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
+													break;
+												case "NOTIFY":
+													console.log("Notification: " + tab.url);
+													chrome.notifications.create("",command['data']);
+													break;
+											}
+										} catch (e) {console.log(e);}
+									}
 								}
-							}
+							});
 						}
 					});
 				} catch (e) {console.log(e);}
 			}
 		});
-	}
+	});
 }
+
 
 //screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);
 
@@ -402,6 +415,7 @@ function setUpTicks(periodInMinutes, ticksperalarm){
 
 	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksperalarm)){
 		setTimeout(alarmTick,i);
+		setTimeout(screenscrapeTick,i);
 	}
 }
 
