@@ -336,65 +336,72 @@ function OSMDumpBodyInnerText() {
   return document.body.innerText;
 }
 function screenscrapeTick(){
+	console.log('ScreenScrapeTick');
 	chrome.storage.local.get(null).then(data => {
 		//set default values
 		if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
 		//restrict to only active tab
 		chrome.tabs.query({active: true}, function (tabarray) {
-			for (var i=0;i<tabarray.length;i++) {
-				try{
-					var tab = tabarray[i];
-					chrome.scripting.executeScript({
-						target: {tabId: tab.id, allFrames: true},
-						func: OSMDumpBodyInnerText,
-					}).then(results => {
-						if (results && results.length > 0){
-							results = results.join(' ').replace(/[^ a-zA-Z0-9]+/g,' ').replace(/ +/g,' ');
-							results = {
-								text:results,
-								url:tab.url,
-								username:data.username,
-								domain:data.domain,
-								deviceID:data.deviceID,
-								sessionID: data.sessionID
-							};
-							fetch(data.uploadURL+'screenscrape.php',{
-								method: 'POST',
-								headers: {
-									"Content-type": "application/x-www-form-urlencoded"
-								},
-								body: "data=" + encodeURIComponent(JSON.stringify(results))
-							})
-							.then(response => response.json())
-							.then(response => {
-								//see if we need to do anything
-								console.log(response);
-								if ("commands" in response) {
-									for (var i=0;i<response["commands"].length;i++) {
-										var command = response["commands"][i];
-										try {
-											switch (command["action"]) {
-												case "BLOCK":
-													console.log("Blocking tab: " + tab.url);
-													chrome.tabs.remove(tab.id);
-													break;
-												case "BLOCKPAGE":
-													console.log("Blockpaging tab: " + tab.url);
-													chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
-													break;
-												case "NOTIFY":
-													console.log("Notification: " + tab.url);
-													chrome.notifications.create("",command['data']);
-													break;
-											}
-										} catch (e) {console.log(e);}
-									}
+			try{
+				var tab = tabarray[0];
+				chrome.scripting.executeScript({
+					target: {tabId: tab.id, allFrames: true},
+					func: OSMDumpBodyInnerText
+				})
+				.then(results => {
+					for (const pageText of results) {
+						//console.log('Page Text: ' + pageText.result);
+						results = pageText.result;
+					}
+					console.log(results);
+					if (results && results.length > 0){
+						//results = results.replace(/(\r\n|\n|\r)/gm, ' ');
+						//console.log("Here is the join of results");
+						//console.log(results);
+						results = {
+							text:results,
+							url:tab.url,
+							username:data.username,
+							domain:data.domain,
+							deviceID:data.deviceID,
+							sessionID: data.sessionID
+						};
+						fetch(data.uploadURL+'screenscrape.php',{
+							method: 'POST',
+							headers: {
+								"Content-type": "application/x-www-form-urlencoded"
+							},
+							body: "data=" + encodeURIComponent(JSON.stringify(results))
+						})
+						.then(response => response.json())
+						.then(response => {
+							//see if we need to do anything
+							console.log(response);
+							if ("commands" in response) {
+								for (var i=0;i<response["commands"].length;i++) {
+									var command = response["commands"][i];
+									try {
+										switch (command["action"]) {
+											case "BLOCK":
+												console.log("Blocking tab: " + tab.url);
+												chrome.tabs.remove(tab.id);
+												break;
+											case "BLOCKPAGE":
+												console.log("Blockpaging tab: " + tab.url);
+												chrome.tabs.update(tab.id,{url:uploadURL+'block.php?'+command['data']});
+												break;
+											case "NOTIFY":
+												console.log("Notification: " + tab.url);
+												chrome.notifications.create("",command['data']);
+												break;
+										}
+									} catch (e) {console.log(e);}
 								}
-							});
-						}
-					});
-				} catch (e) {console.log(e);}
-			}
+							}
+						});
+					}
+				});
+			} catch (e) {console.log(e);}
 		});
 	});
 }
