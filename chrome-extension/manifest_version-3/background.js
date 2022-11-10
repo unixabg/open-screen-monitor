@@ -353,10 +353,9 @@ function screenscrapeTick(){
 						//console.log('Page Text: ' + pageText.result);
 						results = pageText.result;
 					}
-					console.log(results);
+					//console.log(results);
 					if (results && results.length > 0){
 						//results = results.replace(/(\r\n|\n|\r)/gm, ' ');
-						//console.log("Here is the join of results");
 						//console.log(results);
 						results = {
 							text:results,
