@@ -313,10 +313,23 @@ function phoneHome() {
 								break;
 							case "changeScreenscrapeTime":
 								if (data['screenscrapeTime'] != command["time"]){
+									if (command['time'] > 60000){
+										//if over a minute then lock it to minute intervals
+										var periodInMinutes = Math.floor(command['time']/60000);
+										var ticksPerAlarm = 1;
+									} else {
+										//if a minute or under then lock the alarm to one minute
+										var periodInMinutes = 1;
+										var ticksPerAlarm = Math.floor(60000 / command['time']);
+									}
 									chrome.storage.local.set({screenscrapeTime: command["time"]});
-									chrome.storage.local.set({clearInterval: screenscrapeTimer});
-									//chrome.storage.local.set({screenscrapeTimer:  setInterval(runScreenscrape,data.screenscrapeTime)});
+									chrome.storage.local.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
+									chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
+
 									console.log('ScreenScrape Timer updated to: '+command['time']);
+
+									setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
+
 								}
 								break;
 
@@ -406,12 +419,14 @@ function screenscrapeTick(){
 }
 
 
-//screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);
-
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	chrome.storage.local.get(['ticksPerAlarm']).then(data => {
 		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 2;}
 		setupTicks(alarm.periodInMinutes,data['ticksPerAlarm']);
+	});
+	chrome.storage.local.get(['screenscrapeTicksPerAlarm']).then(data => {
+		if (typeof(data['screenscrapeTicksPerAlarm']) == "undefined") {data['screenscrapeTicksPerAlarm'] = 2;}
+		setupScreenscrapeTicks(alarm.periodInMinutes,data['screenscrapeTicksPerAlarm']);
 	});
 });
 
@@ -421,6 +436,14 @@ function setupTicks(periodInMinutes, ticksPerAlarm){
 
 	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
 		setTimeout(alarmTick,i);
+	}
+}
+
+function setupScreenscrapeTicks(periodInMinutes, ticksPerAlarm){
+	console.log("Setting up screenscrape ticks");
+	console.log(Date());
+
+	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
 		setTimeout(screenscrapeTick,i);
 	}
 }
