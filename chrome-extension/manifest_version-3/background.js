@@ -296,19 +296,19 @@ function phoneHome() {
 									if (command['time'] > 60000){
 										//if over a minute then lock it to minute intervals
 										var periodInMinutes = Math.floor(command['time']/60000);
-										var ticksperalarm = 1;
+										var ticksPerAlarm = 1;
 									} else {
 										//if a minute or under then lock the alarm to one minute
 										var periodInMinutes = 1;
-										var ticksperalarm = Math.floor(60000 / command['time']);
+										var ticksPerAlarm = Math.floor(60000 / command['time']);
 									}
 									chrome.storage.local.set({refreshTime: command['time']});
-									chrome.storage.local.set({ticksperalarm: ticksperalarm});
+									chrome.storage.local.set({ticksPerAlarm: ticksPerAlarm});
 									chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('Refresh Time Updated: '+command['time']);
 
-									setupTicks(periodInMinutes,ticksperalarm);
+									setupTicks(periodInMinutes,ticksPerAlarm);
 								}
 								break;
 							case "changeScreenscrapeTime":
@@ -410,17 +410,17 @@ function screenscrapeTick(){
 //screenscrapeTimer = setInterval(runScreenscrape,data.screenscrapeTime);
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
-	chrome.storage.local.get(['ticksperalarm']).then(data => {
-		if (typeof(data['ticksperalarm']) == "undefined") {data['ticksperalarm'] = 2;}
-		setupTicks(alarm.periodInMinutes,data['ticksperalarm']);
+	chrome.storage.local.get(['ticksPerAlarm']).then(data => {
+		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 2;}
+		setupTicks(alarm.periodInMinutes,data['ticksPerAlarm']);
 	});
 });
 
-function setupTicks(periodInMinutes, ticksperalarm){
+function setupTicks(periodInMinutes, ticksPerAlarm){
 	console.log("Setting up ticks");
 	console.log(Date());
 
-	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksperalarm)){
+	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
 		setTimeout(alarmTick,i);
 		setTimeout(screenscrapeTick,i);
 	}
