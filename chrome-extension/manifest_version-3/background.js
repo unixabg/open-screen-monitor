@@ -308,7 +308,7 @@ function phoneHome() {
 
 									console.log('Refresh Time Updated: '+command['time']);
 
-									setUpTicks(periodInMinutes,ticksperalarm);
+									setupTicks(periodInMinutes,ticksperalarm);
 								}
 								break;
 							case "changeScreenscrapeTime":
@@ -412,11 +412,11 @@ function screenscrapeTick(){
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	chrome.storage.local.get(['ticksperalarm']).then(data => {
 		if (typeof(data['ticksperalarm']) == "undefined") {data['ticksperalarm'] = 2;}
-		setUpTicks(alarm.periodInMinutes,data['ticksperalarm']);
+		setupTicks(alarm.periodInMinutes,data['ticksperalarm']);
 	});
 });
 
-function setUpTicks(periodInMinutes, ticksperalarm){
+function setupTicks(periodInMinutes, ticksperalarm){
 	console.log("Setting up ticks");
 	console.log(Date());
 
