@@ -27,7 +27,7 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 		chrome.storage.managed.get(['uploadURL'],function(data) {
 			if (!data['uploadURL']){
 				//try and guess uploadURL based on domain
-				//chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
+				chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
 			}
 		});
 	}
