@@ -12,17 +12,17 @@ chrome.alarms.clearAll();
 
 //setup data variables
 chrome.storage.local.get(null).then(data => {
-	if (typeof(data['uploadURL']) == "undefined") {data['uploadURL'] = '';}
-	if (typeof(data['username']) == "undefined") {data['username'] = '';}
-	if (typeof(data['domain']) == "undefined") {data['domain'] = '';}
-	if (typeof(data['deviceID']) == "undefined") {data['deviceID'] = '';}
-	if (typeof(data['sessionID']) == "undefined") {data['sessionID'] = '';}
-	if (typeof(data['filtermode']) == "undefined") {data['filtermode'] = '';}
-	if (typeof(data['filterlist']) == "undefined") {data['filterlist'] = [];}
-	if (typeof(data['filterviaserver']) == "undefined") {data['filterviaserver'] = false;}
-	if (typeof(data['filterresourcetypes']) == "undefined") {data['filterresourcetypes'] = ["main_frame","sub_frame","xmlhttprequest"];}
-	if (typeof(data['screenscrape']) == "undefined") {data['screenscrape'] = false;}
-	if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
+	if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
+	if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
+	if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
+	if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: ''});}
+	if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Date.now()});}
+	if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
+	if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
+	if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.local.set({filterviaserver: false});}
+	if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.local.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
+	if (typeof(data['screenscrape']) == "undefined") {chrome.storage.local.set({screenscrape: false});}
+	if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.local.set({screenscrapeTime: '20000'});}
 });
 
 //get deviceID
@@ -230,6 +230,7 @@ function phoneHome() {
 			console.log('No uploadURL, no phoneHome');
 			return;
 		}
+		//console.log(data);
 
 		if (data['disableScreenshot']){
 			data['screenshot'] = null;
