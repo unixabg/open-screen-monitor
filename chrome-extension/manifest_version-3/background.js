@@ -10,6 +10,20 @@ chrome.storage.local.clear();
 //clear any alarms from last time
 chrome.alarms.clearAll();
 
+//setup data variables
+chrome.storage.local.get(null).then(data => {
+	if (typeof(data['uploadURL']) == "undefined") {data['uploadURL'] = '';}
+	if (typeof(data['username']) == "undefined") {data['username'] = '';}
+	if (typeof(data['domain']) == "undefined") {data['domain'] = '';}
+	if (typeof(data['deviceID']) == "undefined") {data['deviceID'] = '';}
+	if (typeof(data['sessionID']) == "undefined") {data['sessionID'] = '';}
+	if (typeof(data['filtermode']) == "undefined") {data['filtermode'] = '';}
+	if (typeof(data['filterlist']) == "undefined") {data['filterlist'] = [];}
+	if (typeof(data['filterviaserver']) == "undefined") {data['filterviaserver'] = false;}
+	if (typeof(data['filterresourcetypes']) == "undefined") {data['filterresourcetypes'] = ["main_frame","sub_frame","xmlhttprequest"];}
+	if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
+});
+
 //get deviceID
 if (typeof(chrome["enterprise"]) !== "undefined") {
 	chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {chrome.storage.local.set({deviceID: tempDevID});});
@@ -32,7 +46,6 @@ chrome.identity.getProfileUserInfo(function(userInfo) {
 		});
 	}
 });
-
 
 
 //get managed variables
@@ -63,18 +76,7 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 //setup filter
 /////////////////
 function filterPage(nextPageDetails) {
-	chrome.storage.local.get(['uploadURL','filtermode','filterlist','filterviaserver','filterresourcetypes','username','domain','deviceID','sessionID']).then(data => {
-		//set default values
-		if (typeof(data['uploadURL']) == "undefined") {data['uploadURL'] = '';}
-		if (typeof(data['username']) == "undefined") {data['username'] = '';}
-		if (typeof(data['domain']) == "undefined") {data['domain'] = '';}
-		if (typeof(data['deviceID']) == "undefined") {data['deviceID'] = '';}
-		if (typeof(data['sessionID']) == "undefined") {data['sessionID'] = '';}
-		if (typeof(data['filtermode']) == "undefined") {data['filtermode'] = '';}
-		if (typeof(data['filterlist']) == "undefined") {data['filterlist'] = [];}
-		if (typeof(data['filterviaserver']) == "undefined") {data['filterviaserver'] = false;}
-		if (typeof(data['filterresourcetypes']) == "undefined") {data['filterresourcetypes'] = ["main_frame","sub_frame","xmlhttprequest"];}
-
+	chrome.storage.local.get(null).then(data => {
 		//any page on the osm server can be skipped
 		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
 
@@ -351,8 +353,6 @@ function OSMDumpBodyInnerText() {
 function screenscrapeTick(){
 	console.log('ScreenScrapeTick');
 	chrome.storage.local.get(null).then(data => {
-		//set default values
-		if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
 		//restrict to only active tab
 		chrome.tabs.query({active: true}, function (tabarray) {
 			try{
