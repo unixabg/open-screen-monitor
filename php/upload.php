@@ -54,9 +54,11 @@ if (isset($_POST['data'])) {
 		//create client folder if it doesn't exist
 		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
-		//create sessionID if it doesn't exist
-		if (!isset($data['sessionID']) || !is_numeric($data['sessionID'])){
-			//use this time to clear any old sessions
+
+		//do some housekeeping on the client folder on the first upload call
+		//set the clientSessionsHousekeeping key so the client will not attempt another pass
+		if (!isset($data['clientSessionsHousekeeping'])){
+			$toReturn['commands'][] = array('action'=>'setData','key'=>'clientSessionsHousekeeping','value'=>true);
 			$folders = glob($clientFolder.'/*',GLOB_ONLYDIR);
 			foreach ($folders as $folder){
 				if (!file_exists($folder.'/ping') || filemtime($folder.'/ping') < strtotime("-1 day")){
@@ -67,18 +69,9 @@ if (isset($_POST['data'])) {
 					rmdir($folder);
 				}
 			}
-
-			$i = 0;
-			while (true){
-				if (!file_exists($clientFolder.'/'.$i)){
-					$data['sessionID'] = $i;
-					$toReturn['commands'][] = array('action'=>'setData','key'=>'sessionID','value'=>$data['sessionID']);
-					break;
-				} else {
-					$i++;
-				}
-			}
 		}
+
+		//we now set sessionID in the extension
 		$clientFolder .= '/'.$data['sessionID'];
 		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
