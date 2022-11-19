@@ -21,6 +21,7 @@ chrome.storage.local.get(null).then(data => {
 	if (typeof(data['filterlist']) == "undefined") {data['filterlist'] = [];}
 	if (typeof(data['filterviaserver']) == "undefined") {data['filterviaserver'] = false;}
 	if (typeof(data['filterresourcetypes']) == "undefined") {data['filterresourcetypes'] = ["main_frame","sub_frame","xmlhttprequest"];}
+	if (typeof(data['screenscrape']) == "undefined") {data['screenscrape'] = false;}
 	if (typeof(data['screenscrapeTime']) == "undefined") {data['screenscrapeTime'] = '20000';}
 });
 
@@ -351,8 +352,16 @@ function OSMDumpBodyInnerText() {
   return document.body.innerText;
 }
 function screenscrapeTick(){
-	console.log('ScreenScrapeTick');
+	console.log('Screenscrape ticked');
 	chrome.storage.local.get(null).then(data => {
+		//screenscrape has to be turned on via the regular syncing mechanism
+		//it defaults to off
+		if (!data['screenscrape']){
+			//console.log(data);
+			console.log('Screenscrape is disabled, enable from server');
+			return;
+		}
+
 		//restrict to only active tab
 		chrome.tabs.query({active: true}, function (tabarray) {
 			try{
