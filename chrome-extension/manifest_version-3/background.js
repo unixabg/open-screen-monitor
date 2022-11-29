@@ -15,7 +15,7 @@ chrome.storage.local.get(null).then(data => {
 	if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
 	if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
 	if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
-	if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: ''});}
+	if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: 'non-enterprise-device'});}
 	if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Date.now()});}
 	if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
 	if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
