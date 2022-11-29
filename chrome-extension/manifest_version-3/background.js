@@ -23,30 +23,30 @@ chrome.storage.local.get(null).then(data => {
 	if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.local.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
 	if (typeof(data['screenscrape']) == "undefined") {chrome.storage.local.set({screenscrape: false});}
 	if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.local.set({screenscrapeTime: '20000'});}
-});
 
-//get deviceID
-if (typeof(chrome["enterprise"]) !== "undefined") {
-	chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {chrome.storage.local.set({deviceID: tempDevID});});
-	console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
-} else {
-	console.log("Info: not a managed device.");
-}
-
-//get username
-chrome.identity.getProfileUserInfo(function(userInfo) {
-	var temp = userInfo.email.split("@");
-	if (temp.length == 2) {
-		chrome.storage.local.set({username: temp[0]});
-		chrome.storage.local.set({domain: temp[1]});
-
-		chrome.storage.managed.get(['uploadURL'],function(data) {
-			if (!data['uploadURL']){
-				//try and guess uploadURL based on domain
-				chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
-			}
-		});
+	//get deviceID
+	if (typeof(chrome["enterprise"]) !== "undefined") {
+		chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {chrome.storage.local.set({deviceID: tempDevID});});
+		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+	} else {
+		console.log("Info: not a managed device.");
 	}
+
+	//get username
+	chrome.identity.getProfileUserInfo(function(userInfo) {
+		var temp = userInfo.email.split("@");
+		if (temp.length == 2) {
+			chrome.storage.local.set({username: temp[0]});
+			chrome.storage.local.set({domain: temp[1]});
+
+			chrome.storage.managed.get(['uploadURL'],function(data) {
+				if (!data['uploadURL']){
+					//try and guess uploadURL based on domain
+					chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
+				}
+			});
+		}
+	});
 });
 
 
