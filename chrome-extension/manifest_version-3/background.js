@@ -26,8 +26,10 @@ chrome.storage.local.get(null).then(data => {
 
 	//get deviceID
 	if (typeof(chrome["enterprise"]) !== "undefined") {
-		chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {chrome.storage.local.set({deviceID: tempDevID});});
-		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+		chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
+			chrome.storage.local.set({deviceID: tempDevID});
+			console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+		});
 	} else {
 		console.log("Info: not a managed device.");
 	}
