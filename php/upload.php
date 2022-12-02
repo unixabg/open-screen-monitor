@@ -245,7 +245,7 @@ if (isset($_POST['data'])) {
 		}
 
 		//populate filtermessage
-		if (!$data['filtermessage']){
+		if (!array_key_exists('filtermessage',$data)){
 			$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermessage','value'=>array(
 				'requireInteraction'=>true,
 				'type'=>'basic',
