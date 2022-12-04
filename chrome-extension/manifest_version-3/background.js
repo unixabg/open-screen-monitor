@@ -11,46 +11,50 @@ chrome.storage.local.clear();
 chrome.alarms.clearAll();
 
 //setup data variables
-chrome.storage.local.get(null).then(data => {
-	if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
-	if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
-	if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
-	if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: 'non-enterprise-device'});}
-	if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Date.now()});}
-	if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
-	if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
-	if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.local.set({filterviaserver: false});}
-	if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.local.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
-	if (typeof(data['screenscrape']) == "undefined") {chrome.storage.local.set({screenscrape: false});}
-	if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.local.set({screenscrapeTime: '20000'});}
+function setupVariables(){
+	chrome.storage.local.get(null).then(data => {
+		if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
+		if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
+		if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
+		if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: 'non-enterprise-device'});}
+		if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Date.now()});}
+		if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
+		if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
+		if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.local.set({filterviaserver: false});}
+		if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.local.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
+		if (typeof(data['screenscrape']) == "undefined") {chrome.storage.local.set({screenscrape: false});}
+		if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.local.set({screenscrapeTime: '20000'});}
 
-	//get deviceID
-	if (typeof(chrome["enterprise"]) !== "undefined") {
-		chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
-			chrome.storage.local.set({deviceID: tempDevID});
-			console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
-		});
-	} else {
-		console.log("Info: not a managed device.");
-	}
-
-	//get username
-	chrome.identity.getProfileUserInfo(function(userInfo) {
-		var temp = userInfo.email.split("@");
-		if (temp.length == 2) {
-			chrome.storage.local.set({username: temp[0]});
-			chrome.storage.local.set({domain: temp[1]});
-
-			chrome.storage.managed.get(['uploadURL'],function(data) {
-				if (!data['uploadURL']){
-					//try and guess uploadURL based on domain
-					chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
-				}
+		//get deviceID
+		if (typeof(chrome["enterprise"]) !== "undefined") {
+			chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
+				chrome.storage.local.set({deviceID: tempDevID});
+				console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
 			});
+		} else {
+			console.log("Info: not a managed device.");
 		}
-	});
-});
 
+		//get username
+		chrome.identity.getProfileUserInfo(function(userInfo) {
+			var temp = userInfo.email.split("@");
+			if (temp.length == 2) {
+				chrome.storage.local.set({username: temp[0]});
+				chrome.storage.local.set({domain: temp[1]});
+
+				chrome.storage.managed.get(['uploadURL'],function(data) {
+					if (!data['uploadURL']){
+						//try and guess uploadURL based on domain
+						chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
+					}
+				});
+			}
+		});
+	});
+}
+
+//initialize the variables
+setupVariables();
 
 //get managed variables
 function getManagedProperties(){
@@ -431,7 +435,6 @@ function screenscrapeTick(){
 	});
 }
 
-
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	chrome.storage.local.get(['ticksPerAlarm']).then(data => {
 		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 2;}
@@ -460,6 +463,5 @@ function setupScreenscrapeTicks(periodInMinutes, ticksPerAlarm){
 		setTimeout(screenscrapeTick,i);
 	}
 }
-
 
 chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: 1});
