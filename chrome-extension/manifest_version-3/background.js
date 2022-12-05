@@ -5,11 +5,29 @@
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 
+//get managed variables
+function getManagedProperties(){
+	chrome.storage.managed.get(null,function(manageddata) {
+		if ("uploadURL" in manageddata && manageddata.uploadURL != '') {chrome.storage.local.set({uploadURL: manageddata.uploadURL});}
+		if ("data" in manageddata){
+			for (var i=0;i<manageddata.data.length;i++){
+				chrome.storage.local.set({[manageddata.data[i].name]: manageddata.data[i].value});
+			}
+		}
+
+		//tick the alarm just to jump start everything
+		alarmTick();
+	});
+}
+
 //setup data variables
 function setupVariables(){
 	chrome.storage.local.get(null).then(data => {
-		//sentry to clear local storage
-		if (typeof(data['localStorageClear']) == "undefined") {chrome.storage.local.set({localStorageClear: false});}
+		//sentry to clear local storage and when undefined its our first pass assign managed properties
+		if (typeof(data['localStorageClear']) == "undefined") {
+			chrome.storage.local.set({localStorageClear: false});
+			getManagedProperties();
+		}
 		//time the latest local storage was initialized
 		if (typeof(data['localStorageTime']) == "undefined") {chrome.storage.local.set({localStorageTime: Date.now()});}
 		//set life span of local storage. This can be adjusted in the server config, but by default lets start with 12hrs
@@ -26,6 +44,8 @@ function setupVariables(){
 			chrome.storage.local.set({localStorageClear: false});
 			chrome.storage.local.set({localStorageTime: Date.now()});
 			chrome.storage.local.set({localStorageLifeSpan: '43200000'});
+			//after clearing local storage lets we need to assign the managed properties again
+			getManagedProperties();
 		} else {
 			console.log('Local storage not cleared from setupVariables function with a time difference of: '+Math.abs(data['localStorageTime'] - Date.now())+' + local life span:'+data['localStorageLifeSpan']);
 		}
@@ -72,21 +92,7 @@ function setupVariables(){
 //initialize the variables
 setupVariables();
 console.log('Just below setupVariables');
-//get managed variables
-function getManagedProperties(){
-	chrome.storage.managed.get(null,function(manageddata) {
-		if ("uploadURL" in manageddata && manageddata.uploadURL != '') {chrome.storage.local.set({uploadURL: manageddata.uploadURL});}
-		if ("data" in manageddata){
-			for (var i=0;i<manageddata.data.length;i++){
-				chrome.storage.local.set({[manageddata.data[i].name]: manageddata.data[i].value});
-			}
-		}
 
-		//tick the alarm just to jump start everything
-		alarmTick();
-	});
-}
-getManagedProperties();
 //listen for future changes
 chrome.storage.onChanged.addListener(function(changes,namespace){
 	if (namespace == 'managed'){
