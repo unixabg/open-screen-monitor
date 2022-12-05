@@ -8,10 +8,10 @@
 //get managed variables
 function getManagedProperties(){
 	chrome.storage.managed.get(null,function(manageddata) {
-		if ("uploadURL" in manageddata && manageddata.uploadURL != '') {chrome.storage.local.set({uploadURL: manageddata.uploadURL});}
+		if ("uploadURL" in manageddata && manageddata.uploadURL != '') {chrome.storage.session.set({uploadURL: manageddata.uploadURL});}
 		if ("data" in manageddata){
 			for (var i=0;i<manageddata.data.length;i++){
-				chrome.storage.local.set({[manageddata.data[i].name]: manageddata.data[i].value});
+				chrome.storage.session.set({[manageddata.data[i].name]: manageddata.data[i].value});
 			}
 		}
 
@@ -22,49 +22,27 @@ function getManagedProperties(){
 
 //setup data variables
 function setupVariables(){
-	chrome.storage.local.get(null).then(data => {
-		//sentry to clear local storage and when undefined its our first pass assign managed properties
-		if (typeof(data['localStorageClear']) == "undefined") {
-			chrome.storage.local.set({localStorageClear: false});
+	chrome.storage.session.get(null).then(data => {
+		if (typeof(data['localSession']) == "undefined") {
+			chrome.storage.session.set({localSession: true});
 			getManagedProperties();
 		}
-		//time the latest local storage was initialized
-		if (typeof(data['localStorageTime']) == "undefined") {chrome.storage.local.set({localStorageTime: Date.now()});}
-		//set life span of local storage. This can be adjusted in the server config, but by default lets start with 12hrs
-		if (typeof(data['localStorageLifeSpan']) == "undefined") {chrome.storage.local.set({localStorageLifeSpan: '43200000'});}
-		//test to see if it is time to clear the local storage
-		//console.log('Date :'+Date.now()+' Life span is local storage time:'+data['localStorageTime']+' + local life span:'+data['localStorageLifeSpan']);
-		if ((Math.abs(data['localStorageTime'] - Date.now()) >= data['localStorageLifeSpan']) || (data['localStorageClear'])) {
-			//clear any local storage
-			chrome.storage.local.clear();
-			//clear any alarms from last time
-			//chrome.alarms.clearAll();
-			//set local storage settings
-			console.log('Local storage cleared from setupVariables function with a time difference of: '+(Math.abs(data['localStorageTime'] - Date.now())));
-			chrome.storage.local.set({localStorageClear: false});
-			chrome.storage.local.set({localStorageTime: Date.now()});
-			chrome.storage.local.set({localStorageLifeSpan: '43200000'});
-			//after clearing local storage lets we need to assign the managed properties again
-			getManagedProperties();
-		} else {
-			console.log('Local storage not cleared from setupVariables function with a time difference of: '+Math.abs(data['localStorageTime'] - Date.now())+' + local life span:'+data['localStorageLifeSpan']);
-		}
-		if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
-		if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
-		if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
-		if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: 'non-enterprise-device'});}
-		if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Math.floor(Math.random()*100000000)});}
-		if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
-		if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
-		if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.local.set({filterviaserver: false});}
-		if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.local.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
-		if (typeof(data['screenscrape']) == "undefined") {chrome.storage.local.set({screenscrape: false});}
-		if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.local.set({screenscrapeTime: '20000'});}
+		if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
+		if (typeof(data['username']) == "undefined") {chrome.storage.session.set({username: ''});}
+		if (typeof(data['domain']) == "undefined") {chrome.storage.session.set({domain: ''});}
+		if (typeof(data['deviceID']) == "undefined") {chrome.storage.session.set({deviceID: 'non-enterprise-device'});}
+		if (typeof(data['sessionID']) == "undefined") {chrome.storage.session.set({sessionID: Math.floor(Math.random()*100000000)});}
+		if (typeof(data['filtermode']) == "undefined") {chrome.storage.session.set({filtermode: ''});}
+		if (typeof(data['filterlist']) == "undefined") {chrome.storage.session.set({filterlist: []});}
+		if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.session.set({filterviaserver: false});}
+		if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.session.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
+		if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
+		if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: '20000'});}
 
 		//get deviceID
 		if (typeof(chrome["enterprise"]) !== "undefined") {
 			chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
-				chrome.storage.local.set({deviceID: tempDevID});
+				chrome.storage.session.set({deviceID: tempDevID});
 				console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
 			});
 		} else {
@@ -75,13 +53,13 @@ function setupVariables(){
 		chrome.identity.getProfileUserInfo(function(userInfo) {
 			var temp = userInfo.email.split("@");
 			if (temp.length == 2) {
-				chrome.storage.local.set({username: temp[0]});
-				chrome.storage.local.set({domain: temp[1]});
+				chrome.storage.session.set({username: temp[0]});
+				chrome.storage.session.set({domain: temp[1]});
 
 				chrome.storage.managed.get(['uploadURL'],function(data) {
 					if (!data['uploadURL']){
 						//try and guess uploadURL based on domain
-						chrome.storage.local.set({uploadURL: "https://osm." + temp[1] + "/"});
+						chrome.storage.session.set({uploadURL: "https://osm." + temp[1] + "/"});
 					}
 				});
 			}
@@ -106,7 +84,7 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 //setup filter
 /////////////////
 function filterPage(nextPageDetails) {
-	chrome.storage.local.get(null).then(data => {
+	chrome.storage.session.get(null).then(data => {
 		//any page on the osm server can be skipped
 		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
 
@@ -200,7 +178,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(filterHistoryPage);
 //setup the window lock
 ///////////////////////
 function lockOpenWindows() {
-	chrome.storage.local.get(['lock']).then(data => {
+	chrome.storage.session.get(['lock']).then(data => {
 		if (data.lock) {
 			chrome.windows.getAll({},function(windowdata) {
 				for (var i=0;i<windowdata.length;i=i+1) {
@@ -234,16 +212,16 @@ function alarmTick() {
 	//get tab info
 	chrome.tabs.query({})
 	.then(tabarray => {
-		chrome.storage.local.set({tabs: tabarray});
+		chrome.storage.session.set({tabs: tabarray});
 	})
 	.finally(() => {
 		//get screenshot
 		chrome.tabs.captureVisibleTab(null,{format:"jpeg"})
 		.then(dataUrl => {
-			chrome.storage.local.set({screenshot: dataUrl});
+			chrome.storage.session.set({screenshot: dataUrl});
 		})
 		.catch(() =>{
-			chrome.storage.local.set({screenshot: ""});
+			chrome.storage.session.set({screenshot: ""});
 		})
 		.finally(()=>{
 			//send data home
@@ -253,7 +231,7 @@ function alarmTick() {
 }
 
 function phoneHome() {
-	chrome.storage.local.get(null, function(data) {
+	chrome.storage.session.get(null, function(data) {
 		if (!data['uploadURL']){
 			console.log(data);
 			console.log('No uploadURL, no phoneHome');
@@ -300,15 +278,15 @@ function phoneHome() {
 								chrome.windows.update(command["windowId"],command["data"]);
 								break;
 							case "lock":
-								chrome.storage.local.set({lock: true});
+								chrome.storage.session.set({lock: true});
 								lockOpenWindows();
 								break;
 							case "unlock":
-								chrome.storage.local.set({lock: false});
+								chrome.storage.session.set({lock: false});
 								openWindows();
 								break;
 							case "setData":
-								chrome.storage.local.set({[command["key"]]: command["value"]});
+								chrome.storage.session.set({[command["key"]]: command["value"]});
 								break;
 							case "sendNotification":
 								chrome.notifications.create("",command["data"]);
@@ -335,8 +313,8 @@ function phoneHome() {
 										var periodInMinutes = 1;
 										var ticksPerAlarm = Math.floor(60000 / command['time']);
 									}
-									chrome.storage.local.set({refreshTime: command['time']});
-									chrome.storage.local.set({ticksPerAlarm: ticksPerAlarm});
+									chrome.storage.session.set({refreshTime: command['time']});
+									chrome.storage.session.set({ticksPerAlarm: ticksPerAlarm});
 									chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('Refresh Time Updated: '+command['time']);
@@ -355,8 +333,8 @@ function phoneHome() {
 										var periodInMinutes = 1;
 										var ticksPerAlarm = Math.floor(60000 / command['time']);
 									}
-									chrome.storage.local.set({screenscrapeTime: command["time"]});
-									chrome.storage.local.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
+									chrome.storage.session.set({screenscrapeTime: command["time"]});
+									chrome.storage.session.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
 									chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('ScreenScrape Timer updated to: '+command['time']);
@@ -364,18 +342,6 @@ function phoneHome() {
 									setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
 
 								}
-								break;
-							case "changeLocalStorageLifeSpan":
-								if (data['localStorageLifeSpan'] != command["time"]){
-									chrome.storage.local.set({localStorageLifeSpan: command["time"]});
-									console.log('Local storage life span time updated to: '+command['time']);
-								}
-								break;
-							case "clearLocalStorage":
-								chrome.storage.local.set({localStorageClear: true});
-								setupVariables();
-								chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: 1});
-								console.log('Local storage clear called by upload.php');
 								break;
 
 						}
@@ -395,7 +361,7 @@ function OSMDumpBodyInnerText() {
 }
 function screenscrapeTick(){
 	console.log('Screenscrape ticked');
-	chrome.storage.local.get(null).then(data => {
+	chrome.storage.session.get(null).then(data => {
 		//screenscrape has to be turned on via the regular syncing mechanism
 		//it defaults to off
 		if (!data['screenscrape']){
@@ -470,11 +436,11 @@ function screenscrapeTick(){
 }
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
-	chrome.storage.local.get(['ticksPerAlarm']).then(data => {
+	chrome.storage.session.get(['ticksPerAlarm']).then(data => {
 		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 2;}
 		setupTicks(alarm.periodInMinutes,data['ticksPerAlarm']);
 	});
-	chrome.storage.local.get(['screenscrapeTicksPerAlarm']).then(data => {
+	chrome.storage.session.get(['screenscrapeTicksPerAlarm']).then(data => {
 		if (typeof(data['screenscrapeTicksPerAlarm']) == "undefined") {data['screenscrapeTicksPerAlarm'] = 2;}
 		setupScreenscrapeTicks(alarm.periodInMinutes,data['screenscrapeTicksPerAlarm']);
 	});
