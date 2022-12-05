@@ -254,6 +254,14 @@ if (isset($_POST['data'])) {
 				'message'=>$_config['filterMessage']['message']['newtab'],
 			));
 		}
+
+		//update the storage life span from server config
+		$toReturn['commands'][] = array('action'=>'changeLocalStorageLifeSpan','time'=>$_config['localStorageLifeSpan']);
+		//clear the local storage on the extension
+		if (file_exists($clientFolder.'/clearLocalStorage')) {
+			$toReturn['commands'][] = array('action'=>'clearLocalStorage');
+			unlink($clientFolder.'/clearLocalStorage');
+		}
 	} else {
 		//clientID not set
 

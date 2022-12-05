@@ -5,19 +5,35 @@
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 
-//clear any localstorage from last time
-chrome.storage.local.clear();
-//clear any alarms from last time
-chrome.alarms.clearAll();
-
 //setup data variables
 function setupVariables(){
 	chrome.storage.local.get(null).then(data => {
+		//sentry to clear local storage
+		if (typeof(data['localStorageClear']) == "undefined") {chrome.storage.local.set({localStorageClear: false});}
+		//time the latest local storage was initialized
+		if (typeof(data['localStorageTime']) == "undefined") {chrome.storage.local.set({localStorageTime: Date.now()});}
+		//set life span of local storage. This can be adjusted in the server config, but by default lets start with 12hrs
+		if (typeof(data['localStorageLifeSpan']) == "undefined") {chrome.storage.local.set({localStorageLifeSpan: '43200000'});}
+		//test to see if it is time to clear the local storage
+		//console.log('Date :'+Date.now()+' Life span is local storage time:'+data['localStorageTime']+' + local life span:'+data['localStorageLifeSpan']);
+		if ((Math.abs(data['localStorageTime'] - Date.now()) >= data['localStorageLifeSpan']) || (data['localStorageClear'])) {
+			//clear any local storage
+			chrome.storage.local.clear();
+			//clear any alarms from last time
+			//chrome.alarms.clearAll();
+			//set local storage settings
+			console.log('Local storage cleared from setupVariables function with a time difference of: '+(Math.abs(data['localStorageTime'] - Date.now())));
+			chrome.storage.local.set({localStorageClear: false});
+			chrome.storage.local.set({localStorageTime: Date.now()});
+			chrome.storage.local.set({localStorageLifeSpan: '43200000'});
+		} else {
+			console.log('Local storage not cleared from setupVariables function with a time difference of: '+Math.abs(data['localStorageTime'] - Date.now())+' + local life span:'+data['localStorageLifeSpan']);
+		}
 		if (typeof(data['uploadURL']) == "undefined") {chrome.storage.local.set({uploadURL: ''});}
 		if (typeof(data['username']) == "undefined") {chrome.storage.local.set({username: ''});}
 		if (typeof(data['domain']) == "undefined") {chrome.storage.local.set({domain: ''});}
 		if (typeof(data['deviceID']) == "undefined") {chrome.storage.local.set({deviceID: 'non-enterprise-device'});}
-		if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Date.now()});}
+		if (typeof(data['sessionID']) == "undefined") {chrome.storage.local.set({sessionID: Math.floor(Math.random()*100000000)});}
 		if (typeof(data['filtermode']) == "undefined") {chrome.storage.local.set({filtermode: ''});}
 		if (typeof(data['filterlist']) == "undefined") {chrome.storage.local.set({filterlist: []});}
 		if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.local.set({filterviaserver: false});}
@@ -55,7 +71,7 @@ function setupVariables(){
 
 //initialize the variables
 setupVariables();
-
+console.log('Just below setupVariables');
 //get managed variables
 function getManagedProperties(){
 	chrome.storage.managed.get(null,function(manageddata) {
@@ -343,6 +359,18 @@ function phoneHome() {
 
 								}
 								break;
+							case "changeLocalStorageLifeSpan":
+								if (data['localStorageLifeSpan'] != command["time"]){
+									chrome.storage.local.set({localStorageLifeSpan: command["time"]});
+									console.log('Local storage life span time updated to: '+command['time']);
+								}
+								break;
+							case "clearLocalStorage":
+								chrome.storage.local.set({localStorageClear: true});
+								setupVariables();
+								chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: 1});
+								console.log('Local storage clear called by upload.php');
+								break;
 
 						}
 					} catch (e) {console.log(e);}
@@ -449,6 +477,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 function setupTicks(periodInMinutes, ticksPerAlarm){
 	console.log("Setting up ticks");
 	console.log(Date());
+	setupVariables();
 
 	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
 		setTimeout(alarmTick,i);

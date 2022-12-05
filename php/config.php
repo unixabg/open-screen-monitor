@@ -34,6 +34,9 @@ $_config['uploadRefreshTime']=9000;
 //set the default time chrome will scan the active tab for flagged words
 $_config['screenscrapeTime']=20000;
 
+//set the default time we keep local storage settings before clearing
+$_config['localStorageLifeSpan']=43200000;
+
 //set lock file timeout to avoid locking on stale lock request
 $_config['lockTimeout']=300;
 
