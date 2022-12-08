@@ -39,6 +39,7 @@ function setupVariables(){
 		if (typeof(data['filterlist']) == "undefined") {chrome.storage.session.set({filterlist: []});}
 		if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.session.set({filterviaserver: false});}
 		if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.session.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
+		if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: '9000'});}
 		if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
 		if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: '20000'});}
 
