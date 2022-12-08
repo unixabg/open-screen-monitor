@@ -24,6 +24,9 @@ function getManagedProperties(){
 function setupVariables(){
 	chrome.storage.session.get(null).then(data => {
 		if (typeof(data['localSession']) == "undefined") {
+			//since moving to session based storage
+			//clear any local storage of previous extension installs
+			chrome.storage.local.clear();
 			chrome.storage.session.set({localSession: true});
 			getManagedProperties();
 		}
