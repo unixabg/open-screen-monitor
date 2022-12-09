@@ -83,6 +83,8 @@ function setupVariables(){
 			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: '9000'});}
 			if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
 			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: '20000'});}
+			if (typeof(data['manifestVersion']) == "undefined") {chrome.storage.session.set({manifestVersion: navigator.userAgent});}
+			if (typeof(data['userAgent']) == "undefined") {chrome.storage.session.set({userAgent: navigator.userAgent});}
 		} else {
 			console.log('The localSession is set so must be a service worker call for setupVariables');
 		}
