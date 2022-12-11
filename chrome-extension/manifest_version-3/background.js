@@ -6,6 +6,38 @@
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 
 
+/////////////////
+//the below may not be needed later see https://developer.chrome.com/docs/extensions/mv3/known-issues/#sw-fixed-lifetime
+//see https://stackoverflow.com/a/66618269
+/////////////////
+const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
+findTab();
+chrome.runtime.onConnect.addListener(port => {
+	console.log('onConnect.addListener');
+	if (port.name === 'keepAlive') {
+		setTimeout(() => port.disconnect(), 250e3);
+		port.onDisconnect.addListener(() => findTab());
+	}
+});
+async function findTab(tabs) {
+	console.log('findTab called');
+	if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
+	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
+		try {
+			await chrome.scripting.executeScript({target: {tabId}, func: connect});
+			chrome.tabs.onUpdated.removeListener(onUpdate);
+			return;
+		} catch (e) {}
+	}
+	chrome.tabs.onUpdated.addListener(onUpdate);
+}
+function connect() {
+	console.log('connect called');
+	chrome.runtime.connect({name: 'keepAlive'})
+		.onDisconnect.addListener(connect);
+}
+
+
 //start each service worker with a listener
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	//run the events
