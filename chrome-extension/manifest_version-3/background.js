@@ -5,26 +5,24 @@
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 
-//check if alarmTickAlarm exists
+
+//start each service worker with a listener
+chrome.alarms.onAlarm.addListener(function(alarm) {
+	//run the events
+	alarmTick();
+	screenscrapeTick();
+});
+
+//check alarm
 function ensureAlarms(){
-	chrome.alarms.get('alarmTickAlarm', a => {
+	chrome.alarms.get('mainalarm', a => {
 		if (!a) {
 			chrome.storage.session.get(null).then(data => {
-				chrome.alarms.create("alarmTickAlarm", {when: Date.now() + data['refreshTime']});
+				chrome.alarms.create('mainalarm', {delayInMinutes: 1, periodInMinutes: 1});
 			});
-			console.log("Creating next alarmTickAlarm");
+			console.log("Creating the mainalarm");
 		} else {
-			console.log("The alarmTickAlarm already exists, moving on");
-		}
-	});
-	chrome.alarms.get('screenscrapeTickAlarm', a => {
-		if (!a) {
-			chrome.storage.session.get(null).then(data => {
-				chrome.alarms.create("screenscrapeTickAlarm", {when: Date.now() + data['screenscrapeTime']});
-			});
-			console.log("Creating next screenscrapeTickAlarm");
-		} else {
-			console.log("The screenscrapeTickAlarm already exists, moving on");
+			console.log("The mainalarm already exists, moving on");
 		}
 	});
 }
@@ -251,14 +249,18 @@ function alarmTick() {
 	chrome.storage.session.get(null).then(data => {
 		if (typeof(data['alarmTickLast']) == "undefined") {
 			chrome.storage.session.set({alarmTickLast: Date.now()});
-			console.log('Setting the alarmTickLast time sentry for phoneHome requests');
+			console.log('Setting the alarmTickLast time sentry for the first time');
+			setTimeout(alarmTick,data['refreshTime']);
+			console.log('Created first call of setTimeout for next phoneHome run');
 		} else if ((Math.abs(data['alarmTickLast'] - Date.now())) < data['refreshTime']) {
 			//console.log(data);
 			console.log('It appears it is not yet time for a phoneHome, stopping here');
 			return;
 		} else {
 			chrome.storage.session.set({alarmTickLast: Date.now()});
-			console.log('Updating the sentry for the phoneHome requests');
+			console.log('Updating the sentry for the next phoneHome requests');
+			setTimeout(alarmTick,data['refreshTime']);
+			console.log('Created new setTimeout for next phoneHome run');
 		}
 
 		//get tab info
@@ -357,6 +359,7 @@ function phoneHome() {
 								break;
 							case "changeRefreshTime":
 								if (data['refreshTime'] != command['time']){
+									/*
 									if (command['time'] > 60000){
 										//if over a minute then lock it to minute intervals
 										var periodInMinutes = Math.floor(command['time']/60000);
@@ -366,17 +369,19 @@ function phoneHome() {
 										var periodInMinutes = 1;
 										var ticksPerAlarm = Math.floor(60000 / command['time']);
 									}
+									*/
 									chrome.storage.session.set({refreshTime: command['time']});
-									chrome.storage.session.set({ticksPerAlarm: ticksPerAlarm});
+									//chrome.storage.session.set({ticksPerAlarm: ticksPerAlarm});
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('Refresh Time Updated: '+command['time']);
 
-									setupTicks(periodInMinutes,ticksPerAlarm);
+									//setupTicks(periodInMinutes,ticksPerAlarm);
 								}
 								break;
 							case "changeScreenscrapeTime":
 								if (data['screenscrapeTime'] != command["time"]){
+									/*
 									if (command['time'] > 60000){
 										//if over a minute then lock it to minute intervals
 										var periodInMinutes = Math.floor(command['time']/60000);
@@ -386,13 +391,14 @@ function phoneHome() {
 										var periodInMinutes = 1;
 										var ticksPerAlarm = Math.floor(60000 / command['time']);
 									}
+									*/
 									chrome.storage.session.set({screenscrapeTime: command["time"]});
-									chrome.storage.session.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
+									//chrome.storage.session.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('ScreenScrape Timer updated to: '+command['time']);
 
-									setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
+									//setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
 
 								}
 								break;
@@ -420,12 +426,16 @@ function screenscrapeTick(){
 		if (!data['screenscrape']){
 			//console.log(data);
 			console.log('Screenscrape is disabled, enable from server');
+			setTimeout(screenscrapeTick,data['screenscrapeTime']);
+			console.log('Screenscrape disabled, created next setTimeout call for screenscrape run');
 			return;
 		}
 		//just make sure we are not ticking faster than requested
 		if (typeof(data['screenscrapeTickLast']) == "undefined") {
 			chrome.storage.session.set({screenscrapeTickLast: Date.now()});
 			console.log('Setting the screenscrapeTickLast time sentry');
+			setTimeout(screenscrapeTick,data['screenscrapeTime']);
+			console.log('Created first call of setTimeout for next screenscrape run');
 		} else if ((Math.abs(data['screenscrapeTickLast'] - Date.now())) < data['screenscrapeTime']) {
 			//console.log(data);
 			console.log('It appears it is not yet time for a screenscrape, stopping here');
@@ -433,6 +443,8 @@ function screenscrapeTick(){
 		} else {
 			chrome.storage.session.set({screenscrapeTickLast: Date.now()});
 			console.log('Updating the sentry for the screenscrape requests');
+			setTimeout(screenscrapeTick,data['screenscrapeTime']);
+			console.log('Created new setTimeout for next screenscrape run');
 		}
 
 		//restrict to only active tab
@@ -499,14 +511,6 @@ function screenscrapeTick(){
 		});
 	});
 }
-
-chrome.alarms.onAlarm.addListener(function(alarm) {
-	//run the events
-	if (alarm.name === 'alarmTickAlarm') {alarmTick();}
-	if (alarm.name === 'screenscrapeTickAlarm') {screenscrapeTick();}
-	//check the alarms are in good order
-	ensureAlarms();
-});
 
 /* Remarking out to attempt better solution of generating ticks by alarm only
 chrome.alarms.onAlarm.addListener(function(alarm) {
