@@ -5,14 +5,26 @@
 //i.e creating a file containing {"uploadURL":{"Value":"https://osm/osm/"}} and uploading it the Google Admin Console or setting the appropriate registry entries in Microsoft Windows
 //make sure that the uploadURL points to the php folder and includes a trailing forward slash
 
-//check if mainalarm exists
-function ensureMainAlarm(){
-	chrome.alarms.get('mainalarm', a => {
+//check if alarmTickAlarm exists
+function ensureAlarms(){
+	chrome.alarms.get('alarmTickAlarm', a => {
 		if (!a) {
-			chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: 1});
-			console.log("Creating mainalarm");
+			chrome.storage.session.get(null).then(data => {
+				chrome.alarms.create("alarmTickAlarm", {when: Date.now() + data['refreshTime']});
+			});
+			console.log("Creating next alarmTickAlarm");
 		} else {
-			console.log("The mainalarm already exists, moving on");
+			console.log("The alarmTickAlarm already exists, moving on");
+		}
+	});
+	chrome.alarms.get('screenscrapeTickAlarm', a => {
+		if (!a) {
+			chrome.storage.session.get(null).then(data => {
+				chrome.alarms.create("screenscrapeTickAlarm", {when: Date.now() + data['screenscrapeTime']});
+			});
+			console.log("Creating next screenscrapeTickAlarm");
+		} else {
+			console.log("The screenscrapeTickAlarm already exists, moving on");
 		}
 	});
 }
@@ -80,19 +92,18 @@ function setupVariables(){
 			if (typeof(data['filterlist']) == "undefined") {chrome.storage.session.set({filterlist: []});}
 			if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.session.set({filterviaserver: false});}
 			if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.session.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
-			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: '9000'});}
+			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: 9000});}
 			if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
-			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: '20000'});}
+			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: 20000});}
 			if (typeof(data['manifestVersion']) == "undefined") {chrome.storage.session.set({manifestVersion: navigator.userAgent});}
 			if (typeof(data['userAgent']) == "undefined") {chrome.storage.session.set({userAgent: navigator.userAgent});}
 		} else {
 			console.log('The localSession is set so must be a service worker call for setupVariables');
 		}
-		ensureMainAlarm();
+		ensureAlarms();
+		alarmTick();
+		screenscrapeTick();
 	});
-
-	//tick the alarmTick
-	alarmTick();
 }
 
 //call the varaibles
@@ -112,7 +123,6 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 //setup filter
 /////////////////
 function filterPage(nextPageDetails) {
-	ensureMainAlarm();
 	chrome.storage.session.get(null).then(data => {
 		//any page on the osm server can be skipped
 		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
@@ -199,9 +209,6 @@ chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"]},[
 function filterHistoryPage(details) {
 	details.type = "main_frame";
 	filterPage(details);
-	ensureMainAlarm();
-	//tick the alarm
-	alarmTick();
 }
 chrome.webNavigation.onHistoryStateUpdated.addListener(filterHistoryPage);
 
@@ -240,7 +247,6 @@ chrome.tabs.onUpdated.addListener(lockOpenWindows);
 function alarmTick() {
 	console.log("Alarm ticked");
 	console.log(Date());
-	ensureMainAlarm();
 	//just make sure we are not ticking faster than requested
 	chrome.storage.session.get(null).then(data => {
 		if (typeof(data['alarmTickLast']) == "undefined") {
@@ -408,7 +414,6 @@ function OSMDumpBodyInnerText() {
 }
 function screenscrapeTick(){
 	console.log('Screenscrape ticked');
-	ensureMainAlarm();
 	chrome.storage.session.get(null).then(data => {
 		//screenscrape has to be turned on via the regular syncing mechanism
 		//it defaults to off
@@ -496,6 +501,15 @@ function screenscrapeTick(){
 }
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
+	//run the events
+	if (alarm.name === 'alarmTickAlarm') {alarmTick();}
+	if (alarm.name === 'screenscrapeTickAlarm') {screenscrapeTick();}
+	//check the alarms are in good order
+	ensureAlarms();
+});
+
+/* Remarking out to attempt better solution of generating ticks by alarm only
+chrome.alarms.onAlarm.addListener(function(alarm) {
 	chrome.storage.session.get(['ticksPerAlarm']).then(data => {
 		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 4;}
 		setupTicks(alarm.periodInMinutes,data['ticksPerAlarm']);
@@ -523,5 +537,5 @@ function setupScreenscrapeTicks(periodInMinutes, ticksPerAlarm){
 		setTimeout(screenscrapeTick,i);
 	}
 }
-
+*/
 
