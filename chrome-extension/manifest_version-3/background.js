@@ -407,8 +407,7 @@ function phoneHome() {
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('Refresh Time Updated: '+command['time']);
-
-									//setupTicks(periodInMinutes,ticksPerAlarm);
+									alarmTick();
 								}
 								break;
 							case "changeScreenscrapeTime":
@@ -429,6 +428,7 @@ function phoneHome() {
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('ScreenScrape Timer updated to: '+command['time']);
+									screenscrapeTick();
 
 									//setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
 
