@@ -391,21 +391,7 @@ function phoneHome() {
 								break;
 							case "changeRefreshTime":
 								if (data['refreshTime'] != command['time']){
-									/*
-									if (command['time'] > 60000){
-										//if over a minute then lock it to minute intervals
-										var periodInMinutes = Math.floor(command['time']/60000);
-										var ticksPerAlarm = 1;
-									} else {
-										//if a minute or under then lock the alarm to one minute
-										var periodInMinutes = 1;
-										var ticksPerAlarm = Math.floor(60000 / command['time']);
-									}
-									*/
 									chrome.storage.session.set({refreshTime: command['time']});
-									//chrome.storage.session.set({ticksPerAlarm: ticksPerAlarm});
-									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
-
 									console.log('Refresh Time Updated: '+command['time']);
 									//set the alarmTick sentry to 0 to ensure a tick
 									chrome.storage.session.set({alarmTickLast: 0});
@@ -414,28 +400,11 @@ function phoneHome() {
 								break;
 							case "changeScreenscrapeTime":
 								if (data['screenscrapeTime'] != command["time"]){
-									/*
-									if (command['time'] > 60000){
-										//if over a minute then lock it to minute intervals
-										var periodInMinutes = Math.floor(command['time']/60000);
-										var ticksPerAlarm = 1;
-									} else {
-										//if a minute or under then lock the alarm to one minute
-										var periodInMinutes = 1;
-										var ticksPerAlarm = Math.floor(60000 / command['time']);
-									}
-									*/
 									chrome.storage.session.set({screenscrapeTime: command["time"]});
-									//chrome.storage.session.set({screenscrapeTicksPerAlarm: ticksPerAlarm});
-									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
-
 									console.log('ScreenScrape Timer updated to: '+command['time']);
 									//set the screenscrapeTick sentry to 0 to ensure a tick
 									chrome.storage.session.set({screenscrapeTickLast: 0});
 									screenscrapeTick();
-
-									//setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
-
 								}
 								break;
 
@@ -545,35 +514,4 @@ function screenscrapeTick(){
 		});
 	});
 }
-
-/* Remarking out to attempt better solution of generating ticks by alarm only
-chrome.alarms.onAlarm.addListener(function(alarm) {
-	chrome.storage.session.get(['ticksPerAlarm']).then(data => {
-		if (typeof(data['ticksPerAlarm']) == "undefined") {data['ticksPerAlarm'] = 4;}
-		setupTicks(alarm.periodInMinutes,data['ticksPerAlarm']);
-	});
-	chrome.storage.session.get(['screenscrapeTicksPerAlarm']).then(data => {
-		if (typeof(data['screenscrapeTicksPerAlarm']) == "undefined") {data['screenscrapeTicksPerAlarm'] = 4;}
-		setupScreenscrapeTicks(alarm.periodInMinutes,data['screenscrapeTicksPerAlarm']);
-	});
-});
-
-function setupTicks(periodInMinutes, ticksPerAlarm){
-	console.log("Setting up ticks");
-	console.log(Date());
-
-	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
-		setTimeout(alarmTick,i);
-	}
-}
-
-function setupScreenscrapeTicks(periodInMinutes, ticksPerAlarm){
-	console.log("Setting up screenscrape ticks");
-	console.log(Date());
-
-	for (var i = 0; i < (60000*periodInMinutes); i = i + (60000*periodInMinutes/ticksPerAlarm)){
-		setTimeout(screenscrapeTick,i);
-	}
-}
-*/
 
