@@ -407,6 +407,8 @@ function phoneHome() {
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('Refresh Time Updated: '+command['time']);
+									//set the alarmTick sentry to 0 to ensure a tick
+									chrome.storage.session.set({alarmTickLast: 0});
 									alarmTick();
 								}
 								break;
@@ -428,6 +430,8 @@ function phoneHome() {
 									//chrome.alarms.create("mainalarm", {delayInMinutes: 1, periodInMinutes: periodInMinutes});
 
 									console.log('ScreenScrape Timer updated to: '+command['time']);
+									//set the screenscrapeTick sentry to 0 to ensure a tick
+									chrome.storage.session.set({screenscrapeTickLast: 0});
 									screenscrapeTick();
 
 									//setupScreenscrapeTicks(periodInMinutes,ticksPerAlarm);
@@ -453,15 +457,6 @@ function OSMDumpBodyInnerText() {
 function screenscrapeTick(){
 	console.log('Screenscrape ticked');
 	chrome.storage.session.get(null).then(data => {
-		//screenscrape has to be turned on via the regular syncing mechanism
-		//it defaults to off
-		if (!data['screenscrape']){
-			//console.log(data);
-			console.log('Screenscrape is disabled, enable from server');
-			setTimeout(screenscrapeTick,data['screenscrapeTime']);
-			console.log('Screenscrape disabled, created next setTimeout call for screenscrape run');
-			return;
-		}
 		//just make sure we are not ticking faster than requested
 		if (typeof(data['screenscrapeTickLast']) == "undefined") {
 			chrome.storage.session.set({screenscrapeTickLast: Date.now()});
@@ -477,6 +472,13 @@ function screenscrapeTick(){
 			console.log('Updating the sentry for the screenscrape requests');
 			setTimeout(screenscrapeTick,data['screenscrapeTime']);
 			console.log('Created new setTimeout for next screenscrape run');
+		}
+		//screenscrape has to be turned on via the regular syncing mechanism
+		//it defaults to off
+		if (!data['screenscrape']){
+			//console.log(data);
+			console.log('Screenscrape is disabled, enable from server');
+			return;
 		}
 
 		//restrict to only active tab
