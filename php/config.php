@@ -26,7 +26,7 @@ if (!file_exists($dataDir.'/config.json')) {
 //start config
 //Don't modify these values in this script. Use config.json in $dataDir instead.
 //set system wide version for php scripts
-$_config['version']='0.3.0.1-next';
+$_config['version']='0.3.0.1';
 
 //set the default time chrome will wait between phone home attempst to the upload script
 $_config['uploadRefreshTime']=9000;
