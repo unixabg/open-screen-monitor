@@ -1,0 +1,35 @@
+{
+	"manifest_version": 3,
+	"name": "Open Screen Monitor (Beta)",
+	"description": "An open-source screen monitoring tool for managed Chrome environments.",
+	"version": "0.3.0.17",
+	"incognito": "split",
+	"permissions": [
+		"alarms",
+		"accessibilityFeatures.read",
+		"accessibilityFeatures.modify",
+		"background",
+		"browsingData",
+		"enterprise.deviceAttributes",
+		"identity",
+		"identity.email",
+		"notifications",
+		"scripting",
+		"tabs",
+		"webNavigation",
+		"webRequest",
+		"webRequestBlocking"
+	],
+	"host_permissions": [
+		"<all_urls>",
+		"*://*/*"
+	],
+	"action":{
+		"default_popup":"popup.html",
+		"default_icon":"icon.png"
+	},
+	"background": { "service_worker": "background.js" },
+	"storage":{
+		"managed_schema":"schema.json"
+	}
+}
