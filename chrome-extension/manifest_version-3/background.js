@@ -71,6 +71,27 @@ function getManagedProperties(){
 	});
 }
 
+//get properties for user
+function getUserProperties(){
+	chrome.identity.getProfileUserInfo(function(userInfo) {
+		var temp = userInfo.email.split("@");
+		if (temp.length == 2) {
+			chrome.storage.session.set({username: temp[0]});
+			chrome.storage.session.set({domain: temp[1]});
+
+			chrome.storage.managed.get(['uploadURL'],function(data) {
+				if (!data['uploadURL']){
+					//try and guess uploadURL based on domain
+					chrome.storage.session.set({uploadURL: "https://osm." + temp[1] + "/"});
+				}
+			});
+		}
+	});
+}
+
+
+
+
 //setup data variables
 function setupVariables(){
 	//sanity check for variabl stuff
@@ -96,21 +117,8 @@ function setupVariables(){
 				console.log("Info: not a managed device.");
 			}
 
-			//get username
-			chrome.identity.getProfileUserInfo(function(userInfo) {
-				var temp = userInfo.email.split("@");
-				if (temp.length == 2) {
-					chrome.storage.session.set({username: temp[0]});
-					chrome.storage.session.set({domain: temp[1]});
-
-					chrome.storage.managed.get(['uploadURL'],function(data) {
-						if (!data['uploadURL']){
-							//try and guess uploadURL based on domain
-							chrome.storage.session.set({uploadURL: "https://osm." + temp[1] + "/"});
-						}
-					});
-				}
-			});
+			//get user properties
+			getUserProperties();
 
 			//set some final things if still undefined
 			if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
@@ -145,6 +153,10 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 	if (namespace == 'managed'){
 		getManagedProperties();
 	}
+});
+//listen for future changes
+chrome.identity.onSignInChanged.addListener(function(accountinfo, signedin){
+	getUserProperties();
 });
 
 
