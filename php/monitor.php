@@ -420,6 +420,7 @@ if ($_config['mode'] == 'user'){
 								if (img.length == 0) {
 									//we may have to delete it from the inactive devices
 									$('#div_'+dev+'_'+sessionID).remove();
+									$('#urls_'+dev+'_'+sessionID).remove();
 									enableDevice(dev,sessionID);
 								}
 								//img.attr("src","?action=getImage&id=" + dev + "&sessionID=" + sessionID + "&time=" + time);
