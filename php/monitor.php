@@ -229,8 +229,8 @@ if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultall
 	$_POST['filterlistdefaultdeny'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultdeny']);
 	$_POST['filterlistdefaultallow'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultallow']);
 	//let us do a second pass to drop empty lines and correctly format
-	$_POST['filterlistdefaultdeny'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny'])));
-	$_POST['filterlistdefaultallow'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow'])));
+	$_POST['filterlistdefaultdeny'] = trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny']));
+	$_POST['filterlistdefaultallow'] = trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow']));
 
 	file_put_contents($labConfigDir.'filtermode',$_POST['filtermode']);
 	file_put_contents($labConfigDir.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);

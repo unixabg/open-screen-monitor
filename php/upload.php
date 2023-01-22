@@ -78,9 +78,9 @@ if (isset($_POST['data'])) {
 		//ping file for status
 		touch($clientFolder.'/ping');
 		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
-		//debug
+		//debug in
 		if ($_config['debug']){
-			file_put_contents($clientFolder.'/debug',$_POST['data']);
+			file_put_contents($clientFolder.'/debug-in',$_POST['data']);
 		}
 		//screenshot
 		$screenshot = '';
@@ -141,7 +141,13 @@ if (isset($_POST['data'])) {
 			$filterlist = explode("\n",$filterlist);
 
 			foreach ($filterlist as $i=>$value) {
-				if ($value == "") unset($filterlist[$i]);
+				if ($value == "") {
+					unset($filterlist[$i]);
+				} elseif (substr($value,0,6) == 'regex:') {
+					$filterlist[$i] = substr($value,6);
+				} else {
+					$filterlist[$i] = preg_replace('/[^A-Za-z0-9_]/','\\\\$0',$value);
+				}
 			}
 
 			if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
@@ -166,7 +172,6 @@ if (isset($_POST['data'])) {
 					$foundMatch = false;
 					//test each tab against the filterlist
 					foreach ($filterlist as $i=>$value) {
-						$value = str_replace("/","\\/",$value);
 						$foundMatch = preg_match("/$value/i", $tab['url']);
 						if ($foundMatch) {
 							break;
@@ -330,6 +335,12 @@ if (isset($_POST['data'])) {
 //make sure to set restrictive permissions on this file
 if (file_exists($dataDir.'/custom-upload-append.php'))
 	include($dataDir.'/custom-upload-append.php');
+
+//debug out
+if ($_config['debug'] && isset($clientFolder) && $clientFolder != ''){
+	file_put_contents($clientFolder.'/debug-out',json_encode($toReturn,JSON_PRETTY_PRINT));
+}
+
 
 //send it back
 header('Content-Type: application/json');
