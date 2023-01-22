@@ -35,7 +35,7 @@ if (isset($_POST['data'])) {
 				}
 			}
 			fclose($devices);
-		} elseif ($config['mode'] == 'user'){
+		} elseif ($_config['mode'] == 'user'){
 			//we only set config folder if it exists because we are looking for a symlink
 			//to a class config folder for user mode
 			//if the user hasn't been claimed by a class they will use the unknown folder from above
