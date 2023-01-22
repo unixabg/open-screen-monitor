@@ -571,6 +571,7 @@ if ($_config['mode'] == 'user'){
 			});
 
 			$('#showmenu').click(function(){
+				$('#devicesdiv').css('min-width','calc(100% - 350px)');
 				$('#menu').show();
 				$(this).hide();
 				$('#hidemenu').show();
@@ -578,6 +579,7 @@ if ($_config['mode'] == 'user'){
 			});
 
 			$('#hidemenu').click(function(){
+				$('#devicesdiv').css('min-width','100%');
 				$('#menu').hide();
 				$(this).hide();
 				$('#showmenu').show();
