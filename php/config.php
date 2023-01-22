@@ -62,6 +62,7 @@ $_config['cacheCleanupOnStartup'] = false;
 $_config['cacheCleanupTime'] = 0;
 $_config['forceSingleWindow'] = false;
 $_config['forceMaximizedWindow'] = false;
+$_config['debug'] = true;
 
 //overlay settings from config file
 if (file_exists($dataDir.'/config.json')){

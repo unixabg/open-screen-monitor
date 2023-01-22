@@ -79,7 +79,9 @@ if (isset($_POST['data'])) {
 		touch($clientFolder.'/ping');
 		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
 		//debug
-		file_put_contents($clientFolder.'/debug',$_POST['data']);
+		if ($_config['debug']){
+			file_put_contents($clientFolder.'/debug',$_POST['data']);
+		}
 		//screenshot
 		$screenshot = '';
 		if (isset($data['screenshot'])) {
