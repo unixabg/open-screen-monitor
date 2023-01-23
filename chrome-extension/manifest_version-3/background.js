@@ -90,7 +90,11 @@ function getUserProperties(){
 }
 
 
-
+function getLocalProperties(){
+	chrome.storage.local.get(null).then(data => {
+		chrome.storage.session.set({local:data});
+	});
+}
 
 //setup data variables
 function setupVariables(){
@@ -98,14 +102,28 @@ function setupVariables(){
 	console.log('Setting up variables');
 	chrome.storage.session.get(null).then(data => {
 		if (typeof(data['localSession']) == "undefined") {
-			//since moving to session based storage
-			//clear any local storage of previous extension installs
-			chrome.storage.local.clear();
-			//clear any alarms that might exist
-			//chrome.alarms.clearAll();
-			chrome.storage.session.set({localSession: true});
-			getManagedProperties();
 			console.log('Looks like initial call of setupVariables');
+
+			chrome.storage.session.set({localSession: true});
+
+			//set some final things so not undefined
+			if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
+			if (typeof(data['username']) == "undefined") {chrome.storage.session.set({username: ''});}
+			if (typeof(data['domain']) == "undefined") {chrome.storage.session.set({domain: ''});}
+			if (typeof(data['deviceID']) == "undefined") {chrome.storage.session.set({deviceID: 'non-enterprise-device'});}
+			if (typeof(data['sessionID']) == "undefined") {chrome.storage.session.set({sessionID: Math.floor(Math.random()*100000000)});}
+			if (typeof(data['filtermode']) == "undefined") {chrome.storage.session.set({filtermode: ''});}
+			if (typeof(data['filterlist']) == "undefined") {chrome.storage.session.set({filterlist: []});}
+			if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.session.set({filterviaserver: false});}
+			if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.session.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
+			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: 9000});}
+			if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
+			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: 20000});}
+			if (typeof(data['userAgent']) == "undefined") {chrome.storage.session.set({userAgent: navigator.userAgent});}
+
+			getLocalProperties();
+
+			getManagedProperties();
 
 			//get deviceID
 			if (typeof(chrome["enterprise"]) !== "undefined") {
@@ -119,25 +137,13 @@ function setupVariables(){
 
 			//get user properties
 			getUserProperties();
-
-			//set some final things if still undefined
-			if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
-			if (typeof(data['username']) == "undefined") {chrome.storage.session.set({username: ''});}
-			if (typeof(data['domain']) == "undefined") {chrome.storage.session.set({domain: ''});}
-			if (typeof(data['deviceID']) == "undefined") {chrome.storage.session.set({deviceID: 'non-enterprise-device'});}
-			if (typeof(data['sessionID']) == "undefined") {chrome.storage.session.set({sessionID: Math.floor(Math.random()*100000000)});}
-			if (typeof(data['filtermode']) == "undefined") {chrome.storage.session.set({filtermode: ''});}
-			if (typeof(data['filterlist']) == "undefined") {chrome.storage.session.set({filterlist: []});}
-			if (typeof(data['filterviaserver']) == "undefined") {chrome.storage.session.set({filterviaserver: false});}
-			if (typeof(data['filterresourcetypes']) == "undefined") {chrome.storage.session.set({filterresourcetypes: ["main_frame","sub_frame","xmlhttprequest"]});}
-			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: 9000});}
-			if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
-			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: 20000});}
-			if (typeof(data['manifestVersion']) == "undefined") {chrome.storage.session.set({manifestVersion: chrome.runtime.getManifest().version});}
-			if (typeof(data['userAgent']) == "undefined") {chrome.storage.session.set({userAgent: navigator.userAgent});}
 		} else {
 			console.log('The localSession is set so must be a service worker call for setupVariables');
 		}
+
+		//if the extension updates this won't change unless we set it every time
+		chrome.storage.session.set({manifestVersion: chrome.runtime.getManifest().version});
+
 		ensureAlarms();
 		alarmTick();
 		screenscrapeTick();
@@ -387,6 +393,14 @@ function phoneHome() {
 							case "setData":
 								chrome.storage.session.set({[command["key"]]: command["value"]});
 								break;
+							case "setLocalData":
+								chrome.storage.local.set({[command["key"]]: command["value"]});
+								getLocalProperties();
+								break;
+							case "clearLocalData":
+								chrome.storage.local.clear();
+								getLocalProperties();
+								break;
 							case "sendNotification":
 								chrome.notifications.create("",command["data"]);
 								break;
@@ -419,7 +433,10 @@ function phoneHome() {
 									screenscrapeTick();
 								}
 								break;
-
+							case "reset":
+								console.log('Resetting Extension');
+								chrome.runtime.reload();
+								break;
 						}
 					} catch (e) {console.log(e);}
 				}

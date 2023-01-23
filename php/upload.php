@@ -104,6 +104,13 @@ if (isset($_POST['data'])) {
 			}
 		}
 
+		//not fully fleshed out but here is the basic way to force the client to reset extension
+		//without going into a reset loop
+		//if ($resetClient && !isset($data['local']['reset'])){
+		//	$toReturn['commands'][] = array('action'=>'setLocalData','key'=>'reset','value'=>time());
+		//	$toReturn['commands'][] = array('action'=>'reset');
+		//}
+
 		//tabs
 		if (isset($data['tabs'])) {
 			file_put_contents($clientFolder.'/tabs',json_encode($data['tabs']));
