@@ -229,8 +229,8 @@ if (isset($_POST['filterlistdefaultdeny']) && isset($_POST['filterlistdefaultall
 	$_POST['filterlistdefaultdeny'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultdeny']);
 	$_POST['filterlistdefaultallow'] = preg_replace('/[\x00-\x09\x20\x0B-\x1F\x7F-\xFF]/', '', $_POST['filterlistdefaultallow']);
 	//let us do a second pass to drop empty lines and correctly format
-	$_POST['filterlistdefaultdeny'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny'])));
-	$_POST['filterlistdefaultallow'] = strtolower(trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow'])));
+	$_POST['filterlistdefaultdeny'] = trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultdeny']));
+	$_POST['filterlistdefaultallow'] = trim(preg_replace('/\n+/', "\n", $_POST['filterlistdefaultallow']));
 
 	file_put_contents($labConfigDir.'filtermode',$_POST['filtermode']);
 	file_put_contents($labConfigDir.'filterlist-defaultdeny',$_POST['filterlistdefaultdeny']);
@@ -420,6 +420,7 @@ if ($_config['mode'] == 'user'){
 								if (img.length == 0) {
 									//we may have to delete it from the inactive devices
 									$('#div_'+dev+'_'+sessionID).remove();
+									$('#urls_'+dev+'_'+sessionID).remove();
 									enableDevice(dev,sessionID);
 								}
 								//img.attr("src","?action=getImage&id=" + dev + "&sessionID=" + sessionID + "&time=" + time);
@@ -571,6 +572,7 @@ if ($_config['mode'] == 'user'){
 			});
 
 			$('#showmenu').click(function(){
+				$('#devicesdiv').css('min-width','calc(100% - 350px)');
 				$('#menu').show();
 				$(this).hide();
 				$('#hidemenu').show();
@@ -578,6 +580,7 @@ if ($_config['mode'] == 'user'){
 			});
 
 			$('#hidemenu').click(function(){
+				$('#devicesdiv').css('min-width','100%');
 				$('#menu').hide();
 				$(this).hide();
 				$('#showmenu').show();
