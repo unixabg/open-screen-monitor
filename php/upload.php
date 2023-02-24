@@ -159,11 +159,11 @@ if (isset($_POST['data'])) {
 
 			if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
 				//always allow the new tab page so they can atleast open the browser
-				$filterlist[] = "^https://www.google.com/_/chrome/newtab";
-				$filterlist[] = "^https://ogs.google.com/";
-				$filterlist[] = "^chrome://newtab/";
+				$filterlist[] = "^https\\:\\/\\/www\\.google\\.com\\/\\_\\/chrome\\/newtab";
+				$filterlist[] = "^https\\:\\/\\/ogs\\.google\\.com\\/";
+				$filterlist[] = "^chrome\\:\\/\\/newtab\\/";
 				//always allow the google signin page for google
-				$filterlist[] = "^https://accounts.google.com/";
+				$filterlist[] = "^https\\:\\/\\/accounts\\.google\\.com\\/";
 				//always allow blank loading pages
 				$filterlist[] = "^$";
 			}

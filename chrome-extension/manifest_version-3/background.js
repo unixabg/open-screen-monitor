@@ -40,6 +40,9 @@ function connect() {
 
 //start each service worker with a listener
 chrome.alarms.onAlarm.addListener(function(alarm) {
+	getManagedProperties();
+	getUserProperties();
+
 	//run the events
 	alarmTick();
 	screenscrapeTick();
