@@ -80,7 +80,7 @@ if (isset($_POST['data'])) {
 		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
 		//debug in
 		if ($_config['debug']){
-			file_put_contents($clientFolder.'/debug-in',$_POST['data']);
+			file_put_contents($clientFolder.'/debug-in',json_encode($data,JSON_PRETTY_PRINT));
 		}
 		//screenshot
 		$screenshot = '';
@@ -103,6 +103,13 @@ if (isset($_POST['data'])) {
 				unlink($clientFolder.'/'.$field);
 			}
 		}
+
+		//not fully fleshed out but here is the basic way to force the client to reset extension
+		//without going into a reset loop
+		//if ($resetClient && !isset($data['local']['reset'])){
+		//	$toReturn['commands'][] = array('action'=>'setLocalData','key'=>'reset','value'=>time());
+		//	$toReturn['commands'][] = array('action'=>'reset');
+		//}
 
 		//tabs
 		if (isset($data['tabs'])) {
@@ -152,16 +159,16 @@ if (isset($_POST['data'])) {
 
 			if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
 				//always allow the new tab page so they can atleast open the browser
-				$filterlist[] = "^https://www.google.com/_/chrome/newtab";
-				$filterlist[] = "^https://ogs.google.com/";
-				$filterlist[] = "^chrome://newtab/";
+				$filterlist[] = "^https\\:\\/\\/www\\.google\\.com\\/\\_\\/chrome\\/newtab";
+				$filterlist[] = "^https\\:\\/\\/ogs\\.google\\.com\\/";
+				$filterlist[] = "^chrome\\:\\/\\/newtab\\/";
 				//always allow the google signin page for google
-				$filterlist[] = "^https://accounts.google.com/";
+				$filterlist[] = "^https\\:\\/\\/accounts\\.google\\.com\\/";
 				//always allow blank loading pages
 				$filterlist[] = "^$";
 			}
 
-			if ($data['filterlisttime'] < $filterlisttime) {
+			if (($data['filtermode'] ?? '') != $filtermode || ($data['filterlisttime'] ?? 0) < $filterlisttime) {
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermode','value'=>$filtermode);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlist','value'=>$filterlist);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlisttime','value'=>$filterlisttime);
