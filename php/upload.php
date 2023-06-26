@@ -80,7 +80,7 @@ if (isset($_POST['data'])) {
 		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
 		//debug in
 		if ($_config['debug']){
-			file_put_contents($clientFolder.'/debug-in',$_POST['data']);
+			file_put_contents($clientFolder.'/debug-in',json_encode($data,JSON_PRETTY_PRINT));
 		}
 		//screenshot
 		$screenshot = '';
@@ -168,7 +168,7 @@ if (isset($_POST['data'])) {
 				$filterlist[] = "^$";
 			}
 
-			if ($data['filterlisttime'] < $filterlisttime) {
+			if (($data['filtermode'] ?? '') != $filtermode || ($data['filterlisttime'] ?? 0) < $filterlisttime) {
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermode','value'=>$filtermode);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlist','value'=>$filterlist);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlisttime','value'=>$filterlisttime);

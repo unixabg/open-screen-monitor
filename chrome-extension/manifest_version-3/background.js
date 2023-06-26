@@ -10,32 +10,32 @@
 //the below may not be needed later see https://developer.chrome.com/docs/extensions/mv3/known-issues/#sw-fixed-lifetime
 //see https://stackoverflow.com/a/66618269
 /////////////////
-const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
-findTab();
-chrome.runtime.onConnect.addListener(port => {
-	console.log('onConnect.addListener');
-	if (port.name === 'keepAlive') {
-		setTimeout(() => port.disconnect(), 250e3);
-		port.onDisconnect.addListener(() => findTab());
-	}
-});
-async function findTab(tabs) {
-	console.log('findTab called');
-	if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
-	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
-		try {
-			await chrome.scripting.executeScript({target: {tabId}, func: connect});
-			chrome.tabs.onUpdated.removeListener(onUpdate);
-			return;
-		} catch (e) {}
-	}
-	chrome.tabs.onUpdated.addListener(onUpdate);
-}
-function connect() {
-	console.log('connect called');
-	chrome.runtime.connect({name: 'keepAlive'})
-		.onDisconnect.addListener(connect);
-}
+//const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
+//findTab();
+//chrome.runtime.onConnect.addListener(port => {
+//	console.log('onConnect.addListener');
+//	if (port.name === 'keepAlive') {
+//		setTimeout(() => port.disconnect(), 250e3);
+//		port.onDisconnect.addListener(() => findTab());
+//	}
+//});
+//async function findTab(tabs) {
+//	console.log('findTab called');
+//	if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
+//	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
+//		try {
+//			await chrome.scripting.executeScript({target: {tabId}, func: connect});
+//			chrome.tabs.onUpdated.removeListener(onUpdate);
+//			return;
+//		} catch (e) {}
+//	}
+//	chrome.tabs.onUpdated.addListener(onUpdate);
+//}
+//function connect() {
+//	console.log('connect called');
+//	chrome.runtime.connect({name: 'keepAlive'})
+//		.onDisconnect.addListener(connect);
+//}
 
 
 //start each service worker with a listener
@@ -76,18 +76,11 @@ function getManagedProperties(){
 
 //get properties for user
 function getUserProperties(){
-	chrome.identity.getProfileUserInfo(function(userInfo) {
+	chrome.identity.getProfileUserInfo({accountStatus: 'ANY'},function(userInfo) {
 		var temp = userInfo.email.split("@");
 		if (temp.length == 2) {
 			chrome.storage.session.set({username: temp[0]});
 			chrome.storage.session.set({domain: temp[1]});
-
-			chrome.storage.managed.get(['uploadURL'],function(data) {
-				if (!data['uploadURL']){
-					//try and guess uploadURL based on domain
-					chrome.storage.session.set({uploadURL: "https://osm." + temp[1] + "/"});
-				}
-			});
 		}
 	});
 }
@@ -97,6 +90,19 @@ function getLocalProperties(){
 	chrome.storage.local.get(null).then(data => {
 		chrome.storage.session.set({local:data});
 	});
+}
+
+function getUploadURL(data){
+	//return uploadURL from schema
+	if (data['uploadURL']){return data['uploadURL'];}
+
+	//if you want to hardcode a backup uploadURL replace following line
+	//return "https://OSMUPLOADURL/";
+
+	//all else fails, guess it from the email domain
+	if (data['domain']){return "https://osm." + data['domain'] + "/";}
+
+	return false;
 }
 
 //setup data variables
@@ -110,7 +116,6 @@ function setupVariables(){
 			chrome.storage.session.set({localSession: true});
 
 			//set some final things so not undefined
-			if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
 			if (typeof(data['username']) == "undefined") {chrome.storage.session.set({username: ''});}
 			if (typeof(data['domain']) == "undefined") {chrome.storage.session.set({domain: ''});}
 			if (typeof(data['deviceID']) == "undefined") {chrome.storage.session.set({deviceID: 'non-enterprise-device'});}
@@ -175,8 +180,10 @@ chrome.identity.onSignInChanged.addListener(function(accountinfo, signedin){
 /////////////////
 function filterPage(nextPageDetails) {
 	chrome.storage.session.get(null).then(data => {
+		var uploadURL = getUploadURL(data);
+
 		//any page on the osm server can be skipped
-		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
+		if (nextPageDetails.url.indexOf(uploadURL) == 0){return;}
 
 		//a filter mode must be defined as well as items on the list for the filter to activate
 		//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.type == "main_frame")
@@ -206,7 +213,7 @@ function filterPage(nextPageDetails) {
 
 		//this has to be turned on via the regular syncing mechanism
 		//it defaults to off
-		if (data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
+		if (uploadURL && data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
 			var tempdata = {
 				url:nextPageDetails.url,
 				type:nextPageDetails.type,
@@ -218,7 +225,7 @@ function filterPage(nextPageDetails) {
 
 
 
-			fetch(data.uploadURL+'filter.php',{
+			fetch(uploadURL+'filter.php',{
 				method: 'POST',
 				headers: {
 					"Content-type": "application/x-www-form-urlencoded"
@@ -238,7 +245,7 @@ function filterPage(nextPageDetails) {
 									break;
 								case "BLOCKPAGE":
 									console.log("Blockpaging tab: " + nextPageDetails.url);
-									chrome.tabs.update(nextPageDetails.tabId,{url:data.uploadURL+'block.php?'+command['data']});
+									chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+command['data']});
 									break;
 								case "NOTIFY":
 									console.log("Notification: " + nextPageDetails.url);
@@ -340,18 +347,18 @@ function alarmTick() {
 
 function phoneHome() {
 	chrome.storage.session.get(null, function(data) {
-		if (!data['uploadURL']){
+		var uploadURL = getUploadURL(data);
+		if (!uploadURL){
 			console.log(data);
-			console.log('No uploadURL, no phoneHome');
+			console.log('No uploadURL or domain, no phoneHome');
 			return;
 		}
-		//console.log(data);
 
 		if (data['disableScreenshot']){
 			data['screenshot'] = null;
 		}
 
-		fetch(data.uploadURL+'upload.php',{
+		fetch(uploadURL+'upload.php',{
 			method: 'POST',
 			headers: {
 				"Content-type": "application/x-www-form-urlencoded"
@@ -507,7 +514,16 @@ function screenscrapeTick(){
 							deviceID:data.deviceID,
 							sessionID: data.sessionID
 						};
-						fetch(data.uploadURL+'screenscrape.php',{
+
+
+						var uploadURL = getUploadURL(data);
+						if (!uploadURL){
+							console.log(data);
+							console.log('No uploadURL no screenscrape');
+							return;
+						}
+
+						fetch(uploadURL+'screenscrape.php',{
 							method: 'POST',
 							headers: {
 								"Content-type": "application/x-www-form-urlencoded"
