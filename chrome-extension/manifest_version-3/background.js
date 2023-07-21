@@ -10,32 +10,44 @@
 //the below may not be needed later see https://developer.chrome.com/docs/extensions/mv3/known-issues/#sw-fixed-lifetime
 //see https://stackoverflow.com/a/66618269
 /////////////////
-//const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
-//findTab();
-//chrome.runtime.onConnect.addListener(port => {
-//	console.log('onConnect.addListener');
-//	if (port.name === 'keepAlive') {
-//		setTimeout(() => port.disconnect(), 250e3);
-//		port.onDisconnect.addListener(() => findTab());
-//	}
-//});
-//async function findTab(tabs) {
-//	console.log('findTab called');
-//	if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
-//	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
-//		try {
-//			await chrome.scripting.executeScript({target: {tabId}, func: connect});
-//			chrome.tabs.onUpdated.removeListener(onUpdate);
-//			return;
-//		} catch (e) {}
-//	}
-//	chrome.tabs.onUpdated.addListener(onUpdate);
-//}
-//function connect() {
-//	console.log('connect called');
-//	chrome.runtime.connect({name: 'keepAlive'})
-//		.onDisconnect.addListener(connect);
-//}
+
+//preset the keepWakeWorkaround based on chrome version (can be overwritten by server if need be)
+const keepAliveChromeVersion = 113;
+var cVersion = parseInt(/Chrome\/([0-9]+)/.exec(navigator.userAgent)[1]);
+chrome.storage.session.set({keepAwakeWorkaround: (cVersion <= keepAliveChromeVersion)});
+////only variable names changed and check for keepAwakeWorkaround in session added from stackoverflow link above
+function keepAwakeConnect() {
+	console.log('keepAwakeConnect called');
+	chrome.runtime.connect({name: 'keepAlive'}).onDisconnect.addListener(keepAwakeConnect);
+}
+const keepAwakeOnUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && keepAwakeFindTab([tab]);
+async function keepAwakeFindTab(tabs) {
+	console.log('keepAwakeFindTab called');
+
+	var data = await chrome.storage.session.get(['keepAwakeWorkaround']);
+	if (!data.keepAwakeWorkaround){
+		return;
+	}
+
+	console.log('keepAwakeFindTab running');
+	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
+		try {
+			await chrome.scripting.executeScript({target: {tabId}, func: keepAwakeConnect});
+			chrome.tabs.onUpdated.removeListener(keepAwakeOnUpdate);
+			return;
+		} catch (e) {}
+	}
+	chrome.tabs.onUpdated.addListener(keepAwakeOnUpdate);
+}
+chrome.runtime.onConnect.addListener(port => {
+	console.log('onConnect.addListener');
+	if (port.name === 'keepAlive') {
+		setTimeout(() => port.disconnect(), 250e3);
+		port.onDisconnect.addListener(() => keepAwakeFindTab());
+	}
+});
+keepAwakeFindTab();
+//end keep alive code
 
 
 //start each service worker with a listener
@@ -442,6 +454,9 @@ function phoneHome() {
 									chrome.storage.session.set({screenscrapeTickLast: 0});
 									screenscrapeTick();
 								}
+								break;
+							case "keepAwakeFindTab":
+								keepAwakeFindTab();
 								break;
 							case "reset":
 								console.log('Resetting Extension');
