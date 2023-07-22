@@ -71,7 +71,12 @@ if (isset($_POST['data'])) {
 			}
 		}
 
-		//we now set sessionID in the extension
+		//get the session id
+		$data['sessionID'] = preg_replace("/[^0-9]/","",$data['sessionID']);
+		if ($data['sessionID'] == ''){
+			//fill the session id with something so it doesn't put trash files in random places
+			$data['sessionID'] = hash('sha256',$_SERVER['HTTP_USER_AGENT']);
+		}
 		$clientFolder .= '/'.$data['sessionID'];
 		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
