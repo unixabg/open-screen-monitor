@@ -14,7 +14,7 @@ if (isset($_POST['data'])) {
 	if ($_config['mode'] == 'device' && isset($data['deviceID'])){
 		$clientID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	} elseif ($_config['mode'] == 'user' && isset($data['username']) && isset($data['domain'])) {
-		$clientID = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username'].'_'.$data['domain']);
+		$clientID = preg_replace("/[^a-zA-Z0-9-_]/","",$data['username'].'_'.$data['domain']);
 	}
 
 	if ($clientID == '' && $_config['showUnknownDevices']){
