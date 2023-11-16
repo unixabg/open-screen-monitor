@@ -46,7 +46,7 @@ function checkToken($token) {
 	global $myPermissions;
 
 	$data = @file_get_contents("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=".urlencode($token->id_token));
-	if ( $http_response_header[0] == "HTTP/1.0 200 OK") {
+	if ( substr($http_response_header[0], -7) == " 200 OK") {
 		$data = json_decode($data);
 
 		if ($data->aud == $client_secret->web->client_id && $data->exp > time() && $data->iss == "https://accounts.google.com") {
