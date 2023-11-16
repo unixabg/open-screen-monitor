@@ -1,4 +1,6 @@
 <?php
+namespace OSM;
+
 require('config.php');
 
 //allow custom hooking here

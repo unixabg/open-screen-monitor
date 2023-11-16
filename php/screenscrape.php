@@ -1,4 +1,6 @@
 <?php
+namespace OSM;
+
 require('config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();

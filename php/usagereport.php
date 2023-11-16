@@ -1,4 +1,6 @@
 <?php
+namespace OSM;
+
 session_start();
 require('config.php');
 

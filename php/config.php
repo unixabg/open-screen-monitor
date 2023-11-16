@@ -1,4 +1,8 @@
 <?php
+namespace OSM;
+
+//enable autoloading in the OSM namespace
+require_once(__DIR__.'/components/autoload.php');
 
 $dataDir = '../osm-data';
 

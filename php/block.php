@@ -1,3 +1,6 @@
+<?php
+namespace OSM;
+?>
 <html>
 <h1>This tab has been blocked by your administrator's filter rules via the Open Screen Monitor</h1>
 <h2>URL_Host: <?php echo $_GET['url_host']; ?></h2>
