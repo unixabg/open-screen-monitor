@@ -239,12 +239,12 @@ $crx .= $header; //header
 $crx .= $zip; //zip
 
 //start update xml
-$xml = "<?xml version='1.0' encoding='UTF-8'?>
-<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
-  <app appid='".$id['text']."'>
-    <updatecheck codebase='".$crxURLRoot.$id['text'].".crx' version='".$version."' />
+$xml = '<?xml version="1.0" encoding="UTF-8"?>
+<gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">
+  <app appid="'.$id['text'].'">
+    <updatecheck codebase="'.$crxURLRoot.$id['text'].'.crx" version="'.$version.'" />
   </app>
-</gupdate>";
+</gupdate>';
 
 //save files
 file_put_contents($outputFolder.'/'.$id['text'].'.crx',$crx);
