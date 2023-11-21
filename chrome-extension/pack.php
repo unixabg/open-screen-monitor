@@ -51,22 +51,22 @@ switch($argc){
 
 function convertPEMtoDER($pem){
 	$pipes = [];
-	$process = proc_open('openssl pkey -in - -pubin -outform der',[
+	$process = proc_open('openssl pkey -pubin -outform der',[
 			0 => ["pipe", "r"], //stdin
 			1 => ["pipe", "w"], //stdout
 			2 => ["pipe", "w"], //stderr
 		],$pipes);
 
 	if (is_resource($process)) {
-	    fwrite($pipes[0], $pem);
-	    fclose($pipes[0]);
+		fwrite($pipes[0], $pem);
+		fclose($pipes[0]);
 
-	    $der = stream_get_contents($pipes[1]);
-	    fclose($pipes[1]);
+		$der = stream_get_contents($pipes[1]);
+		fclose($pipes[1]);
 
-	    $return_value = proc_close($process);
+		$return_value = proc_close($process);
 
-	    return $der;
+		return $der;
 	}
 
 	return false;
@@ -81,15 +81,15 @@ function digestAndSign($pem,$data){
 		],$pipes);
 
 	if (is_resource($process)) {
-	    fwrite($pipes[0], $data);
-	    fclose($pipes[0]);
+		fwrite($pipes[0], $data);
+		fclose($pipes[0]);
 
-	    $sig = stream_get_contents($pipes[1]);
-	    fclose($pipes[1]);
+		$sig = stream_get_contents($pipes[1]);
+		fclose($pipes[1]);
 
-	    $return_value = proc_close($process);
+		$return_value = proc_close($process);
 
-	    return $sig;
+		return $sig;
 	}
 
 	return false;
@@ -210,7 +210,6 @@ $zip->close();
 $zip = file_get_contents($outputFolder.'/crx3.zip');
 
 //get private key
-//todo make one if not exists
 $privKey = openssl_pkey_get_private(file_get_contents($outputFolder.'/key.pem'));
 
 //get pub key from priv key

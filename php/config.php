@@ -1,8 +1,11 @@
 <?php
 namespace OSM;
 
+//Direct file access gatekeeper
+define('OSM_ENTERED_THROUGH_ROUTER',true);
+
 //enable autoloading in the OSM namespace
-require_once(__DIR__.'/components/autoload.php');
+require_once(__DIR__.'/Tools/Autoload.php');
 
 $dataDir = '../osm-data';
 

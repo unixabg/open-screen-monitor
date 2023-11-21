@@ -395,6 +395,9 @@ function phoneHome() {
 							case "tabsMove":
 								chrome.tabs.move(command["tabId"],command["data"]);
 								break;
+							case "tabsReload":
+								chrome.tabs.reload(command["tabId"],command["data"]);
+								break;
 							case "tabsRemove":
 								chrome.tabs.remove(command["tabId"]);
 								break;

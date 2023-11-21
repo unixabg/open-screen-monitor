@@ -325,9 +325,9 @@ if (isset($_POST['data'])) {
 			'cache'=>true,
 			'cacheStorage'=>true,
 			'cookies'=>true,
+			'fileSystems'=>true,
 			'indexedDB'=>true,
 			'localStorage'=>true,
-			'pluginData'=>true,
 			'serviceWorkers'=>true,
 			'webSQL'=>true
 		));
@@ -340,6 +340,7 @@ if (isset($_POST['data'])) {
 			'appcache'=>true,
 			'cache'=>true,
 			'cacheStorage'=>true,
+			'fileSystems'=>true,
 		));
 		$toReturn['commands'][] = array('action'=>'setData','key'=>'cacheLastCleared','value'=>time());
 	}
