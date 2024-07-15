@@ -58,3 +58,19 @@
      - Allow
 
 FIXME
+
+### DB Setup
+one option for password gen: cat /proc/sys/kernel/random/uuid
+
+```
+DROP DATABASE IF EXISTS osm;
+CREATE DATABASE osm;
+
+DROP USER IF EXISTS osm@localhost;
+CREATE USER 'osm'@'localhost' IDENTIFIED BY '35e96f8d-9ec9-4a46-8f3b-dc9c438f50ac';
+GRANT ALL PRIVILEGES ON osm.* TO 'osm'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+mysql -h localhost -u osm -p 35e96f8d-9ec9-4a46-8f3b-dc9c438f50ac < setup.sql
+
