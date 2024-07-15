@@ -1,0 +1,66 @@
+/* Estimated Chrome logo colors
+Red: rgb(213,15,37) or Hex #d50f25
+Blue: rgb(51,105,232) or Hex #3369e8
+Green: rgb(0,153,57) or Hex #009939
+Yellow rgb(238,178,17) or Hex #eeb211
+Gray: rgb(102,102,102) or Hex #666666
+*/
+html, body {height: 100%;}
+html, body, div, h1 {margin: 0;padding: 0;border: 0 none;}
+#box {display:flex;flex-direction: column;height:100%;width:100%;}
+#box-top {flex: 0 1 auto;padding-bottom: 5px;border-bottom: 1px solid black;}
+#box-bottom {flex: 1 1 auto;overflow:hidden;display:flex;}
+#menu {flex:0 0 auto;width: 350px;overflow-y:scroll;border-right: 1px solid black;display:none;word-wrap:break-word;}
+#devicesdiv {overflow-y:scroll;overflow-x:hidden;background-color: #C0C0C0;min-width:100%;}
+#inactivedevs {clear:both;padding-top:10px;border-top: 1px solid black;text-align:center;}
+#inactivedevs div {display:inline-block;width: 150px;height:50px;padding:5px;margin: 5px;background-color:black;color:white;border: 4px solid black;text-align:center;}
+#inactivedevs div.hidden {border: 4px solid green !important;}
+#activedevs {text-align:center;}
+#activedevs > div {display:inline-block;margin: 5px;border: 5px solid white;}
+#activedevs div h1 {border-bottom: 1px solid black;background-color:white;cursor:pointer;text-align:center;}
+#menu {padding: 5px;}
+#menu > h3 {text-align:center;}
+div.locked {border: 5px solid red !important;}
+.fullscreen {position:absolute;background-color:black;z-index: 100;margin:0px !important;padding:0px !important;}
+.fullscreen h1 {font-size: 1.38em !important;}
+.fullscreen img {height:95% !important;width:95% !important;}
+#logdialog {display:none;}
+.ui-dialog.logdialog {overflow: auto;min-width: 500px;max-height: 600px;}
+#urls > div {padding: 10px;border-top: 1px dashed black;}
+#urls .title {font-size:1.4em;text-align:center;}
+#urls .buttons {text-align:center;}
+#urls .buttons > * {display:inline-block;padding:5px;font-size:2.5em;}
+.hline {width: 100%;height: 1px;background:#d1e0e0;overflow: hidden;}
+/* ************************ */
+/* table format             */
+table {border-collapse: collapse;border-spacing: 0;border: 1px solid #ddd;}
+th, td {text-align: left;border: 1px solid #ddd;padding: 16px;}
+tr:nth-child(even) {background-color: #f2f2f2;}
+/* ************************ */
+/* Start Fancy radiobuttons */
+.section {padding: 5px;padding-left: 55px;}
+.section input[type="radio"]{display: none;}
+.container {margin-bottom: 10px;}
+.container label {position: relative;}
+/* Base styles for spans */
+.container span::before, .container span::after {content: '';position: absolute;top: 0;bottom: 0;margin: auto;}
+/* Radio buttons */
+.container span.radio:hover {cursor: pointer;}
+.container span.radio::before {left: -52px;width: 45px;height: 25px;background-color: #c0c0c0;border-radius: 50px;}
+.container span.radio::after {left: -49px;width: 17px;height: 17px;border-radius: 10px;background-color: #666666;transition: left .25s, background-color .25s;}
+input[type="radio"]:checked + label span.radio::after {left: -27px;background-color: #3369e8;}
+/* End Fancy radiobuttons */
+/* ********************** */
+/* Tooltip styles */
+.tooltip {position: relative;display: inline-block;}
+.tooltip .tooltiptext {visibility: hidden;width: 120px;background-color: black;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;}
+.tooltip:hover .tooltiptext {visibility: visible;}
+/* Add some things for FontAwsome */
+.svg-inline--fa {font-size: 1.3em;}
+.svg-inline--fa:hover {text-shadow: 1px 1px 1px #ccc;border: 1px solid white;}
+.svg-inline--fa.fa-trash:hover, .svg-inline--fa.fa-times:hover {color: #d50f25;}
+.svg-inline--fa.fa-lock {color: #d50f25;}
+.svg-inline--fa.fa-pencil-alt, .svg-inline--fa.fa-unlock {color: #009939;}
+.svg-inline--fa.fa-cloud {color: #eeb211;}
+.svg-inline--fa.fa-envelope {color: #3369e8;}
+.svg-inline--fa.fa-camera {color: tomato;}
