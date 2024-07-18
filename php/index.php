@@ -184,7 +184,7 @@ if (isset($_GET['logout'])) {
 		foreach ($students as $student){
 			$email = $student['profile']['emailAddress'];
 			$email = str_replace("@","_",$email);
-			$email = preg_replace("/[^a-zA-Z0-9-_\.]/","",$email);
+			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
 			$_SESSION['allowedclients'][$email] = $student['profile']['name']['fullName'];
 		}
 		if (count($_SESSION['allowedclients']) > 0){

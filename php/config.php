@@ -26,7 +26,7 @@ if (!file_exists($dataDir.'/config.json')) {
 //start config
 //Don't modify these values in this script. Use config.json in $dataDir instead.
 //set system wide version for php scripts
-$_config['version']='0.3.0.1';
+$_config['version']='0.3.0.2';
 
 //set the default time chrome will wait between phone home attempst to the upload script
 $_config['uploadRefreshTime']=9000;
@@ -62,6 +62,7 @@ $_config['cacheCleanupOnStartup'] = false;
 $_config['cacheCleanupTime'] = 0;
 $_config['forceSingleWindow'] = false;
 $_config['forceMaximizedWindow'] = false;
+$_config['debug'] = true;
 
 //overlay settings from config file
 if (file_exists($dataDir.'/config.json')){

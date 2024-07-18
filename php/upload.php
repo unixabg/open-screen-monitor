@@ -14,7 +14,7 @@ if (isset($_POST['data'])) {
 	if ($_config['mode'] == 'device' && isset($data['deviceID'])){
 		$clientID = preg_replace("/[^a-z0-9-]/","",$data['deviceID']);
 	} elseif ($_config['mode'] == 'user' && isset($data['username']) && isset($data['domain'])) {
-		$clientID = preg_replace("/[^a-zA-Z0-9-_\.]/","",$data['username'].'_'.$data['domain']);
+		$clientID = preg_replace("/[^a-zA-Z0-9-_]/","",$data['username'].'_'.$data['domain']);
 	}
 
 	if ($clientID == '' && $_config['showUnknownDevices']){
@@ -35,7 +35,7 @@ if (isset($_POST['data'])) {
 				}
 			}
 			fclose($devices);
-		} elseif ($config['mode'] == 'user'){
+		} elseif ($_config['mode'] == 'user'){
 			//we only set config folder if it exists because we are looking for a symlink
 			//to a class config folder for user mode
 			//if the user hasn't been claimed by a class they will use the unknown folder from above
@@ -71,15 +71,22 @@ if (isset($_POST['data'])) {
 			}
 		}
 
-		//we now set sessionID in the extension
+		//get the session id
+		$data['sessionID'] = preg_replace("/[^0-9]/","",$data['sessionID']);
+		if ($data['sessionID'] == ''){
+			//fill the session id with something so it doesn't put trash files in random places
+			$data['sessionID'] = hash('sha256',$_SERVER['HTTP_USER_AGENT']);
+		}
 		$clientFolder .= '/'.$data['sessionID'];
 		if (!file_exists($clientFolder)) mkdir($clientFolder, 0755 , true);
 
 		//ping file for status
 		touch($clientFolder.'/ping');
 		file_put_contents($clientFolder.'/ip',$_SERVER['REMOTE_ADDR']);
-		//debug
-		file_put_contents($clientFolder.'/debug',$_POST['data']);
+		//debug in
+		if ($_config['debug']){
+			file_put_contents($clientFolder.'/debug-in',json_encode($data,JSON_PRETTY_PRINT));
+		}
 		//screenshot
 		$screenshot = '';
 		if (isset($data['screenshot'])) {
@@ -101,6 +108,13 @@ if (isset($_POST['data'])) {
 				unlink($clientFolder.'/'.$field);
 			}
 		}
+
+		//not fully fleshed out but here is the basic way to force the client to reset extension
+		//without going into a reset loop
+		//if ($resetClient && !isset($data['local']['reset'])){
+		//	$toReturn['commands'][] = array('action'=>'setLocalData','key'=>'reset','value'=>time());
+		//	$toReturn['commands'][] = array('action'=>'reset');
+		//}
 
 		//tabs
 		if (isset($data['tabs'])) {
@@ -139,21 +153,27 @@ if (isset($_POST['data'])) {
 			$filterlist = explode("\n",$filterlist);
 
 			foreach ($filterlist as $i=>$value) {
-				if ($value == "") unset($filterlist[$i]);
+				if ($value == "") {
+					unset($filterlist[$i]);
+				} elseif (substr($value,0,6) == 'regex:') {
+					$filterlist[$i] = substr($value,6);
+				} else {
+					$filterlist[$i] = preg_replace('/[^A-Za-z0-9_]/','\\\\$0',$value);
+				}
 			}
 
 			if ($filtermode == 'defaultdeny' && count($filterlist) > 0) {
 				//always allow the new tab page so they can atleast open the browser
-				$filterlist[] = "^https://www.google.com/_/chrome/newtab";
-				$filterlist[] = "^https://ogs.google.com/";
-				$filterlist[] = "^chrome://newtab/";
+				$filterlist[] = "^https\\:\\/\\/www\\.google\\.com\\/\\_\\/chrome\\/newtab";
+				$filterlist[] = "^https\\:\\/\\/ogs\\.google\\.com\\/";
+				$filterlist[] = "^chrome\\:\\/\\/newtab\\/";
 				//always allow the google signin page for google
-				$filterlist[] = "^https://accounts.google.com/";
+				$filterlist[] = "^https\\:\\/\\/accounts\\.google\\.com\\/";
 				//always allow blank loading pages
 				$filterlist[] = "^$";
 			}
 
-			if ($data['filterlisttime'] < $filterlisttime) {
+			if (($data['filtermode'] ?? '') != $filtermode || ($data['filterlisttime'] ?? 0) < $filterlisttime) {
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filtermode','value'=>$filtermode);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlist','value'=>$filterlist);
 				$toReturn['commands'][] = array('action'=>'setData','key'=>'filterlisttime','value'=>$filterlisttime);
@@ -164,7 +184,6 @@ if (isset($_POST['data'])) {
 					$foundMatch = false;
 					//test each tab against the filterlist
 					foreach ($filterlist as $i=>$value) {
-						$value = str_replace("/","\\/",$value);
 						$foundMatch = preg_match("/$value/i", $tab['url']);
 						if ($foundMatch) {
 							break;
@@ -328,6 +347,12 @@ if (isset($_POST['data'])) {
 //make sure to set restrictive permissions on this file
 if (file_exists($dataDir.'/custom-upload-append.php'))
 	include($dataDir.'/custom-upload-append.php');
+
+//debug out
+if ($_config['debug'] && isset($clientFolder) && $clientFolder != ''){
+	file_put_contents($clientFolder.'/debug-out',json_encode($toReturn,JSON_PRETTY_PRINT));
+}
+
 
 //send it back
 header('Content-Type: application/json');

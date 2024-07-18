@@ -10,36 +10,51 @@
 //the below may not be needed later see https://developer.chrome.com/docs/extensions/mv3/known-issues/#sw-fixed-lifetime
 //see https://stackoverflow.com/a/66618269
 /////////////////
-const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
-findTab();
+
+//preset the keepWakeWorkaround based on chrome version (can be overwritten by server if need be)
+const keepAliveChromeVersion = 113;
+var cVersion = parseInt(/Chrome\/([0-9]+)/.exec(navigator.userAgent)[1]);
+chrome.storage.session.set({keepAwakeWorkaround: (cVersion <= keepAliveChromeVersion)});
+////only variable names changed and check for keepAwakeWorkaround in session added from stackoverflow link above
+function keepAwakeConnect() {
+	console.log('keepAwakeConnect called');
+	chrome.runtime.connect({name: 'keepAlive'}).onDisconnect.addListener(keepAwakeConnect);
+}
+const keepAwakeOnUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && keepAwakeFindTab([tab]);
+async function keepAwakeFindTab(tabs) {
+	console.log('keepAwakeFindTab called');
+
+	var data = await chrome.storage.session.get(['keepAwakeWorkaround']);
+	if (!data.keepAwakeWorkaround){
+		return;
+	}
+
+	console.log('keepAwakeFindTab running');
+	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
+		try {
+			await chrome.scripting.executeScript({target: {tabId}, func: keepAwakeConnect});
+			chrome.tabs.onUpdated.removeListener(keepAwakeOnUpdate);
+			return;
+		} catch (e) {}
+	}
+	chrome.tabs.onUpdated.addListener(keepAwakeOnUpdate);
+}
 chrome.runtime.onConnect.addListener(port => {
 	console.log('onConnect.addListener');
 	if (port.name === 'keepAlive') {
 		setTimeout(() => port.disconnect(), 250e3);
-		port.onDisconnect.addListener(() => findTab());
+		port.onDisconnect.addListener(() => keepAwakeFindTab());
 	}
 });
-async function findTab(tabs) {
-	console.log('findTab called');
-	if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
-	for (const {id: tabId} of tabs || await chrome.tabs.query({url: '*://*/*'})) {
-		try {
-			await chrome.scripting.executeScript({target: {tabId}, func: connect});
-			chrome.tabs.onUpdated.removeListener(onUpdate);
-			return;
-		} catch (e) {}
-	}
-	chrome.tabs.onUpdated.addListener(onUpdate);
-}
-function connect() {
-	console.log('connect called');
-	chrome.runtime.connect({name: 'keepAlive'})
-		.onDisconnect.addListener(connect);
-}
+keepAwakeFindTab();
+//end keep alive code
 
 
 //start each service worker with a listener
 chrome.alarms.onAlarm.addListener(function(alarm) {
+	getManagedProperties();
+	getUserProperties();
+
 	//run the events
 	alarmTick();
 	screenscrapeTick();
@@ -71,49 +86,48 @@ function getManagedProperties(){
 	});
 }
 
+//get properties for user
+function getUserProperties(){
+	chrome.identity.getProfileUserInfo({accountStatus: 'ANY'},function(userInfo) {
+		var temp = userInfo.email.split("@");
+		if (temp.length == 2) {
+			chrome.storage.session.set({username: temp[0]});
+			chrome.storage.session.set({domain: temp[1]});
+		}
+	});
+}
+
+
+function getLocalProperties(){
+	chrome.storage.local.get(null).then(data => {
+		chrome.storage.session.set({local:data});
+	});
+}
+
+function getUploadURL(data){
+	//return uploadURL from schema
+	if (data['uploadURL']){return data['uploadURL'];}
+
+	//if you want to hardcode a backup uploadURL replace following line
+	//return "https://OSMUPLOADURL/";
+
+	//all else fails, guess it from the email domain
+	if (data['domain']){return "https://osm." + data['domain'] + "/";}
+
+	return false;
+}
+
 //setup data variables
 function setupVariables(){
 	//sanity check for variabl stuff
 	console.log('Setting up variables');
 	chrome.storage.session.get(null).then(data => {
 		if (typeof(data['localSession']) == "undefined") {
-			//since moving to session based storage
-			//clear any local storage of previous extension installs
-			chrome.storage.local.clear();
-			//clear any alarms that might exist
-			//chrome.alarms.clearAll();
-			chrome.storage.session.set({localSession: true});
-			getManagedProperties();
 			console.log('Looks like initial call of setupVariables');
 
-			//get deviceID
-			if (typeof(chrome["enterprise"]) !== "undefined") {
-				chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
-					chrome.storage.session.set({deviceID: tempDevID});
-					console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
-				});
-			} else {
-				console.log("Info: not a managed device.");
-			}
+			chrome.storage.session.set({localSession: true});
 
-			//get username
-			chrome.identity.getProfileUserInfo(function(userInfo) {
-				var temp = userInfo.email.split("@");
-				if (temp.length == 2) {
-					chrome.storage.session.set({username: temp[0]});
-					chrome.storage.session.set({domain: temp[1]});
-
-					chrome.storage.managed.get(['uploadURL'],function(data) {
-						if (!data['uploadURL']){
-							//try and guess uploadURL based on domain
-							chrome.storage.session.set({uploadURL: "https://osm." + temp[1] + "/"});
-						}
-					});
-				}
-			});
-
-			//set some final things if still undefined
-			if (typeof(data['uploadURL']) == "undefined") {chrome.storage.session.set({uploadURL: ''});}
+			//set some final things so not undefined
 			if (typeof(data['username']) == "undefined") {chrome.storage.session.set({username: ''});}
 			if (typeof(data['domain']) == "undefined") {chrome.storage.session.set({domain: ''});}
 			if (typeof(data['deviceID']) == "undefined") {chrome.storage.session.set({deviceID: 'non-enterprise-device'});}
@@ -125,11 +139,31 @@ function setupVariables(){
 			if (typeof(data['refreshTime']) == "undefined") {chrome.storage.session.set({refreshTime: 9000});}
 			if (typeof(data['screenscrape']) == "undefined") {chrome.storage.session.set({screenscrape: false});}
 			if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: 20000});}
-			if (typeof(data['manifestVersion']) == "undefined") {chrome.storage.session.set({manifestVersion: chrome.runtime.getManifest().version});}
 			if (typeof(data['userAgent']) == "undefined") {chrome.storage.session.set({userAgent: navigator.userAgent});}
+
+			getLocalProperties();
+
+			getManagedProperties();
+
+			//get deviceID
+			if (typeof(chrome["enterprise"]) !== "undefined") {
+				chrome.enterprise.deviceAttributes.getDirectoryDeviceId(function(tempDevID) {
+					chrome.storage.session.set({deviceID: tempDevID});
+					console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+				});
+			} else {
+				console.log("Info: not a managed device.");
+			}
+
+			//get user properties
+			getUserProperties();
 		} else {
 			console.log('The localSession is set so must be a service worker call for setupVariables');
 		}
+
+		//if the extension updates this won't change unless we set it every time
+		chrome.storage.session.set({manifestVersion: chrome.runtime.getManifest().version});
+
 		ensureAlarms();
 		alarmTick();
 		screenscrapeTick();
@@ -146,6 +180,10 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 		getManagedProperties();
 	}
 });
+//listen for future changes
+chrome.identity.onSignInChanged.addListener(function(accountinfo, signedin){
+	getUserProperties();
+});
 
 
 
@@ -154,8 +192,10 @@ chrome.storage.onChanged.addListener(function(changes,namespace){
 /////////////////
 function filterPage(nextPageDetails) {
 	chrome.storage.session.get(null).then(data => {
+		var uploadURL = getUploadURL(data);
+
 		//any page on the osm server can be skipped
-		if (nextPageDetails.url.indexOf(data.uploadURL) == 0){return;}
+		if (nextPageDetails.url.indexOf(uploadURL) == 0){return;}
 
 		//a filter mode must be defined as well as items on the list for the filter to activate
 		//we also only filter on the tab url not any internal frames which will also be sent to this function (nextPageDetails.type == "main_frame")
@@ -185,7 +225,7 @@ function filterPage(nextPageDetails) {
 
 		//this has to be turned on via the regular syncing mechanism
 		//it defaults to off
-		if (data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
+		if (uploadURL && data.filterviaserver && data.filterresourcetypes.includes(nextPageDetails.type)){
 			var tempdata = {
 				url:nextPageDetails.url,
 				type:nextPageDetails.type,
@@ -197,7 +237,7 @@ function filterPage(nextPageDetails) {
 
 
 
-			fetch(data.uploadURL+'filter.php',{
+			fetch(uploadURL+'filter.php',{
 				method: 'POST',
 				headers: {
 					"Content-type": "application/x-www-form-urlencoded"
@@ -217,7 +257,7 @@ function filterPage(nextPageDetails) {
 									break;
 								case "BLOCKPAGE":
 									console.log("Blockpaging tab: " + nextPageDetails.url);
-									chrome.tabs.update(nextPageDetails.tabId,{url:data.uploadURL+'block.php?'+command['data']});
+									chrome.tabs.update(nextPageDetails.tabId,{url:uploadURL+'block.php?'+command['data']});
 									break;
 								case "NOTIFY":
 									console.log("Notification: " + nextPageDetails.url);
@@ -319,18 +359,18 @@ function alarmTick() {
 
 function phoneHome() {
 	chrome.storage.session.get(null, function(data) {
-		if (!data['uploadURL']){
+		var uploadURL = getUploadURL(data);
+		if (!uploadURL){
 			console.log(data);
-			console.log('No uploadURL, no phoneHome');
+			console.log('No uploadURL or domain, no phoneHome');
 			return;
 		}
-		//console.log(data);
 
 		if (data['disableScreenshot']){
 			data['screenshot'] = null;
 		}
 
-		fetch(data.uploadURL+'upload.php',{
+		fetch(uploadURL+'upload.php',{
 			method: 'POST',
 			headers: {
 				"Content-type": "application/x-www-form-urlencoded"
@@ -375,6 +415,14 @@ function phoneHome() {
 							case "setData":
 								chrome.storage.session.set({[command["key"]]: command["value"]});
 								break;
+							case "setLocalData":
+								chrome.storage.local.set({[command["key"]]: command["value"]});
+								getLocalProperties();
+								break;
+							case "clearLocalData":
+								chrome.storage.local.clear();
+								getLocalProperties();
+								break;
 							case "sendNotification":
 								chrome.notifications.create("",command["data"]);
 								break;
@@ -407,7 +455,13 @@ function phoneHome() {
 									screenscrapeTick();
 								}
 								break;
-
+							case "keepAwakeFindTab":
+								keepAwakeFindTab();
+								break;
+							case "reset":
+								console.log('Resetting Extension');
+								chrome.runtime.reload();
+								break;
 						}
 					} catch (e) {console.log(e);}
 				}
@@ -475,7 +529,16 @@ function screenscrapeTick(){
 							deviceID:data.deviceID,
 							sessionID: data.sessionID
 						};
-						fetch(data.uploadURL+'screenscrape.php',{
+
+
+						var uploadURL = getUploadURL(data);
+						if (!uploadURL){
+							console.log(data);
+							console.log('No uploadURL no screenscrape');
+							return;
+						}
+
+						fetch(uploadURL+'screenscrape.php',{
 							method: 'POST',
 							headers: {
 								"Content-type": "application/x-www-form-urlencoded"
