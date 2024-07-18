@@ -1,6 +1,8 @@
 <?php
+namespace OSM;
+die();
 session_start();
-require('config.php');
+require_once('../config.php');
 
 //Authenticate here
 if ( !$_SESSION['admin'] || !isset($_SESSION['validuntil']) || $_SESSION['validuntil'] < time()){
@@ -27,7 +29,7 @@ set_time_limit(0);
 	</style>
 </head>
 <body>
-<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".$_config['version']."</div>"; ?>
+<h1 style="display:inline;">Open Screen Monitor |</h1> <a href="index.php?">Home</a> <?php if (isset($_SESSION['token'])){?>| <a href="index.php?logout">Logout</a><?php } echo "<div style=\"display:inline; float:right; padding-top:5px; padding-right:10px;\">Version ".Tools\Config::get('version')."</div>"; ?>
 <hr />
 
 <form method="get">Date: <input type="text" name="date" placeholder="YYYYMMDD"/> <input type="submit" /></form>

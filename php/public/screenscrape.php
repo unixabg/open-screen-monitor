@@ -1,5 +1,7 @@
 <?php
-require('config.php');
+namespace OSM;
+die();
+require_once('../config.php');
 
 $data = isset($_POST['data']) ? json_decode($_POST['data'],true) : array();
 if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && isset($data['domain']) && isset($data['deviceID']) && isset($data['url'])){
@@ -25,7 +27,7 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 			$line = rtrim($line);
 			$line = explode("\t",$line);
 
-			$actionType = $_config['filterviaserverShowBlockPage'] ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
+			$actionType = Tools\Config::get('filterviaserverShowBlockPage') ? 'BLOCKPAGE' : 'BLOCKNOTIFY';
 			$word = '';
 			$count = 1;
 			switch(count($line)){
@@ -68,16 +70,15 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 				}
 
 				//log it
-				$logentry = "KEYWORDBLOCK\t".date('YmdHis',time())."\t".$word."\t".$data['url']."\n";
-				$logDir .= date('Ymd')."/";
-				if (!file_exists($logDir)) mkdir($logDir,0755,true);
-				$logDir .= $data['username']."_".$data['domain']."/";
-				if (!file_exists($logDir)) mkdir($logDir,0755,true);
-				$logDir .= $data['deviceID']."/";
-				if (!file_exists($logDir)) mkdir($logDir,0755,true);
-				$logFile = $logDir.str_replace(".",'-',$_SERVER['REMOTE_ADDR']).".tsv";
-				if (!file_exists($logFile)) touch($logFile);
-				file_put_contents($logFile, $logentry, FILE_APPEND | LOCK_EX);
+				Tools\DB::insert('tbl_filter_log',[
+					'timestamp' => date('Y-m-d H:i:s'),
+					'ip' => $_SERVER['REMOTE_ADDR'],
+					'username' => $data['username'].'@'.$data['domain'],
+					'deviceid' => $data['deviceID'],
+					'action' => 'KEYWORDBLOCK',
+					'type' => $word,
+					'url' => $data['url'],
+				]);
 
 				break;
 			}
@@ -92,7 +93,7 @@ if (isset($data['text']) && $data['text'] != '' && isset($data['username']) && i
 			$line = rtrim($line);
 			$line = explode("\t",$line);
 
-			$types = $_config['filterviaserverDefaultTriggerTypes'];
+			$types = Tools\Config::get('filterviaserverDefaultTriggerTypes');
 			$word = '';
 			$email = '';
 			switch(count($line)){
