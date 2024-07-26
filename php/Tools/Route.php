@@ -8,7 +8,8 @@ class Route {
 	public $leftHeader = '';
 
 	public function urlRoot(){
-		return 'https://'.$_SERVER['HTTP_HOST'].'/';
+		$https = ($_SERVER['HTTPS'] ?? '') != '';
+		return ($https ? 'https' : 'http').'://'.$_SERVER['HTTP_HOST'].'/';
 	}
 
 	public function requireLogin($redirect = true){
