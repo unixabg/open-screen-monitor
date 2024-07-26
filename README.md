@@ -59,18 +59,37 @@
 
 FIXME
 
-### DB Setup
-one option for password gen: cat /proc/sys/kernel/random/uuid
+### Example Setup (tested in debian bookworm systemd-nspawn container as root)
+git clone https://github.com/acoursen/open-screen-monitor.git --branch next /var/www/osm/
 
-```
+#install dependencies
+apt -y install nginx php8.2-fpm php8.2-xml php8.2-curl php8.2-odbc php8.2-mysql php8.2-zip mariadb-server git
+
+#configure nginx
+rm -r /etc/nginx/sites-enabled/default 
+cp /var/www/osm/sample_config/nginx-site /etc/nginx/sites-enabled/osm
+service nginx restart
+
+#setup osm-dir
+mkdir /var/www/osm-data
+chown www-data:www-data /var/www/osm-data
+
+#add client secret from google
+nano /var/www/osm-data/client_secret.json
+
+#setup db
+DBPASS=`cat /proc/sys/kernel/random/uuid`
+
+mysql << EOL
 DROP DATABASE IF EXISTS osm;
 CREATE DATABASE osm;
 
 DROP USER IF EXISTS osm@localhost;
-CREATE USER 'osm'@'localhost' IDENTIFIED BY '35e96f8d-9ec9-4a46-8f3b-dc9c438f50ac';
+CREATE USER 'osm'@'localhost' IDENTIFIED BY '${DBPASS}';
 GRANT ALL PRIVILEGES ON osm.* TO 'osm'@'localhost';
 FLUSH PRIVILEGES;
-```
+EOL
 
-mysql -h localhost -u osm -p 35e96f8d-9ec9-4a46-8f3b-dc9c438f50ac < setup.sql
+mysql -h localhost -u osm -p${DBPASS} osm < /var/www/osm/sample_config/setup.sql
 
+echo "{\"hostname\":\"localhost\",\"user\":\"osm\",\"password\":\"${DBPASS}\",\"dbname\":\"osm\"}" > /var/www/osm-data/db.json
