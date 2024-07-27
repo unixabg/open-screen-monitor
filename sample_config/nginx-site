@@ -32,6 +32,7 @@ server {
 	location ~ \.php$ {
 		include snippets/fastcgi-php.conf;
 		fastcgi_param OSM_DATA_DIR "/var/www/osm-data/";
+		#fastcgi_param OSM_SHOW_ERRORS "true";
 		fastcgi_param PHP_VALUE "post_max_size=256M;\nupload_max_filesize=256M;\nmax_execution_time=300;";
 		fastcgi_pass unix:/run/php/php8.2-fpm.sock;
 		fastcgi_read_timeout 300;

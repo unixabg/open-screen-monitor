@@ -58,7 +58,7 @@ class OneRoster {
 	private static function getConfig(){
 		$file = $GLOBALS['dataDir'].'/oneroster.json';
 		if (!file_exists($file)){
-			throw new Exception('OneRoster File missing');
+			throw new \Exception('OneRoster File missing');
 		}
 		$file = file_get_contents($file);
 		$file = json_decode($file,true);

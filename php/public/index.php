@@ -52,9 +52,17 @@ if (!isset($_GET['route'])){
 //fall back to routes
 $route = 'OSM\\Route\\'.($_GET['route'] ?? 'Index');
 
-if (class_exists($route)){
-	$route = new $route();
-	$route->render();
-} else {
-	die('Invalid Route: '.htmlentities($route));
+try {
+	if (class_exists($route)){
+		$route = new $route();
+		$route->render();
+	} else {
+		die('Invalid Route: '.htmlentities($route));
+	}
+} catch (\Throwable $e){
+	if ($_SERVER['OSM_SHOW_ERRORS'] ?? false){
+		die('<h1>An Error Occured</h1><pre>'.htmlentities(print_r($e,true)).'</pre>');
+	} else {
+		die('<h1>An Error Occured</h1><pre>'.htmlentities($e->getMessage()).'</pre>');
+	}
 }
