@@ -8,8 +8,12 @@ server {
 	#
 	#listen 443 ssl default_server;
 	#listen [::]:443 ssl default_server;
-	#ssl_certificate /path/to/server.cer;
-	#ssl_certificate_key /path/to/server.key;
+	#ssl_certificate /var/www/cert/server.cer;
+	#ssl_certificate_key /var/www/cert/server.key;
+	#
+	# you can generate a self signed cert this way
+	#mkdir /var/www/cert
+	#openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout /var/www/cert/server.key -out /var/www/cert/server.cer -subj "/CN=osm.example.com" -addext "subjectAltName=DNS:osm.example.com"
 
 	root /var/www/osm/php/public;
 
