@@ -156,20 +156,20 @@ class API extends \OSM\Tools\Route {
 		}
 
 		if ($action == 'takeOverClass'){
-			//if $groupID ....
 			if (!isset($_SESSION['groups'][$groupID])){
 				http_response_code(400);
 				die('Invalid Request: Group Access Denied');
 			}
 
 			$groupType = $_SESSION['groups'][$groupID]['type'] ?? 'unknowntype';
-			if ($groupType != 'user'){
-				http_response_code(400);
-				die('Invalid Request: Not User Group');
-			}
-
 			$clients = $_SESSION['groups'][$groupID]['clients'] ?? [];
 			foreach($clients as $clientID => $name){
+				if ($groupType == 'user'){
+					//set default for new sessions by user
+					\OSM\Tools\TempDB::set('groupID-userDefault/'.bin2hex($clientID), $groupID, \OSM\Tools\Config::get('userGroupTimeout'));
+				}
+
+				//take over current sessions
 				$scanRoot = 'ping-'.$groupType.'/'.bin2hex($clientID).'/';
 				$rows = \OSM\Tools\TempDB::scan($scanRoot.'*');
 				foreach($rows as $key => $empty){
