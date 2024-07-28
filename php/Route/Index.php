@@ -108,7 +108,7 @@ class Index extends \OSM\Tools\Route {
 					if (\OSM\Tools\Config::get('enableOneRoster')) {
 						echo '<li class="list-group-item"><a href="/?route=Admin\Synconeroster" >Sync One Roster</a></li>';
 					}
-					echo '<li class="list-group-item"><a href="/usagereport.php" >Usage Report</a></li>';
+					echo '<li class="list-group-item"><a href="/?route=Admin\Usagereport" >Usage Report</a></li>';
 					echo '<li class="list-group-item"><a href="/?route=Monitor\Filterlog">View Browsing History</a></li>';
 					if (\OSM\Tools\Config::get('showNonEnterpriseDevices')){
 						echo '<li class="list-group-item"><a href="/?non-enterprise-device">Non Enterprise Devices</a></li>';
