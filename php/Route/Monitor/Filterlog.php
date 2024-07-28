@@ -60,42 +60,14 @@ class Filterlog extends \OSM\Tools\Route {
 		';
 
 
-		echo '<table style="width:100%" class="noprint">';
-		echo '<tbody>';
-		echo '<tr><td>';
-		echo '<form method="post" class="searchForm">';
-		echo 'Date:<br /><input type="date" name="date" value="'.htmlentities($date).'" />';
-		echo '<br />URL Filter:<br /><input type="text" name="urlfilter" value="'.htmlentities($urlfilter).'" />';
-		echo '<br />Action:<br /><select name="action">';
-			foreach($actions as $key=>$value){
-				echo '<option '.($action == $key?'selected="selected"':'').' value="'.$key.'">'.$value.'</option>';
-			}
-			echo '</select>';
-		echo '<br />Username:<br /><input type="text" name="username" value="'.htmlentities($username).'" />';
-		echo '<br />Device ID:<br /><input type="text" name="deviceid" value="'.htmlentities($deviceid).'" />';
-		echo '<br />Device:<br /><select name="device">';
-			echo '<option></option>';
-			foreach($deviceNames as $deviceid => $nicename){
-				if (!$_SESSION['admin'] && !in_array($row['deviceid'], $_SESSION['allowedclients'])){continue;}
-				echo '<option value="'.htmlentities($deviceid).'" '.($device == $deviceid ? 'selected' : '').'>'.htmlentities($nicename).'</option>';
-			}
-			echo '</select>';
 
-		echo '<br /><input type="checkbox" name="showadvanced" value="1" '.(isset($_POST['showadvanced'])?'checked="checked"':'').' />Show Advanced';
-		if (isset($_POST['showadvanced'])) {
-			echo '<br />Type:<br /><input type="text" name="type" value="'.htmlentities($type).'" />';
-			echo '<br />Initiator:<br /><input type="text" name="initiator" value="'.htmlentities($initiator).'" />';
-		}
-		echo '<br /><input type="submit" name="search" value="Search" />';
-		echo '</form>';
-		echo '</td>';
-		echo '<td><div id="reports"><h3>Report Summary</h3></div>';
-		echo '<td><div id="reportsurls"><h3>Sites</h3></div></td>';
-		echo '</tr></td>';
-		echo '</tbody>';
-		echo '</table>';
+
 
 		//only show results if something was searched
+		$results = '';
+		$stats = ['TOTAL' => 0];
+		$domains = [];
+		$reportSummary = [];
 		if (isset($_POST['search'])){
 			$where = [];
 			$bindings = [];
@@ -130,6 +102,10 @@ class Filterlog extends \OSM\Tools\Route {
 				$bindings[':initiator'] = $initiator;
 			}
 
+			if (!isset($_POST['showadvanced'])){
+				$where[] = 'type = "main_frame"';
+			}
+
 			if (!$_SESSION['admin']){
 				$subwhere = [];
 				foreach(array_keys($_SESSION['allowedclients']) as $i => $clientid){
@@ -150,26 +126,94 @@ class Filterlog extends \OSM\Tools\Route {
 
 			$where = implode(' AND ',$where);
 			$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc']);
-			echo '<table class="w3-table-all results"><tbody>';
+			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
-				echo '<tr><td>';
-				echo '<b>Action:</b> '.$row['action'].'<br />';
-				echo '<b>Date:</b> '.$row['date'].'<br />';
-				echo '<b>Time:</b> '.$row['time'].'<br />';
-				echo '<b>User:</b> '.htmlentities($row['username']).'<br />';
-				echo '<b>Device:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
+				$results .= '<tr><td>';
+				$results .= '<b>Action:</b> '.$row['action'].'<br />';
+				$results .= '<b>Date:</b> '.$row['date'].'<br />';
+				$results .= '<b>Time:</b> '.$row['time'].'<br />';
+				$results .= '<b>User:</b> '.htmlentities($row['username']).'<br />';
+				$results .= '<b>Device:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
 				if (isset($_POST['showadvanced'])) {
-					echo '<br /><b>IP:</b> '.$row['ip'];
+					$results .= '<br /><b>IP:</b> '.$row['ip'];
 					if ($row['action'] == 'KEYWORDBLOCK') {
-						echo '<br /><b>Key Word:</b> '.$row['type'];
+						$results .= '<br /><b>Key Word:</b> '.$row['type'];
 					} else {
-						echo '<br /><b>Type:</b> '.$row['type'];
+						$results .= '<br /><b>Type:</b> '.$row['type'];
 					}
-					echo '<br /><b>Initiator:</b> '.$row['initiator'];
+					$results .= '<br /><b>Initiator:</b> '.$row['initiator'];
 				}
-				echo '</td><td>'.htmlentities($row['url']).'</td></tr>';
+				$results .= '</td><td>'.htmlentities($row['url']).'</td></tr>';
+
+				$stats['TOTAL']++;
+				if (!isset($stats[ $row['action'] ])){
+					$stats[ $row['action'] ] = 0;
+				}
+				$stats[ $row['action'] ]++;
+
+
+
+				$url = parse_url($row['url']);
+				$domain = $url['host'] ?? false;
+				if ($domain){
+					if (!in_array($domain,$domains)){
+						$domains[] = $domain;
+					}
+				}
 			}
-			echo '</tbody></table>';
+			$results .= '</tbody></table>';
 		}
+
+
+
+
+		echo '<table style="width:100%" class="noprint">';
+		echo '<tbody>';
+		echo '<tr><td>';
+		echo '<form method="post" class="searchForm">';
+		echo 'Date:<br /><input type="date" name="date" value="'.htmlentities($date).'" />';
+		echo '<br />URL Filter:<br /><input type="text" name="urlfilter" value="'.htmlentities($urlfilter).'" />';
+		echo '<br />Action:<br /><select name="action">';
+			foreach($actions as $key=>$value){
+				echo '<option '.($action == $key?'selected="selected"':'').' value="'.$key.'">'.$value.'</option>';
+			}
+			echo '</select>';
+		echo '<br />Username:<br /><input type="text" name="username" value="'.htmlentities($username).'" />';
+		echo '<br />Device ID:<br /><input type="text" name="deviceid" value="'.htmlentities($deviceid).'" />';
+		echo '<br />Device:<br /><select name="device">';
+			echo '<option></option>';
+			foreach($deviceNames as $deviceid => $nicename){
+				if (!$_SESSION['admin'] && !in_array($row['deviceid'], $_SESSION['allowedclients'])){continue;}
+				echo '<option value="'.htmlentities($deviceid).'" '.($device == $deviceid ? 'selected' : '').'>'.htmlentities($nicename).'</option>';
+			}
+			echo '</select>';
+
+		echo '<br /><input type="checkbox" name="showadvanced" value="1" '.(isset($_POST['showadvanced'])?'checked="checked"':'').' />Show Advanced';
+		if (isset($_POST['showadvanced'])) {
+			echo '<br />Type:<br /><input type="text" name="type" value="'.htmlentities($type).'" />';
+			echo '<br />Initiator:<br /><input type="text" name="initiator" value="'.htmlentities($initiator).'" />';
+		}
+		echo '<br /><input type="submit" name="search" value="Search" />';
+		echo '</form>';
+		echo '</td>';
+		echo '<td><div id="reports">';
+			echo '<h3>Report Summary</h3>';
+			foreach($stats as $stat => $count){
+				echo '<br /><b>'.htmlentities($stat).':</b> '.$count;
+			}
+		echo '</div>';
+		echo '<td><div id="reportsurls">';
+			echo '<h3>Sites</h3>';
+			echo '<ul>';
+			sort($domains);
+			foreach($domains as $domain){
+				echo '<li>'.htmlentities($domain).'</li>';
+			}
+			echo '</ul>';
+		echo '</div></td>';
+		echo '</tr></td>';
+		echo '</tbody>';
+		echo '</table>';
+		echo $results;
 	}
 }
