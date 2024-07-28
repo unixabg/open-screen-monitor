@@ -44,7 +44,9 @@ class Google {
 	}
 
 	public static function checkToken($token) {
-		$data = @file_get_contents('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.urlencode($token->id_token));
+		$data = file_get_contents('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.urlencode($token->id_token),false,stream_context_create([
+			'http' => ['ignore_errors' => true],
+		]));
 		if ( substr($http_response_header[0], -7) == ' 200 OK') {
 			$data = json_decode($data);
 
