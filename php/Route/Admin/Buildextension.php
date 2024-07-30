@@ -124,7 +124,7 @@ class Buildextension extends \OSM\Tools\Route {
 			case 'VARINT':
 				return $this->varint($id << 3 | 0).$this->varint($value);
 			default:
-				throw new Exception('Invalid PBMessage Type');
+				throw new \Exception('Invalid PBMessage Type');
 		}
 	}
 

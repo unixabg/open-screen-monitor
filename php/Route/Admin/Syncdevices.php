@@ -18,27 +18,31 @@ class Syncdevices extends \OSM\Tools\Route {
 		//https://developers.google.com/admin-sdk/directory/v1/reference/chromeosdevices#resource
 		$url = 'https://www.googleapis.com/admin/directory/v1/customer/my_customer/devices/chromeos?projection=full&maxResults=100';
 		$data = file_get_contents($url, false, $context);
+		$devices = [];
 		if ($data !== false) {
-			$data = json_decode($data,true);
-			$devices = $data['chromeosdevices'];
-			while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
-				$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
-				if ($data === false) return false;
-					$data = json_decode($data,true);
-				$devices = array_merge($devices,$data['chromeosdevices']);
-			}
 			$syncedTimestamp = date('Y-m-d H:i:s');
-			foreach ($devices as $device) {
-				if ($device['status'] == 'ACTIVE') {
-					\OSM\Tools\DB::replace('tbl_lab_device',[
-						'deviceid'=>$device['deviceId'],
-						'path'=>$device['orgUnitPath'],
-						'user'=>trim($device['annotatedUser']),
-						'location'=>trim($device['annotatedLocation']),
-						'assetid'=>trim($device['annotatedAssetId']),
+			while($data !== false){
+				$data = json_decode($data,true);
+				foreach($data['chromeosdevices'] as $device){
+					if ($device['status'] != 'ACTIVE') {continue;}
+
+					$devices[] = [
+						'deviceid' => $device['deviceId'],
+						'path' => $device['orgUnitPath'],
+						'user' => trim($device['annotatedUser'] ?? ''),
+						'location' => trim($device['annotatedLocation'] ?? ''),
+						'assetid' => trim($device['annotatedAssetId'] ?? ''),
 						'lastSynced'=>$syncedTimestamp,
-					]);
+					];
 				}
+
+				if (!isset($data['nextPageToken']) || $data['nextPageToken'] == '') {break;}
+
+				//get the next page
+				$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
+			}
+			foreach ($devices as $device) {
+				\OSM\Tools\DB::replace('tbl_lab_device',$device);
 			}
 			\OSM\Tools\DB::delete('tbl_lab_device',[
 				'where'=>'lastSynced <> :lastSynced',

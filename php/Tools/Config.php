@@ -86,6 +86,16 @@ class Config {
 
 	public static function getGroupFromSession($sessionID){
 		$groupID = \OSM\Tools\TempDB::get('groupID/'.$sessionID);
+
+		if ($groupID == ''){
+			//look for a default group id by client
+			$clientID = \OSM\Tools\TempDB::get('email/'.$sessionID);
+			$groupID = \OSM\Tools\TempDB::get('groupID-userDefault/'.bin2hex($clientID));
+			if ($groupID != ''){
+				\OSM\Tools\TempDB::set('groupID/'.$sessionID, $groupID, \OSM\Tools\Config::get('userGroupTimeout'));
+			}
+		}
+
 		if ($groupID != ''){
 			//if we found a group then just return it
 			$group = self::getGroup($groupID);

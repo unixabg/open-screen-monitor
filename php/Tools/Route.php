@@ -8,7 +8,8 @@ class Route {
 	public $leftHeader = '';
 
 	public function urlRoot(){
-		return 'https://'.$_SERVER['HTTP_HOST'].'/';
+		$https = ($_SERVER['HTTPS'] ?? '') != '';
+		return ($https ? 'https' : 'http').'://'.$_SERVER['HTTP_HOST'].'/';
 	}
 
 	public function requireLogin($redirect = true){
@@ -64,6 +65,9 @@ class Route {
 			//google fonts
 			//echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />';
 			echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />';
+
+			//google charts
+			echo '<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>';
 
 			echo '<style>';
 			echo '* {margin:0;padding:0;}';

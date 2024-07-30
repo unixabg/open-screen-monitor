@@ -44,7 +44,9 @@ class Google {
 	}
 
 	public static function checkToken($token) {
-		$data = @file_get_contents('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.urlencode($token->id_token));
+		$data = file_get_contents('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.urlencode($token->id_token),false,stream_context_create([
+			'http' => ['ignore_errors' => true],
+		]));
 		if ( substr($http_response_header[0], -7) == ' 200 OK') {
 			$data = json_decode($data);
 
@@ -59,6 +61,12 @@ class Google {
 				//we have too many requests there to constantly hit googles servers (they would blacklist us)
 				//$_SESSION['validuntil'] = $data->exp;
 				$_SESSION['validuntil'] = strtotime('+12 hours');
+
+				//if no permissions have been setup, add this user as the first admin
+				$permissions = \OSM\Tools\DB::select('tbl_lab_permission');
+				if (count($permissions) == 0){
+					\OSM\Tools\DB::insert('tbl_lab_permission',['username'=>$_SESSION['email'],'groupid'=>'admin']);
+				}
 
 				//check for admin permission
 				$adminPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
