@@ -21,6 +21,17 @@ class Filter extends \OSM\Tools\Route {
 		}
 	}
 
+	private function testString($data, $value){
+		if (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data);
+		} else {
+			return ($data == $value);
+		}
+	}
+
 	public function action(){
 		//in case the http timeout kills the connection, still log it
 		ignore_user_abort(1);
@@ -77,9 +88,9 @@ class Filter extends \OSM\Tools\Route {
 				if ($entry['resourceType'] != $data['type']){continue;}
 			}
 
-			if (!in_array($entry['username'],['',$data['email']])){continue;}
+			if ($entry['username'] != '' && !$this->testString($data['email'], $entry['username'])){continue;}
 
-			if (!in_array($entry['initiator'],['',$entry['initiator']])){continue;}
+			if ($entry['initiator'] != '' && !$this->testString($data['initiator'], $entry['initiator'])){continue;}
 
 			if ($entry['appName'] != ''){
 				//app list is only for defaultdeny
