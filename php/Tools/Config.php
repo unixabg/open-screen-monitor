@@ -162,7 +162,7 @@ class Config {
 
 		$data['entries'] = \OSM\Tools\DB::selectRaw('select * from tbl_filter_entry where enabled = 1 order by priority desc, appName asc, id asc');
 
-		file_put_contents(static::filterPath(),json_encode($data,\JSON_PRETTY_PRINT));
+		file_put_contents(static::filterPath(),json_encode($data,\JSON_PRETTY_PRINT), \LOCK_EX);
 	}
 
 	public static function getFilter(){

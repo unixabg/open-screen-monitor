@@ -65,6 +65,7 @@ try {
 		die('Invalid Route: '.htmlentities($route));
 	}
 } catch (\Throwable $e){
+	file_put_contents($GLOBALS['dataDir'].'/error.log',"\n\n".date('Y-n-d h:i:s')."\n".print_r($e,true),\FILE_APPEND | \LOCK_EX);
 	if ($_SERVER['OSM_SHOW_ERRORS'] ?? false){
 		die('<h1>An Error Occured</h1><pre>'.htmlentities(print_r($e,true)).'</pre>');
 	} else {

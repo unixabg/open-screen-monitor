@@ -25,7 +25,7 @@ class Upload extends \OSM\Tools\Route {
 		}
 
 		//get the session id (everything is saved by sessionid)
-		$sessionID = preg_replace('/[^0-9a-z\-]/','',$data['sessionID']);
+		$sessionID = preg_replace('/[^0-9a-z\-]/','',($data['sessionID'] ?? ''));
 		if ($sessionID == ''){
 			$sessionID = 'server_'.bin2hex(random_bytes(15));
 		}
