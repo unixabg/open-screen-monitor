@@ -131,6 +131,8 @@ class API extends \OSM\Tools\Route {
 			$html = '';
 			$html .= '<b>IP: '.htmlentities(\OSM\Tools\TempDB::get('ip/'.$sessionID) ?? '').'</b>';
 			$html .= '<br /><b>Device ID: '.htmlentities(\OSM\Tools\TempDB::get('deviceID/'.$sessionID) ?? '').'</b>';
+			$html .= '<br /><b>Session ID: '.htmlentities($sessionID).'</b>';
+			$html .= '<br /><b><a href="javascript:window.osm.actions.clearCache('.htmlentities(json_encode(['sessionID'=>$sessionID])).');">Clear Cache</a></b>';
 
 			$tabs = \OSM\Tools\TempDB::get('tabs/'.$sessionID);
 			$tabs = json_decode($tabs ?? '',true);
@@ -142,11 +144,10 @@ class API extends \OSM\Tools\Route {
 					$title = $tab['title'] ?? '';
 					$url = $tab['url'] ?? '';
 
-					$html .= '<br /><br /><a href="#" onmousedown="javscript:window.osm.actions.closeTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;">'.
-							'<span class="material-symbols-outlined" title="Close this tab.">cancel</span>'.
-						'</a> <b>'.
-						htmlentities($title).
-						'</b><br />'.substr(htmlentities($url),0,500);
+					$html .= '<br /><br />';
+					$html .= '<a href="#" onmousedown="javascript:window.osm.actions.closeTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;"><span class="material-symbols-outlined" title="Close this tab.">cancel</span></a>';
+					$html .= '<a href="#" onmousedown="javascript:window.osm.actions.reloadTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;"><span class="material-symbols-outlined" title="Refresh this tab.">refresh</span></a>';
+					$html .= ' <b>'.htmlentities($title).'</b><br />'.substr(htmlentities($url),0,500);
 				}
 			}
 			die($html);
@@ -248,6 +249,46 @@ class API extends \OSM\Tools\Route {
 		$this->validate($sessionID);
 		$logTarget = \OSM\Tools\TempDB::get('email/'.$sessionID).' <=> '.\OSM\Tools\TempDB::get('deviceID/'.$sessionID);
 
+		if ($action == 'clearCache'){
+			$this->sendCommand($sessionID,[
+				'action'=>'removeBrowsingData',
+				'options'=>[
+					'since'=>0,
+					'originTypes'=>[
+						'unprotectedWeb'=>true,
+						'protectedWeb'=>true,
+					],
+					'excludeOrigins'=>\OSM\Tools\Config::get('cacheCleanupExclude')
+				],
+				'dataToRemove'=>[
+						'appcache'=>true,
+						'cache'=>true,
+						'cacheStorage'=>true,
+						'cookies'=>true,
+				],
+			]);
+			$this->sendCommand($sessionID,[
+				'action'=>'removeBrowsingData',
+				'options'=>[
+					'since'=>0,
+					'originTypes'=>[
+						'unprotectedWeb'=>true,
+						'protectedWeb'=>true,
+					],
+				],
+				'dataToRemove'=>[
+					'fileSystems'=>true,
+					'indexedDB'=>true,
+					'localStorage'=>true,
+					'serviceWorkers'=>true,
+					'webSQL'=>true,
+				],
+			]);
+			$logData['text'] = $_POST['clearCache'];
+			\OSM\Tools\Log::add('monitor.clearCache',$logTarget,$logData);
+			die();
+		}
+
 		if ($action == 'tts'){
 			if (isset($_POST['tts'])) {
 				$this->sendCommand($sessionID,[
@@ -260,7 +301,7 @@ class API extends \OSM\Tools\Route {
 			die();
 		}
 
-		if (in_array($action,['openurl','closetab','closeAllTabs'])){
+		if (in_array($action,['openurl','closetab','reloadTab','closeAllTabs'])){
 			$tabs = \OSM\Tools\TempDB::get('tabs/'.$sessionID);
 			$tabs = json_decode($tabs,true);
 			if ($action == 'openurl'){
@@ -278,7 +319,7 @@ class API extends \OSM\Tools\Route {
 				}
 				die();
 			}
-			if ($action == 'closetab' || $action == 'closeAllTabs') {
+			if (in_array($action,['closetab','reloadTab','closeAllTabs'])) {
 				foreach ($tabs as $tab) {
 					$logData['title'] = $tab['title'];
 					$logData['url'] = $tab['url'];
@@ -289,6 +330,15 @@ class API extends \OSM\Tools\Route {
 							'tabId'=>intval($tab['id']),
 						]);
 						\OSM\Tools\Log::add('monitor.closetab',$logTarget,$logData);
+						break;
+					}
+					if ($action == 'reloadTab' && isset($_POST['tabid']) && $tab['id'] == $_POST['tabid']){
+						$this->sendCommand($sessionID,[
+							'action'=>'tabsReload',
+							'tabId'=>intval($tab['id']),
+							'data'=>['bypassCache'=>true],
+						]);
+						\OSM\Tools\Log::add('monitor.reloadTab',$logTarget,$logData);
 						break;
 					}
 					if ($action == 'closeAllTabs'){

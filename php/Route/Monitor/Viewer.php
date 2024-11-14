@@ -54,6 +54,9 @@ div.notInGroup {border: 5px solid yellow !important;}
 				showInactive: true,
 				disableUpdate: false,
 				actions: {
+					clearCache: function (data){
+						$.post("/?route=Monitor\\\\API",{action:"clearCache",sessionID:data.sessionID});
+					},
 					closeAllTabs: function (data){
 						$.post("/?route=Monitor\\\\API",{action:"closeAllTabs",sessionID:data.sessionID});
 					},
@@ -80,6 +83,9 @@ div.notInGroup {border: 5px solid yellow !important;}
 					},
 					screenshot: function(data){
 						$.post("/?route=Monitor\\\\API",{action:"screenshot",sessionID:data.sessionID},function(data){alert(data);})
+					},
+					reloadTab: function (data){
+						$.post("/?route=Monitor\\\\API",{action:"reloadTab",sessionID:data.sessionID,tabid:data.tabid});
 					},
 					closeTab: function(data) {
 						$.post("/?route=Monitor\\\\API",{action:"closetab",sessionID:data.sessionID,tabid:data.tabid});
