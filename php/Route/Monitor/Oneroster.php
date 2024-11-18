@@ -7,7 +7,7 @@ class Oneroster extends \OSM\Tools\Route {
 
 		$data = \OSM\Tools\DB::select('tbl_oneroster',['where'=>'class = :class','bindings'=>[':class'=> ($_GET['class'] ?? '')]]);
 
-		$authValid = $this->isAdmin();
+		$authValid = ($_SESSION['oneroster'] ?? false);
 		$students = [];
 		foreach($data as $row){
 			if ($row['role'] == 'teacher'){

@@ -110,6 +110,15 @@ class Google {
 		]);
 		$_SESSION['bypass'] = $_SESSION['admin'] || (count($bypassPermission) > 0);
 
+		//check for oneroster permission
+		$bypassPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
+			'fields'=>[
+				'username'=>$_SESSION['email'],
+				'groupid'=>'oneroster',
+			]
+		]);
+		$_SESSION['oneroster'] = $_SESSION['admin'] || (count($bypassPermission) > 0);
+
 		return true;
 	}
 }
