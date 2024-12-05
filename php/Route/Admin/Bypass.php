@@ -49,13 +49,15 @@ class Bypass extends \OSM\Tools\Route {
 
 		//next let them add or delete bypass users
 		if ($add = $_POST['add'] ?? false){
-			$email = $add['email'] ?? '';
+			$emails = $add['email'] ?? [];
 			$group = $add['group'] ?? '';
-			if (isset($namesByEmail[$email]) && $group != ''){
-				\OSM\Tools\TempDB::set('bypass/'.bin2hex($email),$group,\OSM\Tools\Config::get('bypassTimeout'));
-				\OSM\Tools\Log::add('bypass.addStudent',$email,$group);
-				$this->redirect('Admin\Bypass');
+			foreach($emails as $email){
+				if (isset($namesByEmail[$email]) && $group != ''){
+					\OSM\Tools\TempDB::set('bypass/'.bin2hex($email),$group,\OSM\Tools\Config::get('bypassTimeout'));
+					\OSM\Tools\Log::add('bypass.addStudent',$email,$group);
+				}
 			}
+			$this->redirect('Admin\Bypass');
 		}
 
 
@@ -74,19 +76,23 @@ class Bypass extends \OSM\Tools\Route {
 
 		echo '<br />';
 
+		echo '<div style="padding:10px;max-width:500px;margin:auto;">';
 		echo '<form method="post">';
-		echo '<b>Add Student:</b>';
-		echo ' <select required name="add[email]">';
-			echo '<option></option>';
-			asort($namesByEmail);
+		echo '<h3>Add Student:</h3>';
+		echo '<div style="display:flex;justify-content:space-around;"><b>Group Name:</b> <input required name="add[group]" /><input type="submit" /></div>';
+		echo '<div style="overflow-y:scroll;height:500px;display:inline-block;padding:10px;margin:10px;">';
+		echo '<table style="padding:10px;width:100%;">';
+			ksort($namesByEmail);
 			foreach($namesByEmail as $email => $name){
-				echo '<option value="'.htmlentities($email).'">'.htmlentities($name).'</option>';
+				echo '<tr><td><input name="add[email][]" type="checkbox" value="'.htmlentities($email).'"></td><td>'.htmlentities($email).'</td><td>'.htmlentities($name).'</td></tr>';
 			}
-			echo '</select>';
-		echo ' <b>Group Name:</b> <input required name="add[group]" />';
-		echo ' <input type="submit" />';
+		echo '</table>';
+		echo '</div>';
 		echo '</form>';
+		echo '</div>';
 
+		echo '<br />';
+		echo '<br />';
 		echo '<br />';
 
 		echo '<table style="width:100%;">';
