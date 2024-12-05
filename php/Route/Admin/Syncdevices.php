@@ -6,6 +6,7 @@ class Syncdevices extends \OSM\Tools\Route {
 		global $dataDir;
 
 		$this->requireAdmin();
+		$this->requireCurrentGoogle();
 
 		//sync devices
 		$context = stream_context_create(['http'=>[
@@ -54,6 +55,12 @@ class Syncdevices extends \OSM\Tools\Route {
 			//make sure to set restrictive permissions on this file
 			if (file_exists($dataDir.'/custom/sync-append.php')){
 				require_once($dataDir.'/custom/sync-append.php');
+			}
+
+			//clear any cached labs
+			$labs = \OSM\Tools\TempDB::scan('lab/*');
+			foreach($labs as $key => $value){
+				\OSM\Tools\TempDB::del($key);
 			}
 		} else {
 			echo "<h1>No access to chrome devices</h1>";

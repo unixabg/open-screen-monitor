@@ -121,24 +121,28 @@ class Filterlog extends \OSM\Tools\Route {
 
 			if (!$_SESSION['admin']){
 				$subwhere = [];
-				foreach(array_keys($_SESSION['allowedclients']) as $i => $clientid){
-					$subwhere[] = ':client'.$i;
-					$bindings[':client'.$i] = $clientid;
-				}
-				$subwhere = '('.implode(',',$subwhere).')';
+				$i = 0;
+				foreach(['devices','users'] as $type){
+					if (!isset($_SESSION['clients'][$type])){continue;}
 
-				if (\OSM\Tools\Config::get('mode') == 'user'){
-					$where[] = 'username IN '.$subwhere;
-				} elseif (\OSM\Tools\Config::get('mode') == 'device'){
-					$where[] = 'deviceid IN '.$subwhere;
-				} else {
-					echo "Error finding Mode";
-					return;
+					$subwhere = [];
+					foreach($_SESSION['clients'][$type] as $clientID => $clientName){
+						$subwhere[] = ':client'.$i;
+						$bindings[':client'.$i] = $clientID;
+						$i++;
+					}
+					$subwhere = '('.implode(',',$subwhere).')';
+
+					if ($type == 'devices'){
+						$where[] = 'deviceid IN '.$subwhere;
+					} elseif ($type == 'users'){
+						$where[] = 'username IN '.$subwhere;
+					}
 				}
 			}
 
 			$where = implode(' AND ',$where);
-			$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc']);
+			$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc, id desc']);
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
@@ -200,7 +204,7 @@ class Filterlog extends \OSM\Tools\Route {
 		echo '<br />Device:<br /><select name="device">';
 			echo '<option></option>';
 			foreach($deviceNames as $deviceid => $nicename){
-				if (!$_SESSION['admin'] && !in_array($row['deviceid'], $_SESSION['allowedclients'])){continue;}
+				if (!$_SESSION['admin'] && !isset($_SESSION['clients']['devices'][$row['deviceid']])){continue;}
 				echo '<option value="'.htmlentities($deviceid).'" '.($device == $deviceid ? 'selected' : '').'>'.htmlentities($nicename).'</option>';
 			}
 			echo '</select>';

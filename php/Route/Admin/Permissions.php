@@ -42,7 +42,14 @@ class Permissions extends \OSM\Tools\Route {
 			echo '<form method="post">Username: <input name="email" value="'.htmlentities($_GET['email']).'"/>';
 			echo '<br /><br /><div style="border: 1px solid black;padding: 5px;margin:5px;column-count: 3; column-fill: auto;">';
 
-			echo '<input type="checkbox" name="labs[]" value="admin" '.(in_array('admin', $thisPermissions) ? 'checked="checked"':'').' /> Admin';
+			$otherPermissions = [
+				'admin' => 'Admin',
+				'bypass' => 'Bypass',
+				'oneroster' => 'All Oneroster Classes',
+			];
+			foreach($otherPermissions as $value => $name){
+				echo '<input type="checkbox" name="labs[]" value="'.htmlentities($value).'" '.(in_array($value, $thisPermissions) ? 'checked="checked"':'').' /> '.htmlentities($name).'<br />';
+			}
 			foreach($this->labs() as $lab=>$devices) {
 				$checked = in_array($lab,$thisPermissions) ? 'checked="checked"':'';
 				$lab = htmlentities($lab);

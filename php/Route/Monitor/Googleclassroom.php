@@ -4,6 +4,7 @@ namespace OSM\Route\Monitor;
 class Googleclassroom extends \OSM\Tools\Route {
 	public function action(){
 		$this->requireLogin();
+		$this->requireCurrentGoogle();
 
 		if (\OSM\Tools\Config::get('enableGoogleClassroom')) {
 			die('OSM does not have Google Classroom enabled');
@@ -48,6 +49,7 @@ class Googleclassroom extends \OSM\Tools\Route {
 			asort($_SESSION['allowedclients']);
 			$_SESSION['lab'] = ($_SESSION['userLabNames'][ $_GET['course'] ] ?? 'Unknown').' #'.$_GET['course'];
 			header('Location: /?route=Monitor\Viewer');
+			\OSM\Tools\Log::add('viewer.googleclassroom',$groupID);
 			die();
 		}
 

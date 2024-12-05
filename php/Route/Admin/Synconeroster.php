@@ -7,11 +7,14 @@ class Synconeroster extends \OSM\Tools\Route {
 
 		set_time_limit(0);
 
+		$ignoreUsers = \OSM\Tools\Config::get('oneRosterUserIgnore');
+
 		\OSM\Tools\DB::beginTransaction();
 
 		\OSM\Tools\DB::delete('tbl_oneroster');
 		$enrollments = \OSM\Tools\OneRoster::downloadData();
 		foreach($enrollments as $enrollment){
+			if (in_array($enrollment['email'],$ignoreUsers)){continue;}
 			\OSM\Tools\DB::insert('tbl_oneroster',$enrollment);
 		}
 

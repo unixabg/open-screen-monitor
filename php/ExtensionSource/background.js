@@ -101,6 +101,7 @@ async function setupVariables(){
 	if (typeof(data['screenscrapeTime']) == "undefined") {chrome.storage.session.set({screenscrapeTime: 20000});}
 	if (typeof(data['ignoreInUpload']) == "undefined") {chrome.storage.session.set({ignoreInUpload: []});}
 	if (typeof(data['httpTimeout']) == "undefined") {chrome.storage.session.set({httpTimeout: 30000});}
+	if (typeof(data['disableGroups']) == "undefined") {chrome.storage.session.set({disableGroups: true});}
 
 	await getRuntimeProperties();
 	await getLocalProperties();
@@ -210,6 +211,18 @@ async function reloadFilter(){
 			type: "main_frame",
 			tabId: tabarray[i].id
 		});
+	}
+}
+
+async function ungroupTabs(){
+	let data = await chrome.storage.session.get();
+	if (!data["disableGroups"]){return;}
+
+	const tabarray = await chrome.tabs.query({});
+	for (var i=0;i<tabarray.length;i=i+1){
+		if (tabarray[i].groupId > -1){
+			chrome.tabs.ungroup(tabarray[i].id);
+		}
 	}
 }
 
@@ -375,6 +388,9 @@ async function phoneHome() {
 						break;
 					case "reloadFilter":
 						reloadFilter();
+						break;
+					case "ungroupTabs":
+						ungroupTabs();
 						break;
 					case "setDNRRules":
 						let previousRules = await chrome.declarativeNetRequest.getDynamicRules();
@@ -583,6 +599,9 @@ chrome.storage.onChanged.addListener((changes,namespace) => {
 chrome.identity.onSignInChanged.addListener((accountinfo, signedin) => {
 	getUserProperties();
 });
+
+//listen for groups
+chrome.tabGroups.onCreated.addListener(ungroupTabs);
 
 //filter regular pages
 chrome.webRequest.onBeforeRequest.addListener(filterPage,{urls:["<all_urls>"]},["blocking"]);

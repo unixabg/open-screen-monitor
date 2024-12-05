@@ -30,6 +30,7 @@ class Google {
 
 	public static function getToken($code){
 		$data = file_get_contents('https://www.googleapis.com/oauth2/v4/token', false, stream_context_create(['http' =>[
+			'ignore_errors' => true,
 			'method'=>'POST',
 			'header'=>'Content-Type: application/x-www-form-urlencoded',
 			'content' => http_build_query([
@@ -44,46 +45,80 @@ class Google {
 	}
 
 	public static function checkToken($token) {
-		$data = file_get_contents('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.urlencode($token->id_token),false,stream_context_create([
-			'http' => ['ignore_errors' => true],
+		if ($token === false){return false;}
+		if (!property_exists($token,'access_token')){return false;}
+
+		$userinfo = file_get_contents('https://www.googleapis.com/oauth2/v1/userinfo',false,stream_context_create([
+			'http' => [
+				'ignore_errors' => true,
+				'header' => ['Authorization: Bearer '.$token->access_token],
+			],
 		]));
-		if ( substr($http_response_header[0], -7) == ' 200 OK') {
-			$data = json_decode($data);
 
-			if ($data->aud == self::getClient()->web->client_id && $data->exp > time() && $data->iss == 'https://accounts.google.com') {
-				//they are good
-				$_SESSION = [];
-				$_SESSION['token'] = $token;
-				$_SESSION['email'] = $data->email;
-				$_SESSION['name'] = $data->name;
-
-				//this is needed on the monitor page to check if they are authenticated
-				//we have too many requests there to constantly hit googles servers (they would blacklist us)
-				//$_SESSION['validuntil'] = $data->exp;
-				$_SESSION['validuntil'] = strtotime('+12 hours');
-
-				//if no permissions have been setup, add this user as the first admin
-				$permissions = \OSM\Tools\DB::select('tbl_lab_permission');
-				if (count($permissions) == 0){
-					\OSM\Tools\DB::insert('tbl_lab_permission',['username'=>$_SESSION['email'],'groupid'=>'admin']);
-				}
-
-				//check for admin permission
-				$adminPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
-					'fields'=>[
-						'username'=>$_SESSION['email'],
-						'groupid'=>'admin',
-					]
-				]);
-				$_SESSION['admin'] = (count($adminPermission) > 0);
-				//helps show which devices are on a page
-				$_SESSION['groups'] = [];
-				//validates ability to monitor
-				$_SESSION['clients'] = [];
-
-				return true;
-			}
+		if ( substr($http_response_header[0], -7) != ' 200 OK') {
+			return false;
 		}
-		return false;
+
+		$userinfo = json_decode($userinfo);
+
+		if (!$userinfo->verified_email) {
+			return false;
+		}
+
+		//they are good
+		$sessionLength = \OSM\Tools\Config::get('sessionTimeout');
+
+		TempDB::set('googlePicture/'.bin2hex($userinfo->email),file_get_contents($userinfo->picture),$sessionLength);
+
+		//reset session unless same email and was already valid
+		if ( ($_SESSION['email'] ?? '') != $userinfo->email || ($_SESSION['validuntil'] ?? 0) < time() ){
+			$_SESSION = [];
+
+			//helps show which devices are on a page
+			$_SESSION['groups'] = [];
+
+			//validates ability to monitor
+			$_SESSION['clients'] = [];
+		}
+
+		$_SESSION['token'] = $token;
+		$_SESSION['email'] = $userinfo->email;
+		$_SESSION['name'] = $userinfo->name;
+		$_SESSION['validuntil'] = time() + $sessionLength;
+
+		//if no permissions have been setup, add this user as the first admin
+		$permissions = \OSM\Tools\DB::select('tbl_lab_permission');
+		if (count($permissions) == 0){
+			\OSM\Tools\DB::insert('tbl_lab_permission',['username'=>$_SESSION['email'],'groupid'=>'admin']);
+		}
+
+		//check for admin permission
+		$adminPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
+			'fields'=>[
+				'username'=>$_SESSION['email'],
+				'groupid'=>'admin',
+			]
+		]);
+		$_SESSION['admin'] = (count($adminPermission) > 0);
+
+		//check for bypass permission
+		$bypassPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
+			'fields'=>[
+				'username'=>$_SESSION['email'],
+				'groupid'=>'bypass',
+			]
+		]);
+		$_SESSION['bypass'] = $_SESSION['admin'] || (count($bypassPermission) > 0);
+
+		//check for oneroster permission
+		$bypassPermission = \OSM\Tools\DB::select('tbl_lab_permission',[
+			'fields'=>[
+				'username'=>$_SESSION['email'],
+				'groupid'=>'oneroster',
+			]
+		]);
+		$_SESSION['oneroster'] = $_SESSION['admin'] || (count($bypassPermission) > 0);
+
+		return true;
 	}
 }

@@ -23,6 +23,12 @@ class Config {
 			//how long a user that is pulled into a class is in there before it times out
 			self::$config['userGroupTimeout'] = 28800; //60*60*8
 
+			//how long a user that is pulled into bypass is in there before it times out
+			self::$config['bypassTimeout'] = 28800; //60*60*8
+
+			//how long a web session lasts before it times out
+			self::$config['sessionTimeout'] = 28800; //60*60*8
+
 			//set the OSM lab filter message
 			self::$config['filterMessage'] = [
 			        'title' => 'OSM Server says ... ',
@@ -32,10 +38,12 @@ class Config {
 			        ]
 			];
 
+			self::$config['deviceLastUserLookback'] = 7;
 			self::$config['showStartupNotification'] = false;
 			self::$config['showNonEnterpriseDevices'] = false;
 			self::$config['filterResourceTypes'] = ["main_frame","sub_frame","xmlhttprequest","trigger_exempt"];
 			self::$config['filterViaServer'] = false;
+			self::$config['filterViaServerGroupIgnoreNonEnterprise'] = true;
 			self::$config['filterviaserverShowBlockPage'] = false;
 			self::$config['filterviaserverDefaultFilterTypes'] = ['main_frame','sub_frame'];
 			self::$config['filterviaserverDefaultTriggerTypes'] = ['main_frame','sub_frame'];
@@ -46,7 +54,10 @@ class Config {
 			self::$config['cacheCleanupOnStartup'] = false;
 			self::$config['cacheCleanupTime'] = 0;
 			self::$config['cacheCleanupExclude'] = [];
+			self::$config['disableGroups'] = false;
 			self::$config['debug'] = true;
+			self::$config['oneRosterUserIgnore'] = [];
+			self::$config['apiSecrets'] = [];
 
 			//overlay settings from database
 			$query = DB::select('tbl_config');
@@ -88,29 +99,46 @@ class Config {
 	}
 
 	public static function getGroupFromSession($sessionID){
-		$groupID = \OSM\Tools\TempDB::get('groupID/'.$sessionID);
-
-		if ($groupID == ''){
-			//look for a default group id by client
-			$clientID = \OSM\Tools\TempDB::get('email/'.$sessionID);
-			$groupID = \OSM\Tools\TempDB::get('groupID-userDefault/'.bin2hex($clientID));
-			if ($groupID != ''){
-				\OSM\Tools\TempDB::set('groupID/'.$sessionID, $groupID, \OSM\Tools\Config::get('userGroupTimeout'));
-			}
+		//check for if we config non-enterprise devices
+		$deviceID = \OSM\Tools\TempDB::get('deviceID/'.$sessionID);
+		if ($deviceID == 'non-enterprise-device' && \OSM\Tools\Config::get('filterViaServerGroupIgnoreNonEnterprise')){
+			\OSM\Tools\TempDB::del('groupID/'.$sessionID);
+			return false;
 		}
 
-		if ($groupID != ''){
-			//if we found a group then just return it
+
+		$email = \OSM\Tools\TempDB::get('email/'.$sessionID);
+
+		//look for a temp bypass
+		//this doesn't get set so that when the bypass is over,
+		//it instantly goes back to where it should have been
+		if ($bypass = \OSM\Tools\TempDB::get('bypass/'.bin2hex($email))){
+			return self::getGroup('bypass{'.$bypass.'}');
+		}
+
+		//return group if set
+		if ($groupID = \OSM\Tools\TempDB::get('groupID/'.$sessionID)){
 			return self::getGroup($groupID);
 		}
 
-		//otherwise look for a device group and set
-		$deviceID = \OSM\Tools\TempDB::get('deviceID/'.$sessionID);
-		$rows = \OSM\Tools\DB::select('tbl_lab_device',['fields'=>['deviceid'=>$deviceID]]);
-		if ($groupID = ($rows[0]['path'] ?? false)){
-			$groupID = 'lab{'.$groupID.'}';
+		//look for a default group id by client and set
+		if ($groupID = \OSM\Tools\TempDB::get('groupID-userDefault/'.bin2hex($email))){
 			\OSM\Tools\TempDB::set('groupID/'.$sessionID, $groupID, \OSM\Tools\Config::get('userGroupTimeout'));
 			return self::getGroup($groupID);
+		}
+
+		//otherwise look for a device group
+		$deviceID = \OSM\Tools\TempDB::get('deviceID/'.$sessionID);
+		$lab = \OSM\Tools\TempDB::get('lab/'.bin2hex($deviceID));
+		if ($lab == ''){
+			$rows = \OSM\Tools\DB::select('tbl_lab_device',['fields'=>['deviceid'=>$deviceID]]);
+			$lab = ($rows[0]['path'] ?? '');
+			if ($lab != ''){
+				\OSM\Tools\TempDB::set('lab/'.bin2hex($deviceID), $lab, \OSM\Tools\Config::get('userGroupTimeout'));
+			}
+		}
+		if ($lab != ''){
+			return self::getGroup('lab{'.$lab.'}');
 		}
 
 		//todo figure out default
@@ -135,7 +163,7 @@ class Config {
 
 		$data['entries'] = \OSM\Tools\DB::selectRaw('select * from tbl_filter_entry where enabled = 1 order by priority desc, appName asc, id asc');
 
-		file_put_contents(static::filterPath(),json_encode($data,\JSON_PRETTY_PRINT));
+		file_put_contents(static::filterPath(),json_encode($data,\JSON_PRETTY_PRINT), \LOCK_EX);
 	}
 
 	public static function getFilter(){

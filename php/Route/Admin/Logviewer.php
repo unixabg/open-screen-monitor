@@ -19,7 +19,7 @@ class Logviewer extends \OSM\Tools\Route {
 		$fields = ['timestamp','ip','username','type','targetid','data'];
 		foreach($fields as $field){
 			if ($value = $_POST['search'][$field] ?? false){
-				$where[] = $field.' = :'.$field;
+				$where[] = $field.' like :'.$field;
 				$bindings[':'.$field] = $value;
 			}
 		}

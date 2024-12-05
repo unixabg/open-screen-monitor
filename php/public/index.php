@@ -19,7 +19,12 @@ if (!isset($_GET['route'])){
 		\OSM\Tools\Log::add('login');
 
 		//redirect them back to self, except this time they will be logged in
-		header('Location: /');
+		if (isset($_SESSION['loginredirect'])){
+			header('Location: '.$_SESSION['loginredirect']);
+			unset($_SESSION['loginredirect']);
+		} else {
+			header('Location: /');
+		}
 		die();
 	} elseif (isset($_GET['non-enterprise-device']) && Tools\Google::checkToken($_SESSION['token']) && $_SESSION['admin']){
 		$_SESSION['allowedclients'] = ['non-enterprise-device'=>'Non Enterprise Devices'];
@@ -60,6 +65,7 @@ try {
 		die('Invalid Route: '.htmlentities($route));
 	}
 } catch (\Throwable $e){
+	file_put_contents($GLOBALS['dataDir'].'/error.log',"\n\n".date('Y-n-d h:i:s')."\n".print_r($e,true),\FILE_APPEND | \LOCK_EX);
 	if ($_SERVER['OSM_SHOW_ERRORS'] ?? false){
 		die('<h1>An Error Occured</h1><pre>'.htmlentities(print_r($e,true)).'</pre>');
 	} else {

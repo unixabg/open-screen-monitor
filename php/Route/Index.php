@@ -3,7 +3,8 @@ namespace OSM\Route;
 
 class Index extends \OSM\Tools\Route {
 	function action(){
-		if (isset($_SESSION['token']) && \OSM\Tools\Google::checkToken($_SESSION['token'])) {
+		$validuntil = $_SESSION['validuntil'] ?? 0;
+		if (time() < $validuntil){
 			$this->css = '
 				.columns {display:flex;justify-content:space-around;}
 				.columns ul li {width:500px;}
@@ -37,19 +38,44 @@ class Index extends \OSM\Tools\Route {
 			if (\OSM\Tools\Config::get('enableOneRoster')){
 				echo '<div>';
 				echo '<h3>Here are the classes you have access to:</h3>';
-				echo '<ul class="list-group">';
-				if ($_SESSION['admin']) {
-					$data = \OSM\Tools\DB::selectRaw('SELECT class, count(*) as count FROM tbl_oneroster WHERE role = "student" GROUP BY class');
-					foreach ($data as $row) {
-						echo '<li class="list-group-item"><a href="/?route=Monitor\\Oneroster&class='.urlencode($row['class']).'">'.htmlentities($row['class']).'</a> - ('.$row['count'].' users)</li>';
+
+				$classes = [];
+				$namesByEmail = [];
+				$rows = \OSM\Tools\DB::selectRaw('SELECT * FROM tbl_oneroster');
+				foreach($rows as $row){
+					$namesByEmail[ $row['email'] ] = $row['name'];
+					$classes[ $row['class'] ][ $row['role'] ][] = $row['email'];
+				}
+
+				$teachers = [];
+				foreach(array_keys($classes) as $className){
+					$studentCount = count($classes[$className]['student'] ?? []);
+					if ($studentCount == 0){continue;}
+
+					$classTeachers = $classes[$className]['teacher'] ?? [];
+					if (!($_SESSION['oneroster'] ?? false) && !in_array($_SESSION['email'], $classTeachers)){continue;}
+
+					foreach($classTeachers as $email){
+						$teachers[ $namesByEmail[$email] ][$className] = $studentCount;
 					}
-				} else {
-					$data = \OSM\Tools\DB::selectRaw('SELECT class FROM tbl_oneroster WHERE role = "teacher" and email = :email',[':email' => $_SESSION['email']]);
-					foreach ($data as $row) {
-						echo '<li class="list-group-item"><a href="/?route=Monitor\\Oneroster&class='.urlencode($row['class']).'">'.htmlentities($row['class']).'</a></li>';
+
+					if (count($classTeachers) == 0){
+						$teachers[ '_MISSING_TEACHER_' ][$className] = $studentCount;
 					}
 				}
-				echo '</ul>';
+
+
+				ksort($teachers);
+				foreach($teachers as $name => $classes){
+					echo '<br /><h4>'.htmlentities($name).'</h4>';
+					echo '<ul class="list-group">';
+					ksort($classes);
+					foreach($classes as $className => $count){
+						echo '<li class="list-group-item"><a href="/?route=Monitor\\Oneroster&class='.urlencode($className).'">'.htmlentities($className).'</a> - ('.$count.' students)</li>';
+					}
+					echo '</ul>';
+				}
+
 				echo '</div>';
 			}
 			if (\OSM\Tools\Config::get('enableGoogleClassroom')){
@@ -94,30 +120,34 @@ class Index extends \OSM\Tools\Route {
 				echo '</ul>';
 				echo '</div>';
 			}
-			if ($_SESSION['admin']) {
-				echo '<div>';
-				echo '<h3>Admin Tools</h3>';
-				echo '<ul class="list-group">';
-					echo '<li class="list-group-item"><a href="/?route=Admin\Config">Config Editor</a></li>';
-					echo '<li class="list-group-item"><a href="/?route=Admin\Buildextension">Build Extension</a></li>';
-					echo '<li class="list-group-item"><a href="/?route=Admin\Permissions">Permissions</a></li>';
-					echo '<li class="list-group-item"><a href="/?route=Admin\Serverfilter">Server Filter Lists</a></li>';
-					if (\OSM\Tools\Config::get('enableLab')) {
-						echo '<li class="list-group-item"><a href="/?route=Admin\Syncdevices" >Sync Devices</a></li>';
-					}
-					if (\OSM\Tools\Config::get('enableOneRoster')) {
-						echo '<li class="list-group-item"><a href="/?route=Admin\Synconeroster" >Sync One Roster</a></li>';
-					}
-					echo '<li class="list-group-item"><a href="/?route=Admin\Usagereport" >Usage Report</a></li>';
-					echo '<li class="list-group-item"><a href="/?route=Admin\Logviewer">View Log</a></li>';
-					echo '<li class="list-group-item"><a href="/?route=Monitor\Filterlog">View Browsing History</a></li>';
-					if (\OSM\Tools\Config::get('showNonEnterpriseDevices')){
-						echo '<li class="list-group-item"><a href="/?non-enterprise-device">Non Enterprise Devices</a></li>';
-						echo '<li class="list-group-item"><a href="/?route=Admin\Showall">Show All</a></li>';
-					}
-				echo '</ul>';
-				echo '</div>';
+			echo '<div>';
+			echo '<h3>Admin Tools</h3>';
+			echo '<ul class="list-group">';
+			echo '<li class="list-group-item"><a href="/?route=Admin\Devicelastuser">Find Last User for Device</a></li>';
+			if ($_SESSION['bypass']){
+				echo '<li class="list-group-item"><a href="/?route=Admin\Bypass">Bypass</a></li>';
 			}
+			if ($_SESSION['admin']){
+				echo '<li class="list-group-item"><a href="/?route=Admin\Config">Config Editor</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Admin\Buildextension">Build Extension</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Admin\Permissions">Permissions</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Admin\Serverfilter">Server Filter Lists</a></li>';
+				if (\OSM\Tools\Config::get('enableLab')) {
+					echo '<li class="list-group-item"><a href="/?route=Admin\Syncdevices" >Sync Devices</a></li>';
+				}
+				if (\OSM\Tools\Config::get('enableOneRoster')) {
+					echo '<li class="list-group-item"><a href="/?route=Admin\Synconeroster" >Sync One Roster</a></li>';
+				}
+				echo '<li class="list-group-item"><a href="/?route=Admin\Usagereport" >Usage Report</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Admin\Logviewer">View Log</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Monitor\Filterlog">View Browsing History</a></li>';
+				if (\OSM\Tools\Config::get('showNonEnterpriseDevices')){
+					echo '<li class="list-group-item"><a href="/?non-enterprise-device">Non Enterprise Devices</a></li>';
+				}
+				echo '<li class="list-group-item"><a href="/?route=Admin\Showall">Show All</a></li>';
+			}
+			echo '</ul>';
+			echo '</div>';
 			echo '</div>';
 		} else {
 			//user needs to login, show them the login screen

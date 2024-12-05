@@ -9,7 +9,7 @@ class API extends \OSM\Tools\Route {
 		$valid = true;
 		if ($sessionID == '') {$valid = false;}
 		if ($sessionID != preg_replace('/[^0-9a-z\-]/','',$sessionID)){$valid = false;}
-		if (!$_SESSION['admin']){
+		if (!($_SESSION['admin'] ?? false) && !($_SESSION['api'] ?? false) ){
 			//validate that sessionID belongs to clientID
 			$deviceID = \OSM\Tools\TempDB::get('deviceID/'.$sessionID);
 			$email = \OSM\Tools\TempDB::get('email/'.$sessionID);
@@ -46,14 +46,19 @@ class API extends \OSM\Tools\Route {
 
 		if ($action == 'online'){
 			//if $groupID ....
-			if (!isset($_SESSION['groups'][$groupID])){
-				http_response_code(400);
-				die('Invalid Request: Group Access Denied');
-			}
 
-			$clients = $_SESSION['groups'][$groupID]['clients'] ?? [];
-			$groupType = $_SESSION['groups'][$groupID]['type'] ?? 'unknowntype';
-			$showInactive = true;
+			if ($_SESSION['api'] ?? false){
+				$groupID = 'osmshowall';
+			} else {
+				if (!isset($_SESSION['groups'][$groupID])){
+					http_response_code(400);
+					die('Invalid Request: Group Access Denied');
+				}
+
+				$clients = $_SESSION['groups'][$groupID]['clients'] ?? [];
+				$groupType = $_SESSION['groups'][$groupID]['type'] ?? 'unknowntype';
+				$showInactive = true;
+			}
 
 			if ($groupID == 'osmshowall'){
 				$clients = [];
@@ -86,18 +91,35 @@ class API extends \OSM\Tools\Route {
 						$email = \OSM\Tools\TempDB::get('email/'.$sessionID);
 						if($email == ''){$email = '-- not signed in --';}
 
+						//check if we take over sessions on non-enterprise-devices
+						if (\OSM\Tools\TempDB::get('deviceID/'.$sessionID) == 'non-enterprise-device' && \OSM\Tools\Config::get('filterViaServerGroupIgnoreNonEnterprise')){
+							continue;
+						}
+
 						$data['sessions'][$sessionID] = [];
 						$data['sessions'][$sessionID]['clientID'] = $clientID;
-						$data['sessions'][$sessionID]['title'] = $email.'<br />('.$clientName.')';
 						$data['sessions'][$sessionID]['locked'] = \OSM\Tools\TempDB::get('lock/'.$sessionID) != '';
 						$data['sessions'][$sessionID]['groupID'] = \OSM\Tools\TempDB::get('groupID/'.$sessionID);
+
+						if ($bypass = \OSM\Tools\TempDB::get('bypass/'.bin2hex($email))){
+							$data['sessions'][$sessionID]['groupID'] = 'bypass{'.$bypass.'}';
+						}
+
+						if ($_SESSION['api'] ?? false){
+							$data['sessions'][$sessionID]['email'] = $email;
+							$data['sessions'][$sessionID]['clientName'] = $clientName;
+						} else {
+							$data['sessions'][$sessionID]['title'] = $email.'<br />('.$clientName.')';
+						}
 					}
 				}
 			}
 
-			uasort($data['sessions'], function($a,$b){
-				return strcmp($a['title'],$b['title']);
-			});
+			if (!($_SESSION['api'] ?? false)){
+				uasort($data['sessions'], function($a,$b){
+					return strcmp($a['title'],$b['title']);
+				});
+			}
 
 			header('Content-Type: application/json');
 			die(json_encode($data));
@@ -120,10 +142,13 @@ class API extends \OSM\Tools\Route {
 
 		if ($action == 'info'){
 			$html = '';
-			$html .= '<b>IP: '.htmlentities(\OSM\Tools\TempDB::get('ip/'.$sessionID)).'</b>';
+			$html .= '<b>IP: '.htmlentities(\OSM\Tools\TempDB::get('ip/'.$sessionID) ?? '').'</b>';
+			$html .= '<br /><b>Device ID: '.htmlentities(\OSM\Tools\TempDB::get('deviceID/'.$sessionID) ?? '').'</b>';
+			$html .= '<br /><b>Session ID: '.htmlentities($sessionID).'</b>';
+			$html .= '<br /><b><a href="javascript:window.osm.actions.clearCache('.htmlentities(json_encode(['sessionID'=>$sessionID])).');">Clear Cache</a></b>';
 
 			$tabs = \OSM\Tools\TempDB::get('tabs/'.$sessionID);
-			$tabs = json_decode($tabs,true);
+			$tabs = json_decode($tabs ?? '',true);
 
 			if (is_array($tabs)){
 				foreach($tabs as $tab){
@@ -132,11 +157,10 @@ class API extends \OSM\Tools\Route {
 					$title = $tab['title'] ?? '';
 					$url = $tab['url'] ?? '';
 
-					$html .= '<br /><br /><a href="#" onmousedown="javscript:window.osm.actions.closeTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;">'.
-							'<span class="material-symbols-outlined" title="Close this tab.">cancel</span>'.
-						'</a> <b>'.
-						htmlentities($title).
-						'</b><br />'.substr(htmlentities($url),0,500);
+					$html .= '<br /><br />';
+					$html .= '<a href="#" onmousedown="javascript:window.osm.actions.closeTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;"><span class="material-symbols-outlined" title="Close this tab.">cancel</span></a>';
+					$html .= '<a href="#" onmousedown="javascript:window.osm.actions.reloadTab('.htmlentities(json_encode(['sessionID'=>$sessionID,'tabid'=>$tabid])).');return false;"><span class="material-symbols-outlined" title="Refresh this tab.">refresh</span></a>';
+					$html .= ' <b>'.htmlentities($title).'</b><br />'.substr(htmlentities($url),0,500);
 				}
 			}
 			die($html);
@@ -176,6 +200,12 @@ class API extends \OSM\Tools\Route {
 				$rows = \OSM\Tools\TempDB::scan($scanRoot.'*');
 				foreach($rows as $key => $empty){
 					$sessionID = str_replace($scanRoot,'',$key);
+
+					//check if we take over sessions on non-enterprise-devices
+					if (\OSM\Tools\TempDB::get('deviceID/'.$sessionID) == 'non-enterprise-device' && \OSM\Tools\Config::get('filterViaServerGroupIgnoreNonEnterprise')){
+						continue;
+					}
+
 					\OSM\Tools\TempDB::set('groupID/'.$sessionID, $groupID, \OSM\Tools\Config::get('userGroupTimeout'));
 				}
 			}
@@ -232,6 +262,46 @@ class API extends \OSM\Tools\Route {
 		$this->validate($sessionID);
 		$logTarget = \OSM\Tools\TempDB::get('email/'.$sessionID).' <=> '.\OSM\Tools\TempDB::get('deviceID/'.$sessionID);
 
+		if ($action == 'clearCache'){
+			$this->sendCommand($sessionID,[
+				'action'=>'removeBrowsingData',
+				'options'=>[
+					'since'=>0,
+					'originTypes'=>[
+						'unprotectedWeb'=>true,
+						'protectedWeb'=>true,
+					],
+					'excludeOrigins'=>\OSM\Tools\Config::get('cacheCleanupExclude')
+				],
+				'dataToRemove'=>[
+						'appcache'=>true,
+						'cache'=>true,
+						'cacheStorage'=>true,
+						'cookies'=>true,
+				],
+			]);
+			$this->sendCommand($sessionID,[
+				'action'=>'removeBrowsingData',
+				'options'=>[
+					'since'=>0,
+					'originTypes'=>[
+						'unprotectedWeb'=>true,
+						'protectedWeb'=>true,
+					],
+				],
+				'dataToRemove'=>[
+					'fileSystems'=>true,
+					'indexedDB'=>true,
+					'localStorage'=>true,
+					'serviceWorkers'=>true,
+					'webSQL'=>true,
+				],
+			]);
+			$logData['text'] = $_POST['clearCache'];
+			\OSM\Tools\Log::add('monitor.clearCache',$logTarget,$logData);
+			die();
+		}
+
 		if ($action == 'tts'){
 			if (isset($_POST['tts'])) {
 				$this->sendCommand($sessionID,[
@@ -244,7 +314,7 @@ class API extends \OSM\Tools\Route {
 			die();
 		}
 
-		if (in_array($action,['openurl','closetab','closeAllTabs'])){
+		if (in_array($action,['openurl','closetab','reloadTab','closeAllTabs'])){
 			$tabs = \OSM\Tools\TempDB::get('tabs/'.$sessionID);
 			$tabs = json_decode($tabs,true);
 			if ($action == 'openurl'){
@@ -262,7 +332,7 @@ class API extends \OSM\Tools\Route {
 				}
 				die();
 			}
-			if ($action == 'closetab' || $action == 'closeAllTabs') {
+			if (in_array($action,['closetab','reloadTab','closeAllTabs'])) {
 				foreach ($tabs as $tab) {
 					$logData['title'] = $tab['title'];
 					$logData['url'] = $tab['url'];
@@ -273,6 +343,15 @@ class API extends \OSM\Tools\Route {
 							'tabId'=>intval($tab['id']),
 						]);
 						\OSM\Tools\Log::add('monitor.closetab',$logTarget,$logData);
+						break;
+					}
+					if ($action == 'reloadTab' && isset($_POST['tabid']) && $tab['id'] == $_POST['tabid']){
+						$this->sendCommand($sessionID,[
+							'action'=>'tabsReload',
+							'tabId'=>intval($tab['id']),
+							'data'=>['bypassCache'=>true],
+						]);
+						\OSM\Tools\Log::add('monitor.reloadTab',$logTarget,$logData);
 						break;
 					}
 					if ($action == 'closeAllTabs'){
@@ -362,7 +441,13 @@ class API extends \OSM\Tools\Route {
 
 
 	public function action(){
-		$this->requireLogin(false);
+		//check for api header
+		$apikey = $_SERVER['HTTP_X_OSMKEY'] ?? '';
+		if ($apikey != '' && in_array($apikey,\OSM\Tools\Config::get('apiSecrets'))){
+			$_SESSION['api'] = true;
+		} else {
+			$this->requireLogin(false);
+		}
 
 		if (isset($_POST['action'])){
 			$this->postRequest();

@@ -16,6 +16,7 @@ class Showall extends \OSM\Tools\Route {
 
 		$_SESSION['groups']['osmshowall']['name'] = 'OSM Admin: Show All';
 		header('Location: /?route=Monitor\Viewer&groupID=osmshowall');
+		\OSM\Tools\Log::add('viewer.osmshowall');
 		die();
 	}
 }

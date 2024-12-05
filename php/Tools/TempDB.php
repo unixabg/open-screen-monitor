@@ -3,7 +3,7 @@ namespace OSM\Tools;
 
 class TempDB {
 	public static function sanitizeFileKey($key){
-		$key = preg_replace('[^0-9a-z/\-\*]','',$key);
+		$key = preg_replace('/[^0-9a-zA-Z\/\-\*]/','',$key);
 		return $key;
 	}
 

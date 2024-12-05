@@ -8,6 +8,13 @@ class Route {
 	public $leftHeader = '';
 	public $renderRaw = false;
 
+	public function getRoutePath(){
+		$path = get_class($this);
+		$path = substr($path, strlen('OSM\\Route\\'));
+		$path = '/?route='.$path;
+		return $path;
+	}
+
 	public function urlRoot(){
 		$https = ($_SERVER['HTTPS'] ?? '') != '';
 		return ($https ? 'https' : 'http').'://'.$_SERVER['HTTP_HOST'].'/';
@@ -24,6 +31,14 @@ class Route {
 	                        die('Authentication Required');
 			}
                 }
+	}
+
+	public function requireCurrentGoogle(){
+		if (!isset($_SESSION['token']) || !\OSM\Tools\Google::checkToken($_SESSION['token'])) {
+			$_SESSION['loginredirect'] = $this->getRoutePath();
+			header('Location: '.\OSM\Tools\Google::getLoginLink());
+			die();
+		}
 	}
 
 	public function isAdmin(){
@@ -110,11 +125,17 @@ class Route {
 			echo '<div class="header">';
 				echo '<div class="leftHeader">'.$this->leftHeader.'</div>';
 				echo '<h1 style="text-align:center;">'.htmlentities($this->title).'</h1>';
-				echo '<div style="display:inline; float:right; padding-top:5px; padding-right:10px;">';
+				echo '<div style="display:flex; float:right; padding-top:5px; padding-right:10px;"><div>';
 					echo 'Version '.Config::get('version');
 					echo '<br /><a href="/">Home</a> ';
 					if (isset($_SESSION['token'])){
 						echo '| <a href="/?logout">Logout</a>';
+					}
+					echo '</div>';
+					if ($email = ($_SESSION['email'] ?? '')){
+						if ($picture = TempDB::get('googlePicture/'.bin2hex($email))){
+							echo '<img style="padding-left:5px;max-height:50px;" src="data:img/jpeg;base64,'.base64_encode($picture).'" />';
+						}
 					}
 				echo '</div>';
 			echo '</div>';

@@ -9,7 +9,7 @@ class Filter extends \OSM\Tools\Route {
 			$value = substr($value,7);
 
 			$value = str_replace('.','\.',$value);
-			$value = '/^https?:\/\/([a-z0-9\-]*\.)?'.$value.'\//';
+			$value = '/^https?:\/\/([a-z0-9\-\.]*\.)?'.$value.'\//';
 			return preg_match($value,$data['url']);
 		} elseif (substr($value,0,6) == 'regex:') {
 			$value = substr($value,6);
@@ -18,6 +18,17 @@ class Filter extends \OSM\Tools\Route {
 			return preg_match($value,$data['url']);
 		} else {
 			return (stripos($data['url'],$value) === 0);
+		}
+	}
+
+	private function testString($data, $value){
+		if (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data);
+		} else {
+			return ($data == $value);
 		}
 	}
 
@@ -62,6 +73,10 @@ class Filter extends \OSM\Tools\Route {
 
 		$defaultTypes = \OSM\Tools\Config::get('filterviaserverDefaultFilterTypes');
 
+		//get group settings
+		//this may need to be switched to a cache file like entries below
+		$group = \OSM\Tools\Config::getGroup($data['filterID']);
+
 		//first check whitelist
 		$filter = \OSM\Tools\Config::getFilter();
 		foreach($filter['entries'] as $entry){
@@ -73,11 +88,16 @@ class Filter extends \OSM\Tools\Route {
 				if ($entry['resourceType'] != $data['type']){continue;}
 			}
 
-			if (!in_array($entry['username'],['',$data['email']])){continue;}
+			if ($entry['username'] != '' && !$this->testString($data['email'], $entry['username'])){continue;}
 
-			if (!in_array($entry['initiator'],['',$entry['initiator']])){continue;}
+			if ($entry['initiator'] != '' && !$this->testString($data['initiator'], $entry['initiator'])){continue;}
 
-			if ($entry['appName'] != '' && !in_array($data['filterID'], ($filter['apps'][$entry['appName']]??[]))){continue;}
+			if ($entry['appName'] != ''){
+				//app list is only for defaultdeny
+				if ($group['filtermode'] == 'defaultallow'){continue;}
+				//app isn't enabled for group
+				if (!in_array($data['filterID'], ($filter['apps'][$entry['appName']]??[]))){continue;}
+			}
 
 			if ($this->testURL($data,$entry['url'])){
 				$action = $entry['action'];
@@ -87,12 +107,10 @@ class Filter extends \OSM\Tools\Route {
 		}
 
 		//then check for default
-		//(this may need to be switched to a cache file like entries above)
 		if ($action == ''){
 			if ($data['filterID'] == '' || $data['filterID'] == '__OSMDEFAULT__'){
 				$action = 'ALLOW';
 			} else {
-				$group = \OSM\Tools\Config::getGroup($data['filterID']);
 				$list = $group['filterlist-'.$group['filtermode']] ?? '';
 				$list = explode("\n",$list);
 				$found = false;
