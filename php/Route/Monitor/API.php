@@ -9,7 +9,7 @@ class API extends \OSM\Tools\Route {
 		$valid = true;
 		if ($sessionID == '') {$valid = false;}
 		if ($sessionID != preg_replace('/[^0-9a-z\-]/','',$sessionID)){$valid = false;}
-		if (!$_SESSION['admin']){
+		if (!($_SESSION['admin'] ?? false) && !($_SESSION['api'] ?? false) ){
 			//validate that sessionID belongs to clientID
 			$deviceID = \OSM\Tools\TempDB::get('deviceID/'.$sessionID);
 			$email = \OSM\Tools\TempDB::get('email/'.$sessionID);
@@ -46,14 +46,19 @@ class API extends \OSM\Tools\Route {
 
 		if ($action == 'online'){
 			//if $groupID ....
-			if (!isset($_SESSION['groups'][$groupID])){
-				http_response_code(400);
-				die('Invalid Request: Group Access Denied');
-			}
 
-			$clients = $_SESSION['groups'][$groupID]['clients'] ?? [];
-			$groupType = $_SESSION['groups'][$groupID]['type'] ?? 'unknowntype';
-			$showInactive = true;
+			if ($_SESSION['api'] ?? false){
+				$groupID = 'osmshowall';
+			} else {
+				if (!isset($_SESSION['groups'][$groupID])){
+					http_response_code(400);
+					die('Invalid Request: Group Access Denied');
+				}
+
+				$clients = $_SESSION['groups'][$groupID]['clients'] ?? [];
+				$groupType = $_SESSION['groups'][$groupID]['type'] ?? 'unknowntype';
+				$showInactive = true;
+			}
 
 			if ($groupID == 'osmshowall'){
 				$clients = [];
@@ -93,20 +98,28 @@ class API extends \OSM\Tools\Route {
 
 						$data['sessions'][$sessionID] = [];
 						$data['sessions'][$sessionID]['clientID'] = $clientID;
-						$data['sessions'][$sessionID]['title'] = $email.'<br />('.$clientName.')';
 						$data['sessions'][$sessionID]['locked'] = \OSM\Tools\TempDB::get('lock/'.$sessionID) != '';
 						$data['sessions'][$sessionID]['groupID'] = \OSM\Tools\TempDB::get('groupID/'.$sessionID);
 
 						if ($bypass = \OSM\Tools\TempDB::get('bypass/'.bin2hex($email))){
 							$data['sessions'][$sessionID]['groupID'] = 'bypass{'.$bypass.'}';
 						}
+
+						if ($_SESSION['api'] ?? false){
+							$data['sessions'][$sessionID]['email'] = $email;
+							$data['sessions'][$sessionID]['clientName'] = $clientName;
+						} else {
+							$data['sessions'][$sessionID]['title'] = $email.'<br />('.$clientName.')';
+						}
 					}
 				}
 			}
 
-			uasort($data['sessions'], function($a,$b){
-				return strcmp($a['title'],$b['title']);
-			});
+			if (!($_SESSION['api'] ?? false)){
+				uasort($data['sessions'], function($a,$b){
+					return strcmp($a['title'],$b['title']);
+				});
+			}
 
 			header('Content-Type: application/json');
 			die(json_encode($data));
@@ -428,7 +441,13 @@ class API extends \OSM\Tools\Route {
 
 
 	public function action(){
-		$this->requireLogin(false);
+		//check for api header
+		$apikey = $_SERVER['HTTP_X_OSMKEY'] ?? '';
+		if ($apikey != '' && in_array($apikey,\OSM\Tools\Config::get('apiSecrets'))){
+			$_SESSION['api'] = true;
+		} else {
+			$this->requireLogin(false);
+		}
 
 		if (isset($_POST['action'])){
 			$this->postRequest();

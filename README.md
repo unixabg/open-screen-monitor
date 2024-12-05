@@ -56,6 +56,8 @@
     - Locate the Local Trust Anchors Certificates
     - Local Anchors Common Name Fallback
      - Allow
+ - Example API Call
+  - curl --insecure  --header "X-OSMKEY: test" "https://localhost/?route=Monitor\API&action=online"
 
 FIXME
 

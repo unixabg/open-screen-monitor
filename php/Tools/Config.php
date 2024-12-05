@@ -57,6 +57,7 @@ class Config {
 			self::$config['disableGroups'] = false;
 			self::$config['debug'] = true;
 			self::$config['oneRosterUserIgnore'] = [];
+			self::$config['apiSecrets'] = [];
 
 			//overlay settings from database
 			$query = DB::select('tbl_config');
