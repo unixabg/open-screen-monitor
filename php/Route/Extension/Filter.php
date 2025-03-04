@@ -199,8 +199,10 @@ class Filter extends \OSM\Tools\Route {
 					'url' => $data['url'],
 				]);
 
-				if ($entry['action'] == 'TRIGGER'){
-					$email = $data['appName'];
+				if ($entry['action'] == 'TRIGGER_EXEMPT'){
+					break;
+				} elseif ($entry['action'] == 'TRIGGER'){
+					$email = $entry['appName'];
 
 					$uid = md5(uniqid(time()));
 					// header
@@ -212,7 +214,7 @@ class Filter extends \OSM\Tools\Route {
 					$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
 					$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
 					$raw .= "User: ".$data['email']
-						."\nDevice: ".$niceDeviceName
+						."\nDevice: ".$this->niceName($data['deviceID'])
 						."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
 						."\nTriggered on keyword or url of: $url"
 						."\n".str_replace("\t","\n",$logentry)

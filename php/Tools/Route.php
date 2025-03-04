@@ -165,6 +165,20 @@ class Route {
 		return $this->deviceParse('deviceNames');
 	}
 
+	public function niceName($deviceid){
+		$rows = \OSM\Tools\DB::select('tbl_lab_device',['where'=>'deviceid = :deviceid','bindings'=>[':deviceid'=>$deviceid]]);
+		foreach($rows as $row){
+			$niceName = [];
+			foreach($row as $i => $value) {
+				if (in_array($i,['deviceid','path','lastSynced'])){continue;}
+				if ($value == ''){continue;}
+				$niceName[] = $value;
+			}
+			return implode(' - ',$niceName);
+		}
+		return '';
+	}
+
 	private function deviceParse($mode){
 		$toReturn = [];
 		$rows = \OSM\Tools\DB::select('tbl_lab_device',['order'=>'path']);
