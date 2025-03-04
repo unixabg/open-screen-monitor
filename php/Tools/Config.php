@@ -58,6 +58,7 @@ class Config {
 			self::$config['debug'] = true;
 			self::$config['oneRosterUserIgnore'] = [];
 			self::$config['apiSecrets'] = [];
+			self::$config['allTeachersGetBypass'] = true;
 
 			//overlay settings from database
 			$query = DB::select('tbl_config');

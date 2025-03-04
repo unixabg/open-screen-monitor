@@ -449,7 +449,7 @@ async function screenscrapeTick(){
 	const tabarray = await chrome.tabs.query({active: true});
 	try{
 		var tab = tabarray[0];
-		const results = await chrome.scripting.executeScript({
+		var results = await chrome.scripting.executeScript({
 			target: {tabId: tab.id, allFrames: true},
 			func: OSMDumpBodyInnerText
 		});

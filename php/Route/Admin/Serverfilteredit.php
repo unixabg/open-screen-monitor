@@ -64,12 +64,12 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<tr><td>Priority</td><td><input name="rule[priority]" type="number" value="'.htmlentities($data['priority'] ?? '').'" /></td></tr>';
 		echo '<tr><td>URL</td><td><input name="rule[url]" value="'.htmlentities($data['url'] ?? '').'" /></td></tr>';
 		echo '<tr><td>Resource Type</td><td><select name="rule[resourceType]"><option></option>';
-			foreach(\OSM\Tools\Config::get('filterResourceTypes') as $value){
+			foreach( [...\OSM\Tools\Config::get('filterResourceTypes'), 'SCREENSCRAPE'] as $value){
 				echo '<option value="'.$value.'" '.($value == ($data['resourceType'] ?? '') ? 'selected':'').' >'.$value.'</option>';
 			}
 			echo '</select></td></tr>';
 		echo '<tr><td>Action</td><td><select name="rule[action]"><option></option>';
-			foreach(['ALLOW','BLOCK','BLOCKPAGE','BLOCKNOTIFY','TRIGGER','SCREENSCRAPE'] as $value){
+			foreach(['ALLOW','BLOCK','BLOCKPAGE','BLOCKNOTIFY','TRIGGER','TRIGGER_EXEMPT'] as $value){
 				echo '<option value="'.$value.'" '.($value == ($data['action'] ?? '') ? 'selected':'').' >'.$value.'</option>';
 			}
 			echo '</select></td></tr>';

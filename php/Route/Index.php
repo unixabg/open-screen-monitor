@@ -12,6 +12,9 @@ class Index extends \OSM\Tools\Route {
 			';
 			echo '<h2 class="welcome">Hello '.htmlentities($_SESSION['name'].' ('.$_SESSION['email'].')').'</h2>';
 			echo '<div class="columns">';
+
+			$allTeachersGetBypass = \OSM\Tools\Config::get('allTeachersGetBypass');
+
 			//user is authenticated
 			//the user is at the home (show labs) screen
 			if (\OSM\Tools\Config::get('enableLab')){
@@ -30,6 +33,7 @@ class Index extends \OSM\Tools\Route {
 					foreach ($this->myLabs() as $permission) {
 						if (!isset($labs[$permission])){continue;}
 						echo '<li class="list-group-item"><a href="/?route=Monitor\\Lab&lab='.urlencode($permission).'">'.htmlentities($permission).'</a> - ('.count($labs[$permission]).' devices)</li>';
+						if ($allTeachersGetBypass) {$_SESSION['bypass'] = true;}
 					}
 				}
 				echo '</ul>';
@@ -53,10 +57,14 @@ class Index extends \OSM\Tools\Route {
 					if ($studentCount == 0){continue;}
 
 					$classTeachers = $classes[$className]['teacher'] ?? [];
-					if (!($_SESSION['oneroster'] ?? false) && !in_array($_SESSION['email'], $classTeachers)){continue;}
-
-					foreach($classTeachers as $email){
-						$teachers[ $namesByEmail[$email] ][$className] = $studentCount;
+					if ($_SESSION['oneroster'] ?? false){
+						foreach($classTeachers as $email){
+							$teachers[ $namesByEmail[$email] ][$className] = $studentCount;
+						}
+					} elseif (in_array($_SESSION['email'], $classTeachers)){
+						$teachers[ $namesByEmail[ $_SESSION['email'] ] ][$className] = $studentCount;
+					} else {
+						continue;
 					}
 
 					if (count($classTeachers) == 0){
@@ -72,6 +80,7 @@ class Index extends \OSM\Tools\Route {
 					ksort($classes);
 					foreach($classes as $className => $count){
 						echo '<li class="list-group-item"><a href="/?route=Monitor\\Oneroster&class='.urlencode($className).'">'.htmlentities($className).'</a> - ('.$count.' students)</li>';
+						if ($allTeachersGetBypass) {$_SESSION['bypass'] = true;}
 					}
 					echo '</ul>';
 				}
@@ -116,6 +125,7 @@ class Index extends \OSM\Tools\Route {
 				$_SESSION['userLabNames'] = $_courses;
 				foreach($_courses as $id=>$name){
 					echo '<li><a href="/?route=Monitor\\Googleclassroom&class='.urlencode($id).'">'.htmlentities($name).'</a></li>';
+					if ($allTeachersGetBypass) {$_SESSION['bypass'] = true;}
 				}
 				echo '</ul>';
 				echo '</div>';
