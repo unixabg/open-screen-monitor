@@ -214,4 +214,31 @@ class Route {
 		return ($ip & $mask) == $subnet;
 	}
 
+	public function testURL($data, $value){
+		if (substr($value,0,7) == 'simple:') {
+			$value = substr($value,7);
+
+			$value = str_replace('.','\.',$value);
+			$value = '/^https?:\/\/([a-z0-9\-\.]*\.)?'.$value.'\//';
+			return preg_match($value,$data['url']);
+		} elseif (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data['url']);
+		} else {
+			return (stripos($data['url'],$value) === 0);
+		}
+	}
+
+	public function testString($data, $value){
+		if (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data);
+		} else {
+			return ($data == $value);
+		}
+	}
 }
