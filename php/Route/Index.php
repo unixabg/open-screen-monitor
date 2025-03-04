@@ -57,10 +57,14 @@ class Index extends \OSM\Tools\Route {
 					if ($studentCount == 0){continue;}
 
 					$classTeachers = $classes[$className]['teacher'] ?? [];
-					if (!($_SESSION['oneroster'] ?? false) && !in_array($_SESSION['email'], $classTeachers)){continue;}
-
-					foreach($classTeachers as $email){
-						$teachers[ $namesByEmail[$email] ][$className] = $studentCount;
+					if ($_SESSION['oneroster'] ?? false){
+						foreach($classTeachers as $email){
+							$teachers[ $namesByEmail[$email] ][$className] = $studentCount;
+						}
+					} elseif (in_array($_SESSION['email'], $classTeachers)){
+						$teachers[ $namesByEmail[ $_SESSION['email'] ] ][$className] = $studentCount;
+					} else {
+						continue;
 					}
 
 					if (count($classTeachers) == 0){
