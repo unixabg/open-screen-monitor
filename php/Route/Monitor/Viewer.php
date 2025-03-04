@@ -399,19 +399,11 @@ div.notInGroup {border: 5px solid yellow !important;}
 						if (thisdiv.hasClass("active")){
 							if (thisdiv.hasClass("fullscreen")) {
 								thisdiv.removeClass("fullscreen");
-								//$("#activedevs > div,#hiddendevs > div").css("display","block");
-								//thisdiv.css("top","auto");
-								//thisdiv.css("left","auto");
-								//thisdiv.css("height","auto");
-								//thisdiv.css("width","auto");
 								thisdiv.find(".info").html("");
-							} else if (window.osm.admin || !this.classList.contains("notInGroup")) {
+							} else {
 								thisdiv.addClass("fullscreen");
 								$("#hidemenu").click();
 								updateInfo();
-
-
-								//$("#activedevs > div:not(.fullscreen),#hiddendevs > div").css("display","none");
 							}
 						}
 					} else if (e.which == 3 && !thisdiv.hasClass("fullscreen")) {
