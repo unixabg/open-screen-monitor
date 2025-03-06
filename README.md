@@ -62,13 +62,16 @@
 FIXME
 
 ### Example Setup (tested in debian bookworm systemd-nspawn container as root)
+
+```
+#get the code
 git clone https://github.com/acoursen/open-screen-monitor.git --branch next /var/www/osm/
 
 #install dependencies
 apt -y install nginx php8.2-fpm php8.2-xml php8.2-curl php8.2-odbc php8.2-mysql php8.2-zip mariadb-server git
 
 #configure nginx
-rm -r /etc/nginx/sites-enabled/default 
+rm -r /etc/nginx/sites-enabled/default
 cp /var/www/osm/sample_config/nginx-site /etc/nginx/sites-enabled/osm
 service nginx restart
 
@@ -95,3 +98,4 @@ EOL
 mysql -h localhost -u osm -p${DBPASS} osm < /var/www/osm/sample_config/setup.sql
 
 echo "{\"hostname\":\"localhost\",\"user\":\"osm\",\"password\":\"${DBPASS}\",\"dbname\":\"osm\"}" > /var/www/osm-data/db.json
+```
