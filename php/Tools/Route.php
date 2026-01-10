@@ -1,0 +1,244 @@
+<?php
+namespace OSM\Tools;
+
+class Route {
+	public $js = '';
+	public $css = '';
+	public $title = 'Open Screen Monitor';
+	public $leftHeader = '';
+	public $renderRaw = false;
+
+	public function getRoutePath(){
+		$path = get_class($this);
+		$path = substr($path, strlen('OSM\\Route\\'));
+		$path = '/?route='.$path;
+		return $path;
+	}
+
+	public function urlRoot(){
+		$https = ($_SERVER['HTTPS'] ?? '') != '';
+		return ($https ? 'https' : 'http').'://'.$_SERVER['HTTP_HOST'].'/';
+	}
+
+	public function requireLogin($redirect = true){
+                $validuntil = $_SESSION['validuntil'] ?? 0;
+                if ($validuntil < time()){
+			if ($redirect){
+				header('Location: '.$this->urlRoot());
+				die();
+			} else {
+	                        http_response_code(403);
+	                        die('Authentication Required');
+			}
+                }
+	}
+
+	public function requireCurrentGoogle(){
+		if (!isset($_SESSION['token']) || !\OSM\Tools\Google::checkToken($_SESSION['token'])) {
+			$_SESSION['loginredirect'] = $this->getRoutePath();
+			header('Location: '.\OSM\Tools\Google::getLoginLink());
+			die();
+		}
+	}
+
+	public function isAdmin(){
+		return ($_SESSION['admin'] ?? false);
+	}
+
+	public function requireAdmin(){
+		$this->requireLogin();
+		if (!$this->isAdmin()){
+			die('Permission Denied');
+		}
+	}
+
+	public function redirect($route,$raw = false){
+		if (!$raw){
+			$route = '/index.php'.($route == '' ? '' : '?route='.$route);
+		}
+		header('Location: '.$route);
+		die();
+	}
+
+	public function sendAndClose($data){
+		//close all output buffers just in case
+		while(ob_get_level() > 0){ob_end_flush();}
+
+		//this tells php to keep going after the client disconnects
+		ignore_user_abort();
+		//the client shouldn't disconnect untless it is told to and it knows it has all the data
+		header("Connection: close");
+		header("Content-Length: ".strlen($data));
+		echo $data;
+	}
+
+	public function render(){
+		//skip this function (ie: extension & api)
+		if ($this->renderRaw){
+			$this->action();
+			die();
+		}
+
+		//get the html here so if a redirect needs to happen we haven't already sent anything.
+		//We also are doing it via output buffering so we can use echo in the action and not keep a running variable;
+		ob_start();
+		$this->action();
+		$html = ob_get_clean();
+
+		echo '<html>';
+		echo '<head>';
+			echo '<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>';
+
+			//bootstrap (depends on jquery);
+			echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">';
+			echo '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>';
+
+			//fontawesome
+			//echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/fontawesome.min.css" integrity="sha384-BY+fdrpOd3gfeRvTSMT+VUZmA728cfF9Z2G42xpaRkUGu2i3DyzpTURDo5A6CaLK" crossorigin="anonymous">';
+
+			//google fonts
+			//echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />';
+			echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />';
+
+			//google charts
+			echo '<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>';
+
+			echo '<style>';
+			echo '* {margin:0;padding:0;}';
+			echo 'html, body {height: 100%;}';
+			echo 'html, body, div, h1 {margin: 0;padding: 0;border: 0 none;}';
+
+			echo '.header {display:flex;flex-direction:row;justify-content: space-between;}';
+
+			//table format
+			echo 'table {border-collapse: collapse;border-spacing: 0;border: 1px solid #ddd;}';
+			echo 'th, td {text-align: left;border: 1px solid #ddd;padding: 16px;}';
+			echo 'tr:nth-child(even) {background-color: #f2f2f2;}';
+
+			echo $this->css;
+			echo '</style>';
+
+			echo '<script>'.$this->js.'</script>';
+			echo '<title>'.$this->title.'</title>';
+		echo '</head>';
+		echo '<body>';
+			echo '<div class="header">';
+				echo '<div class="leftHeader">'.$this->leftHeader.'</div>';
+				echo '<h1 style="text-align:center;">'.htmlentities($this->title).'</h1>';
+				echo '<div style="display:flex; float:right; padding-top:5px; padding-right:10px;"><div>';
+					echo 'Version '.Config::get('version');
+					echo '<br /><a href="/">Home</a> ';
+					if (isset($_SESSION['token'])){
+						echo '| <a href="/?logout">Logout</a>';
+					}
+					echo '</div>';
+					if ($email = ($_SESSION['email'] ?? '')){
+						if ($picture = TempDB::get('googlePicture/'.bin2hex($email))){
+							echo '<img style="padding-left:5px;max-height:50px;" src="data:img/jpeg;base64,'.base64_encode($picture).'" />';
+						}
+					}
+				echo '</div>';
+			echo '</div>';
+			echo '<div class="content">';
+			echo $html;
+			echo '</div>';
+		echo '</body>';
+		echo '</html>';
+	}
+
+	public function myLabs(){
+		$labs = [];
+		if ($email = ($_SESSION['email'] ?? false)){
+			$rows = \OSM\Tools\DB::select('tbl_lab_permission',['fields'=>['username'=>$email]]);
+			foreach($rows as $row){
+				$labs[] = $row['groupid'];
+			}
+		}
+		return $labs;
+	}
+
+	public function labs(){
+		return $this->deviceParse('labs');
+	}
+
+	public function deviceNames(){
+		return $this->deviceParse('deviceNames');
+	}
+
+	public function niceName($deviceid){
+		$rows = \OSM\Tools\DB::select('tbl_lab_device',['where'=>'deviceid = :deviceid','bindings'=>[':deviceid'=>$deviceid]]);
+		foreach($rows as $row){
+			$niceName = [];
+			foreach($row as $i => $value) {
+				if (in_array($i,['deviceid','path','lastSynced'])){continue;}
+				if ($value == ''){continue;}
+				$niceName[] = $value;
+			}
+			return implode(' - ',$niceName);
+		}
+		return '';
+	}
+
+	private function deviceParse($mode){
+		$toReturn = [];
+		$rows = \OSM\Tools\DB::select('tbl_lab_device',['order'=>'path']);
+		foreach($rows as $row){
+			$niceName = [];
+			foreach($row as $i => $value) {
+				if (in_array($i,['deviceid','path','lastSynced'])){continue;}
+				if ($value == ''){continue;}
+				$niceName[] = $value;
+			}
+			$row['niceName'] = implode(' - ',$niceName);
+			if ($row['niceName'] == ''){$row['niceName'] = $row['deviceid'];}
+
+			if ($mode == 'labs'){
+				$toReturn[ $row['path'] ][ $row['deviceid'] ] = $row;
+			} elseif ($mode == 'deviceNames'){
+				$toReturn[ $row['deviceid'] ] = $row['niceName'];
+			}
+		}
+		return $toReturn;
+	}
+
+	public function inSubnet($ip, $subnet){
+		$subnet = explode('/', $subnet);
+
+		$bits = intval($subnet[1] ?? 32);
+		if ($bits < 0 || 32 < $bits){$bits = 32;}
+
+		$subnet = ip2long($subnet[0]);
+		$ip = ip2long($ip);
+		$mask = -1 << (32 - $bits);
+		$subnet &= $mask;
+		return ($ip & $mask) == $subnet;
+	}
+
+	public function testURL($data, $value){
+		if (substr($value,0,7) == 'simple:') {
+			$value = substr($value,7);
+
+			$value = str_replace('.','\.',$value);
+			$value = '/^https?:\/\/([a-z0-9\-\.]*\.)?'.$value.'\//';
+			return preg_match($value,$data['url']);
+		} elseif (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data['url']);
+		} else {
+			return (stripos($data['url'],$value) === 0);
+		}
+	}
+
+	public function testString($data, $value){
+		if (substr($value,0,6) == 'regex:') {
+			$value = substr($value,6);
+			$value = str_replace('/','\/',$value);
+			$value = '/'.$value.'/';
+			return preg_match($value,$data);
+		} else {
+			return ($data == $value);
+		}
+	}
+}
