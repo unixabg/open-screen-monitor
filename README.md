@@ -65,7 +65,7 @@ FIXME
 
 ```
 #get the code
-git clone https://github.com/acoursen/open-screen-monitor.git --branch next /var/www/osm/
+git clone https://github.com/unixabg/open-screen-monitor.git --branch next /var/www/osm/
 
 #install dependencies
 apt -y install nginx php8.4-fpm php8.4-xml php8.4-curl php8.4-odbc php8.4-mysql php8.4-zip mariadb-server git
