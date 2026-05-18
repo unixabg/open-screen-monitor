@@ -6,7 +6,7 @@ class Googleclassroom extends \OSM\Tools\Route {
 		$this->requireLogin();
 		$this->requireCurrentGoogle();
 
-		if (\OSM\Tools\Config::get('enableGoogleClassroom')) {
+		if (!\OSM\Tools\Config::get('enableGoogleClassroom')) {
 			die('OSM does not have Google Classroom enabled');
 		}
 
