@@ -61,14 +61,14 @@
 
 FIXME
 
-### Example Setup (tested in debian bookworm systemd-nspawn container as root)
+### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
 ```
 #get the code
-git clone https://github.com/acoursen/open-screen-monitor.git --branch next /var/www/osm/
+git clone https://github.com/unixabg/open-screen-monitor.git --branch next /var/www/osm/
 
 #install dependencies
-apt -y install nginx php8.2-fpm php8.2-xml php8.2-curl php8.2-odbc php8.2-mysql php8.2-zip mariadb-server git
+apt -y install nginx php8.4-fpm php8.4-xml php8.4-curl php8.4-odbc php8.4-mysql php8.4-zip mariadb-server git
 
 #configure nginx
 rm -r /etc/nginx/sites-enabled/default

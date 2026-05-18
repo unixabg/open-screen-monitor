@@ -60,7 +60,7 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<form method="post">';
 		echo '<h1>Add Rule</h1>';
 		echo '<table>';
-		echo '<tr><td>Enabled</td><td><input name="rule[enabled]" type="checkbox" '.(($data['enabled'] ?? '') == 1 ? 'checked="checked"' : '').'" /></td></tr>';
+		echo '<tr><td>Enabled</td><td><input name="rule[enabled]" type="checkbox" '.(($data['enabled'] ?? '') == 1 ? 'checked="checked"' : '').' /></td></tr>';
 		echo '<tr><td>Priority</td><td><input name="rule[priority]" type="number" value="'.htmlentities($data['priority'] ?? '').'" /></td></tr>';
 		echo '<tr><td>URL</td><td><input name="rule[url]" value="'.htmlentities($data['url'] ?? '').'" /></td></tr>';
 		echo '<tr><td>Resource Type</td><td><select name="rule[resourceType]"><option></option>';
