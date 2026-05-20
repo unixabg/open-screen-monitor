@@ -126,7 +126,7 @@ class Filterlog extends \OSM\Tools\Route {
 			}
 
 			if ($devicesearch != ''){
-				$matchingDevices = \OSM\Tools\DB::select('tbl_lab_device',['where'=>'annotateduser LIKE :ds1 OR annotatedlocation LIKE :ds2 OR annotatedassetid LIKE :ds3 OR serialnumber LIKE :ds4','bindings'=>[':ds1'=>'%'.$devicesearch.'%',':ds2'=>'%'.$devicesearch.'%',':ds3'=>'%'.$devicesearch.'%',':ds4'=>'%'.$devicesearch.'%']]);
+				$matchingDevices = \OSM\Tools\DB::select('tbl_lab_device',['where'=>'annotateduser LIKE :ds1 OR annotatedlocation LIKE :ds2 OR annotatedassetid LIKE :ds3 OR serialnumber LIKE :ds4 OR deviceid LIKE :ds5','bindings'=>[':ds1'=>'%'.$devicesearch.'%',':ds2'=>'%'.$devicesearch.'%',':ds3'=>'%'.$devicesearch.'%',':ds4'=>'%'.$devicesearch.'%',':ds5'=>'%'.$devicesearch.'%']]);
 				$matchingIDs = array_column($matchingDevices,'deviceid');
 				if (!empty($matchingIDs)){
 					$inList = implode(',',array_map(fn($id)=>"'".addslashes($id)."'",$matchingIDs));
@@ -218,7 +218,7 @@ class Filterlog extends \OSM\Tools\Route {
 			echo '</select>';
 		echo '<br />Username:<br /><input type="text" name="username" value="'.htmlentities($username).'" />';
 		echo '<br />Device ID:<br /><input type="text" name="deviceid" value="'.htmlentities($deviceid).'" />';
-		echo '<br />Device Search:<br /><input type="text" name="devicesearch" value="'.htmlentities($devicesearch).'" placeholder="serial, asset, user, location" />';
+		echo '<br />Device Search:<br /><input type="text" name="devicesearch" value="'.htmlentities($devicesearch).'" placeholder="serial, asset, annotated user, location, device id" />';
 		echo '<br />Annotated Info:<br /><select name="device">';
 			echo '<option></option>';
 			foreach($deviceNames as $deviceid => $nicename){
