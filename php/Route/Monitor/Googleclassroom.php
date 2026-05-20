@@ -6,7 +6,7 @@ class Googleclassroom extends \OSM\Tools\Route {
 		$this->requireLogin();
 		$this->requireCurrentGoogle();
 
-		if (\OSM\Tools\Config::get('enableGoogleClassroom')) {
+		if (!\OSM\Tools\Config::get('enableGoogleClassroom')) {
 			die('OSM does not have Google Classroom enabled');
 		}
 
@@ -36,20 +36,22 @@ class Googleclassroom extends \OSM\Tools\Route {
 
 		$groupID = 'user{'.$_GET['class'].'}';
 
-		die("TODO: this hasn't been updated yet");
-		$_SESSION['allowedclients'] = [];
-		foreach ($students as $student){
+		$_SESSION['groups'][$groupID] = [
+			'name' => $_SESSION['userLabNames'][$_GET['class']] ?? $_GET['class'],
+			'type' => 'user',
+		];
+
+		foreach ($students as $student) {
 			$email = $student['profile']['emailAddress'];
-			$email = str_replace("@","_",$email);
-			$email = preg_replace("/[^a-zA-Z0-9-_]/","",$email);
-			$_SESSION['allowedclients'][$email] = $student['profile']['name']['fullName'];
+			$name = $student['profile']['name']['fullName'];
+			$_SESSION['clients']['users'][$email] = $name;
+			$_SESSION['groups'][$groupID]['clients'][$email] = $name;
 		}
 
-		if (count($_SESSION['allowedclients']) > 0){
-			asort($_SESSION['allowedclients']);
-			$_SESSION['lab'] = ($_SESSION['userLabNames'][ $_GET['course'] ] ?? 'Unknown').' #'.$_GET['course'];
-			header('Location: /?route=Monitor\Viewer');
-			\OSM\Tools\Log::add('viewer.googleclassroom',$groupID);
+		if (count($_SESSION['groups'][$groupID]['clients']) > 0) {
+			asort($_SESSION['groups'][$groupID]['clients']);
+			header('Location: /?route=Monitor\Viewer&groupID='.urlencode($groupID));
+			\OSM\Tools\Log::add('viewer.googleclassroom', $groupID);
 			die();
 		}
 

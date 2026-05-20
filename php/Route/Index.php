@@ -114,20 +114,22 @@ class Index extends \OSM\Tools\Route {
 							}
 						}
 					}
+					echo 'Here are your Google Classroom classes: <ul style="text-align:left;">';
+					$_courses = [];
+					foreach ($courses as $course) {
+						$_courses[$course['id']]=$course['name'];
+					}
+					asort($_courses);
+					//save names so we can use them when a user activates a lab
+					$_SESSION['userLabNames'] = $_courses;
+					foreach($_courses as $id=>$name){
+						echo '<li><a href="/?route=Monitor\\Googleclassroom&class='.urlencode($id).'">'.htmlentities($name).'</a></li>';
+						if ($allTeachersGetBypass) {$_SESSION['bypass'] = true;}
+					}
+					echo '</ul>';
+				} else {
+					echo '<p>Google Classroom access is required for your account to list courses. Please contact your administrator.</p>';
 				}
-				echo 'Here are your Google Classroom classes: <ul style="text-align:left;">';
-				$_courses = [];
-				foreach ($courses as $course) {
-					$_courses[$course['id']]=$course['name'];
-				}
-				asort($_courses);
-				//save names so we can use them when a user activates a lab
-				$_SESSION['userLabNames'] = $_courses;
-				foreach($_courses as $id=>$name){
-					echo '<li><a href="/?route=Monitor\\Googleclassroom&class='.urlencode($id).'">'.htmlentities($name).'</a></li>';
-					if ($allTeachersGetBypass) {$_SESSION['bypass'] = true;}
-				}
-				echo '</ul>';
 				echo '</div>';
 			}
 			echo '<div>';
