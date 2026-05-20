@@ -201,7 +201,7 @@ class Filterlog extends \OSM\Tools\Route {
 			echo '</select>';
 		echo '<br />Username:<br /><input type="text" name="username" value="'.htmlentities($username).'" />';
 		echo '<br />Device ID:<br /><input type="text" name="deviceid" value="'.htmlentities($deviceid).'" />';
-		echo '<br />Device:<br /><select name="device">';
+		echo '<br />Annotated Info:<br /><select name="device">';
 			echo '<option></option>';
 			foreach($deviceNames as $deviceid => $nicename){
 				if (!$_SESSION['admin'] && !isset($_SESSION['clients']['devices'][$row['deviceid']])){continue;}
