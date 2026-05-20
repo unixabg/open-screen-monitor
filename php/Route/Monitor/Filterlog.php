@@ -12,9 +12,9 @@ class Filterlog extends \OSM\Tools\Route {
 		$deviceNames = [];
 		foreach($rows as $row){
 			$nicename = [];
-			if ($row['user'] != ''){$nicename[] = $row['user'];}
-			if ($row['location'] != ''){$nicename[] = $row['location'];}
-			if ($row['assetid'] != ''){$nicename[] = $row['assetid'];}
+			if ($row['annotateduser'] != ''){$nicename[] = $row['annotateduser'];}
+			if ($row['annotatedlocation'] != ''){$nicename[] = $row['annotatedlocation'];}
+			if ($row['annotatedassetid'] != ''){$nicename[] = $row['annotatedassetid'];}
 			$nicename = implode(' - ',$nicename);
 			if ($nicename == ''){$nicename = 'Unknown: '.$row['deviceid'];}
 
@@ -150,7 +150,7 @@ class Filterlog extends \OSM\Tools\Route {
 				$results .= '<b>Date:</b> '.$row['date'].'<br />';
 				$results .= '<b>Time:</b> '.$row['time'].'<br />';
 				$results .= '<b>User:</b> '.htmlentities($row['username']).'<br />';
-				$results .= '<b>Device:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
+				$results .= '<b>Annotated Info:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
 				if (isset($_POST['showadvanced'])) {
 					$results .= '<br /><b>IP:</b> '.$row['ip'];
 					if ($row['action'] == 'KEYWORDBLOCK') {

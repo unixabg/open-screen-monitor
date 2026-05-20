@@ -55,9 +55,9 @@ CREATE TABLE `tbl_group_config` (
 CREATE TABLE `tbl_lab_device` (
   `deviceid` varchar(63) NOT NULL,
   `path` varchar(255) NOT NULL DEFAULT '',
-  `user` varchar(127) NOT NULL DEFAULT '',
-  `location` varchar(127) NOT NULL DEFAULT '',
-  `assetid` varchar(127) NOT NULL DEFAULT '',
+  `annotateduser` varchar(127) NOT NULL DEFAULT '',
+  `annotatedlocation` varchar(127) NOT NULL DEFAULT '',
+  `annotatedassetid` varchar(127) NOT NULL DEFAULT '',
   `lastSynced` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`deviceid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
