@@ -44,7 +44,7 @@ class Devicelastuser extends \OSM\Tools\Route {
 		asort($devices);
 
 		if (isset($_POST['deviceid'])){
-			echo '<b>Device:</b> '.htmlentities( ($devices[$_POST['deviceid']] ?? 'Unknown'));
+			echo '<b>Annotated Info:</b> '.htmlentities( ($devices[$_POST['deviceid']] ?? 'Unknown'));
 			echo '<br /><b>Device ID:</b> '.htmlentities($_POST['deviceid']);
 			$dayLookBack = intval(\OSM\Tools\Config::get('deviceLastUserLookback'));
 			for($i=0;$i<$dayLookBack;$i++){
@@ -78,7 +78,7 @@ class Devicelastuser extends \OSM\Tools\Route {
 
 
 		echo '<form method="post">';
-		echo 'Device: <select name="deviceid">';
+		echo 'Annotated Info: <select name="deviceid">';
 			echo '<option></option>';
 			foreach($devices as $deviceid => $devicename){
 				echo '<option value="'.htmlentities($deviceid).'">'.htmlentities($devicename).'</option>';

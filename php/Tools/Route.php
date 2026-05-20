@@ -174,7 +174,9 @@ class Route {
 				if ($value == ''){continue;}
 				$niceName[] = $value;
 			}
-			return implode(' - ',$niceName);
+			$result = implode(' - ',$niceName);
+			if ($result == ''){return $row['deviceid'];}
+			return $result.' - '.substr($row['deviceid'],0,8);
 		}
 		return '';
 	}
@@ -190,7 +192,11 @@ class Route {
 				$niceName[] = $value;
 			}
 			$row['niceName'] = implode(' - ',$niceName);
-			if ($row['niceName'] == ''){$row['niceName'] = $row['deviceid'];}
+			if ($row['niceName'] == ''){
+				$row['niceName'] = $row['deviceid'];
+			} else {
+				$row['niceName'] .= ' - '.substr($row['deviceid'],0,8);
+			}
 
 			if ($mode == 'labs'){
 				$toReturn[ $row['path'] ][ $row['deviceid'] ] = $row;

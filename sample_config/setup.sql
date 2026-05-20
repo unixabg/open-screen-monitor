@@ -59,6 +59,7 @@ CREATE TABLE `tbl_lab_device` (
   `annotatedlocation` varchar(127) NOT NULL DEFAULT '',
   `annotatedassetid` varchar(127) NOT NULL DEFAULT '',
   `lastSynced` datetime NOT NULL DEFAULT current_timestamp(),
+  `serialnumber` varchar(63) NOT NULL DEFAULT '',
   PRIMARY KEY (`deviceid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

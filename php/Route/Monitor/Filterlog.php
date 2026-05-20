@@ -15,8 +15,13 @@ class Filterlog extends \OSM\Tools\Route {
 			if ($row['annotateduser'] != ''){$nicename[] = $row['annotateduser'];}
 			if ($row['annotatedlocation'] != ''){$nicename[] = $row['annotatedlocation'];}
 			if ($row['annotatedassetid'] != ''){$nicename[] = $row['annotatedassetid'];}
+			if ($row['serialnumber'] != ''){$nicename[] = $row['serialnumber'];}
 			$nicename = implode(' - ',$nicename);
-			if ($nicename == ''){$nicename = 'Unknown: '.$row['deviceid'];}
+			if ($nicename == ''){
+				$nicename = 'Unknown: '.$row['deviceid'];
+			} else {
+				$nicename .= ' - '.substr($row['deviceid'],0,8);
+			}
 
 			$deviceNames[ $row['deviceid'] ] = $nicename;
 		}
@@ -41,6 +46,7 @@ class Filterlog extends \OSM\Tools\Route {
 		$username = $_POST['username'] ?? '';
 		$deviceid = $_POST['deviceid'] ?? '';
 		$device = $_POST['device'] ?? '';
+		$devicesearch = $_POST['devicesearch'] ?? '';
 		$type = $_POST['type'] ?? '';
 		$initiator = $_POST['initiator'] ?? '';
 
@@ -117,6 +123,17 @@ class Filterlog extends \OSM\Tools\Route {
 			if ($deviceid != ''){
 				$where[] = 'deviceid = :device2';
 				$bindings[':device2'] = $deviceid;
+			}
+
+			if ($devicesearch != ''){
+				$matchingDevices = \OSM\Tools\DB::select('tbl_lab_device',['where'=>'annotateduser LIKE :ds1 OR annotatedlocation LIKE :ds2 OR annotatedassetid LIKE :ds3 OR serialnumber LIKE :ds4','bindings'=>[':ds1'=>'%'.$devicesearch.'%',':ds2'=>'%'.$devicesearch.'%',':ds3'=>'%'.$devicesearch.'%',':ds4'=>'%'.$devicesearch.'%']]);
+				$matchingIDs = array_column($matchingDevices,'deviceid');
+				if (!empty($matchingIDs)){
+					$inList = implode(',',array_map(fn($id)=>"'".addslashes($id)."'",$matchingIDs));
+					$where[] = 'deviceid IN ('.$inList.')';
+				} else {
+					$where[] = '1=0';
+				}
 			}
 
 			if (!$_SESSION['admin']){
@@ -201,6 +218,7 @@ class Filterlog extends \OSM\Tools\Route {
 			echo '</select>';
 		echo '<br />Username:<br /><input type="text" name="username" value="'.htmlentities($username).'" />';
 		echo '<br />Device ID:<br /><input type="text" name="deviceid" value="'.htmlentities($deviceid).'" />';
+		echo '<br />Device Search:<br /><input type="text" name="devicesearch" value="'.htmlentities($devicesearch).'" placeholder="serial, asset, user, location" />';
 		echo '<br />Annotated Info:<br /><select name="device">';
 			echo '<option></option>';
 			foreach($deviceNames as $deviceid => $nicename){
