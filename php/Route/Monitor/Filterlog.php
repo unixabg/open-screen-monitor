@@ -112,7 +112,7 @@ class Filterlog extends \OSM\Tools\Route {
 			}
 
 			if (!isset($_POST['showadvanced'])){
-				$where[] = 'type = "main_frame"';
+				$where[] = '(type = "main_frame" OR action IN ("TRIGGER","TRIGGER_EXEMPT"))';
 			}
 
 			if ($device != ''){

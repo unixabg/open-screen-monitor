@@ -31,7 +31,7 @@ CREATE TABLE `tbl_filter_log` (
   `username` varchar(63) NOT NULL DEFAULT '',
   `deviceid` varchar(63) NOT NULL DEFAULT '',
   `action` varchar(15) NOT NULL DEFAULT '',
-  `type` varchar(15) NOT NULL DEFAULT '',
+  `type` varchar(63) NOT NULL DEFAULT '',
   `url` varchar(2083) NOT NULL DEFAULT '',
   `date` date NOT NULL DEFAULT current_timestamp(),
   `time` time NOT NULL DEFAULT current_timestamp(),
