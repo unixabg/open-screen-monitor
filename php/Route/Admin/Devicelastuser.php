@@ -37,7 +37,10 @@ class Devicelastuser extends \OSM\Tools\Route {
 			.content {max-width:800px;margin:auto;padding-top:40px;}
 		';
 
-		echo '<h2>Find Last User for Device</h2>';
+		$dayLookBack = intval(\OSM\Tools\Config::get('deviceLastUserLookback'));
+
+		echo '<h2>Find Users for Device</h2>';
+		echo '<p>Showing all users active on device within the last '.$dayLookBack.' days.</p>';
 
 		$devices = $this->deviceNames();
 		asort($devices);
@@ -64,8 +67,6 @@ class Devicelastuser extends \OSM\Tools\Route {
 				echo '<p>No devices found matching: '.htmlentities($search).'</p>';
 			}
 
-			$dayLookBack = intval(\OSM\Tools\Config::get('deviceLastUserLookback'));
-
 			foreach($matchingDevices as $device){
 				$deviceid = $device['deviceid'];
 				$nicename = $devices[$deviceid] ?? $deviceid;
@@ -73,7 +74,7 @@ class Devicelastuser extends \OSM\Tools\Route {
 				echo '<b>Annotated Info:</b> '.htmlentities($nicename);
 				echo '<br /><b>Device ID:</b> '.htmlentities($deviceid);
 
-				$found = false;
+				$users = [];
 				for($i=0;$i<$dayLookBack;$i++){
 					$day = strtotime('-'.$i.' days');
 					$rows = \OSM\Tools\DB::select('tbl_filter_log',[
@@ -81,22 +82,34 @@ class Devicelastuser extends \OSM\Tools\Route {
 							'date' => date('Y-m-d',$day),
 							'deviceid' => $deviceid,
 						],
-						'limit' => 1,
 						'order' => 'time desc',
 					]);
-
-					if (isset($rows[0])){
-						echo '<br /><b>Username:</b> '.htmlentities($rows[0]['username']);
-						echo '<br /><b>Date:</b> '.htmlentities($rows[0]['date']);
-						echo '<br /><b>Time:</b> '.htmlentities($rows[0]['time']);
-						echo '<br /><b>IP:</b> '.htmlentities($rows[0]['ip']);
-						$found = true;
-						break;
+					foreach($rows as $row){
+						if (!isset($users[$row['username']])){
+							$users[$row['username']] = [
+								'date' => $row['date'],
+								'time' => $row['time'],
+								'ip'   => $row['ip'],
+							];
+						}
 					}
 				}
 
-				if (!$found){
-					echo '<br /><b>Not found in the last '.$dayLookBack.' days</b>';
+				if (!empty($users)){
+					echo '<br />';
+					echo '<table>';
+					echo '<tr><th>Username</th><th>Last Seen Date</th><th>Last Seen Time</th><th>IP</th></tr>';
+					foreach($users as $username => $info){
+						echo '<tr>';
+						echo '<td>'.htmlentities($username).'</td>';
+						echo '<td>'.htmlentities($info['date']).'</td>';
+						echo '<td>'.htmlentities($info['time']).'</td>';
+						echo '<td>'.htmlentities($info['ip']).'</td>';
+						echo '</tr>';
+					}
+					echo '</table>';
+				} else {
+					echo '<br /><b>No activity found in the last '.$dayLookBack.' days</b>';
 				}
 			}
 
