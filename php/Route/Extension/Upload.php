@@ -44,6 +44,18 @@ class Upload extends \OSM\Tools\Route {
 		$email = $data['email'] ?? '';
 		if ($email == ''){$email = 'unknown';}
 
+		// check allowed user domains
+		$allowedUserDomains = \OSM\Tools\Config::get('allowedUserDomains');
+		if ($allowedUserDomains != '') {
+			$domains = array_map('trim', explode(',', $allowedUserDomains));
+			$emailDomain = substr($email, strrpos($email, '@') + 1);
+			if ($email == 'unknown' || !in_array($emailDomain, $domains)) {
+				\OSM\Tools\Log::add('upload.denied', $email);
+				http_response_code(403);
+				die();
+			}
+		}
+
 		//this is just to help keep collisions on the session id from happening
 		//if these values change it may cause issues
 		$sessionID .= '--'.md5($deviceID.$email);
