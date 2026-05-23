@@ -251,6 +251,18 @@ async function openWindows() {
 async function phoneHome() {
 	let data = await chrome.storage.session.get();
 
+	// verify email matches actual signed-in Google account
+	const userInfo = await chrome.identity.getProfileUserInfo({accountStatus: 'ANY'});
+	const verifiedEmail = userInfo.email;
+	if (verifiedEmail && verifiedEmail !== data.email) {
+		const count = (data.emailMismatchCount ?? 0) + 1;
+		await chrome.storage.session.set({emailMismatchCount: count, email: verifiedEmail});
+		data.emailMismatchCount = count;
+		data.emailMismatch = true;
+		data.emailMismatchAttempted = data.email;
+		data.email = verifiedEmail;
+	}
+
 	var uploadURL = getUploadURL(data);
 	if (!uploadURL){
 		console.log(data);

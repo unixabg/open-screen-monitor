@@ -61,6 +61,12 @@ class Config {
 			self::$config['allTeachersGetBypass'] = true;
 			//comma separated list of allowed email domains e.g. example.com,anotherschool.org
 			self::$config['allowedUserDomains'] = '';
+			//email address to receive security alert notifications
+			self::$config['securityAlertEmail'] = '';
+			//enable email alerts for security events (email mismatch detection)
+			self::$config['enableSecurityAlerts'] = false;
+			//send security alert email every N mismatch detections
+			self::$config['securityAlertFrequency'] = 10;
 
 			//overlay settings from database
 			$query = DB::select('tbl_config');
