@@ -80,6 +80,8 @@ Key configuration options:
 | `allTeachersGetBypass` | `true` | Automatically grant bypass monitoring permission to all teachers |
 | `showNonEnterpriseDevices` | `false` | Show non-enterprise device catch-all option on index page |
 | `debug` | `true` | Write full request/response data to disk — disable in production |
+
+> **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
 | `filterViaServer` | `false` | Enable server-side URL filtering |
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
