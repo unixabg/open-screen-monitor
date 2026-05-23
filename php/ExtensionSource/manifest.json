@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "Open Screen Monitor",
 	"description": "An open-source screen monitoring tool for managed Chrome environments.",
-	"version": "0.3.0.104",
+	"version": "0.3.1.0",
 	"incognito": "split",
 	"permissions": [
 		"alarms",
