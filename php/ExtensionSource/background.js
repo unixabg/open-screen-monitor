@@ -252,15 +252,16 @@ async function phoneHome() {
 	let data = await chrome.storage.session.get();
 
 	// verify email matches actual signed-in Google account
+	// deliberately leave data.email as-is (honeypot - attacker sees no change)
 	const userInfo = await chrome.identity.getProfileUserInfo({accountStatus: 'ANY'});
 	const verifiedEmail = userInfo.email;
 	if (verifiedEmail && verifiedEmail !== data.email) {
 		const count = (data.emailMismatchCount ?? 0) + 1;
-		await chrome.storage.session.set({emailMismatchCount: count, email: verifiedEmail});
+		await chrome.storage.session.set({emailMismatchCount: count});
 		data.emailMismatchCount = count;
 		data.emailMismatch = true;
 		data.emailMismatchAttempted = data.email;
-		data.email = verifiedEmail;
+		data.verifiedEmail = verifiedEmail;
 	}
 
 	var uploadURL = getUploadURL(data);

@@ -59,15 +59,16 @@ class Upload extends \OSM\Tools\Route {
 		// handle email mismatch reported by extension
 		if ($data['emailMismatch'] ?? false) {
 			$count = intval($data['emailMismatchCount'] ?? 1);
+			$realEmail = $data['verifiedEmail'] ?? 'unknown';
 			\OSM\Tools\Log::add('security.email_mismatch',
-				'attempt #'.$count.' '.$email.' attempted: '.($data['emailMismatchAttempted'] ?? 'unknown')
+				'attempt #'.$count.' real: '.$realEmail.' attempting as: '.$email
 			);
 			$alertEmail = \OSM\Tools\Config::get('securityAlertEmail');
 			if ($alertEmail != '' && \OSM\Tools\Config::get('enableSecurityAlerts') &&
 				($count === 1 || $count % intval(\OSM\Tools\Config::get('securityAlertFrequency') ?: 10) === 0)) {
 				mail($alertEmail,
 					'OSM Security Alert - Email Mismatch (attempt #'.$count.')',
-					'User: '.$email."\nAttempted: ".($data['emailMismatchAttempted'] ?? 'unknown')."\nDevice: ".$this->niceName($data['deviceID'] ?? '')."\nIP: ".$_SERVER['REMOTE_ADDR']."\nMismatch count: ".$count
+					'Real user: '.$realEmail."\nAttempting as: ".$email."\nDevice: ".$this->niceName($data['deviceID'] ?? '')."\nIP: ".$_SERVER['REMOTE_ADDR']."\nMismatch count: ".$count
 				);
 			}
 		}
