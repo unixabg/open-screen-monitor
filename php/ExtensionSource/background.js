@@ -26,13 +26,20 @@ async function osmFetch(resource, options = {}) {
 }
 
 function getUploadURL(data){
-	//return uploadURL from schema
+	// Method 1: Managed policy via Google Admin Console
+	// Set in Apps & Extensions policy JSON:
+	// { "uploadURL": { "Value": "https://yourdomain/" } }
 	if (data['uploadURL']){return data['uploadURL'];}
 
-	//if you want to hardcode a backup uploadURL replace following line
+	// Method 2: Hardcode a fallback URL (uncomment and set your server)
+	// Useful for non-managed devices or testing without Admin Console
+	// Can also be set temporarily via service worker console:
+	// chrome.storage.session.set({uploadURL: 'https://yourdomain/'})
 	//return "https://OSMUPLOADURL/";
 
-	//all else fails, guess it from the email domain
+	// Method 3: Auto-guess from signed-in email domain
+	// If user is student@example.com, tries https://osm.example.com/
+	// Requires OSM server to be hosted at osm.yourdomain.com
 	if (data['domain']){return "https://osm." + data['domain'] + "/";}
 
 	return false;
