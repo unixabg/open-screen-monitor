@@ -59,7 +59,7 @@ class Config {
 			self::$config['oneRosterUserIgnore'] = [];
 			self::$config['apiSecrets'] = [];
 			self::$config['allTeachersGetBypass'] = true;
-			//comma separated list of allowed email domains e.g. mg.k12.mo.us,anotherschool.org
+			//comma separated list of allowed email domains e.g. example.com,anotherschool.org
 			self::$config['allowedUserDomains'] = '';
 
 			//overlay settings from database

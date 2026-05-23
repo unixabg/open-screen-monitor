@@ -70,7 +70,7 @@ Key configuration options:
 
 | Key | Default | Description |
 |---|---|---|
-| `allowedUserDomains` | _(empty)_ | Comma-separated list of permitted email domains for extension uploads. Empty accepts all. Example: `mg.k12.mo.us,anotherschool.org` |
+| `allowedUserDomains` | _(empty)_ | Comma-separated list of permitted email domains for extension uploads. Empty accepts all. Example: `example.com,anotherschool.org` |
 | `enableGoogleClassroom` | `false` | Enable Google Classroom integration on the index page |
 | `enableOneRoster` | `false` | Enable OneRoster roster sync and class monitoring |
 | `enableLab` | `true` | Enable device lab monitoring |
