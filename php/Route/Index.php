@@ -107,7 +107,7 @@ class Index extends \OSM\Tools\Route {
 				}
 				if (!empty($data)) {
 					$data = json_decode($data,true);
-					$courses = $data['courses'];
+					$courses = $data['courses'] ?? [];
 					while (isset($data['nextPageToken']) && $data['nextPageToken'] != '') {
 						$data = file_get_contents($url.'&pageToken='.urlencode($data['nextPageToken']), false, $context);
 						if (!empty($data)) {
