@@ -50,7 +50,7 @@ async function getManagedProperties(){
 	try {
 		const tempDevID = await chrome.enterprise.deviceAttributes.getDirectoryDeviceId();
 		chrome.storage.session.set({deviceID: tempDevID});
-		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevID);
 	} catch (e) {
 		console.log("Info: not a managed device.");
 	}
@@ -520,7 +520,7 @@ async function screenscrapeTick(){
 								break;
 							case "BLOCKPAGE":
 								console.log("Blockpaging tab: " + tab.url);
-								chrome.tabs.update(tab.id,{url:uploadURL+'?block&'+command['data']});
+								chrome.tabs.update(tab.id, {url: command['data']});
 								break;
 							case "NOTIFY":
 								console.log("Notification: " + tab.url);
