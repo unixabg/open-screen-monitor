@@ -57,15 +57,13 @@ class Upgrade extends \OSM\Tools\Route {
 		echo '<summary><b>Database Schema Diagnostics</b> (click to expand)</summary>';
 		echo '<br />';
 
-		$pdo = \OSM\Tools\DB::getPDO();
-		$stmt = $pdo->query("
+		$columns = \OSM\Tools\DB::selectRaw("
 			SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
 			FROM INFORMATION_SCHEMA.COLUMNS
 			WHERE TABLE_SCHEMA = DATABASE()
 			AND TABLE_NAME LIKE 'tbl_%'
 			ORDER BY TABLE_NAME, ORDINAL_POSITION
 		");
-		$columns = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 		$currentTable = '';
 		foreach ($columns as $col){
