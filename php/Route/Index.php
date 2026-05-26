@@ -90,9 +90,11 @@ class Index extends \OSM\Tools\Route {
 			if (\OSM\Tools\Config::get('enableGoogleClassroom')){
 				echo '<div>';
 				//sync courses
+				$this->requireCurrentGoogle();
 				$context = stream_context_create(['http' =>[
 					'method'=>'GET',
 					'header'=>'Authorization: Bearer '.$_SESSION['token']->access_token,
+					'ignore_errors'=>true,
 				]]);
 
 				//links below are a reference for request and response
@@ -100,6 +102,9 @@ class Index extends \OSM\Tools\Route {
 				$courses = array();
 				$url = 'https://classroom.googleapis.com/v1/courses?pageSize=100&courseStates=ACTIVE'.($_SESSION['admin'] ? '':'&teacherId=me');
 				$data = file_get_contents($url, false, $context);
+				if (isset($http_response_header[0]) && strpos($http_response_header[0],'401') !== false){
+					$this->requireCurrentGoogle();
+				}
 				if (!empty($data)) {
 					$data = json_decode($data,true);
 					$courses = $data['courses'];
