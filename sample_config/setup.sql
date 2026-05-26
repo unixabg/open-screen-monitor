@@ -4,6 +4,8 @@ CREATE TABLE `tbl_config` (
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '1');
+
 CREATE TABLE `tbl_filter_entry` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `url` varchar(255) NOT NULL DEFAULT '',

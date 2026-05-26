@@ -10,7 +10,6 @@ class Config {
 
 			//set system wide version for php scripts
 			self::$config['version']='0.4.0.4-next';
-			self::$config['dbSchemaVersion']=1; //bump with we make schema changes
 
 			//set the default time chrome will wait between phone home attempst to the upload script
 			self::$config['uploadRefreshTime']=9000;

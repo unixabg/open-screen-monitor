@@ -3,17 +3,21 @@ namespace OSM\Route\Admin;
 
 class Upgrade extends \OSM\Tools\Route {
 
+	// Schema version lives here as a class constant, NOT in Config::get(),
+	// to prevent the admin UI from accidentally writing it to tbl_config.
 	// When adding a schema change:
-	// 1. Increment dbSchemaVersion in Config.php
-	// 2. Add a new entry here with the SQL to run
+	// 1. Increment DB_SCHEMA_VERSION below
+	// 2. Add a new entry to $migrations with the SQL to run
+	const DB_SCHEMA_VERSION = 1;
+
 	private static $migrations = [
-		1 => "-- Baseline schema (next branch). If you are seeing this,\n-- run setup.sql from sample_config/setup.sql and then:\nINSERT INTO tbl_config (name, value) VALUES ('dbSchemaVersion', '1');",
+		1 => "INSERT INTO tbl_config (name, value) VALUES ('dbSchemaVersion', '1');",
 	];
 
 	public function action(){
 		$this->requireAdmin();
 
-		$required = intval(\OSM\Tools\Config::get('dbSchemaVersion'));
+		$required = self::DB_SCHEMA_VERSION;
 
 		$row = \OSM\Tools\DB::select('tbl_config',['where'=>'name = :name','bindings'=>[':name'=>'dbSchemaVersion']]);
 		$applied = isset($row[0]) ? intval($row[0]['value']) : 0;
@@ -35,7 +39,7 @@ class Upgrade extends \OSM\Tools\Route {
 			echo '<pre style="background:#111;color:#0f0;padding:1em;">'.htmlentities($sql).'</pre>';
 		}
 
-		echo '<p>After running all migrations, update the applied version:</p>';
-		echo '<pre style="background:#111;color:#0f0;padding:1em;">UPDATE tbl_config SET value = \''.$required.'\' WHERE name = \'dbSchemaVersion\';</pre>';
+		echo '<p>After running all migrations, verify with:</p>';
+		echo '<pre style="background:#111;color:#0f0;padding:1em;">SELECT value FROM tbl_config WHERE name = \'dbSchemaVersion\';</pre>';
 	}
 }
