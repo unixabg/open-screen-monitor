@@ -156,7 +156,7 @@ class Config {
 
 	public static function filterPath(){
 		//put in clients folder so might be ramdisked
-		return $GLOBALS['dataDir'].'clients/filter.json';
+		return $GLOBALS['dataDir'].'/clients/filter.json';
 	}
 
 	public static function refreshFilter(){
