@@ -156,7 +156,7 @@ class Filter extends \OSM\Tools\Route {
 
 			if (!in_array($entry['username'],['',$data['email']])){continue;}
 
-			if (!in_array($entry['initiator'],['',$entry['initiator']])){continue;}
+			if ($entry['initiator'] != '' && !$this->testString($data['initiator'], $entry['initiator'])){continue;}
 
 			if ($this->testURL($data,$entry['url'])){
 				// Log action to log file
@@ -188,10 +188,9 @@ class Filter extends \OSM\Tools\Route {
 					$raw .= "User: ".$data['email']
 						."\nDevice: ".$this->niceName($data['deviceID'])
 						."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
-						."\nTriggered on keyword or url of: $url"
-						."\n".str_replace("\t","\n",$logentry)
+						."\nTriggered on keyword or url of: ".$data['url']
 						."\r\n\r\n";
-					$screenshot = \OSM\Tools\TempDB::get('screenshot/'.$sessionID);;
+					$screenshot = \OSM\Tools\TempDB::get('screenshot/'.$data['sessionID']);
 					if ($screenshot != '') {
 						$raw .= "--".$uid."\r\n";
 						$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
