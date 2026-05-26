@@ -5,7 +5,10 @@ class Upgrade extends \OSM\Tools\Route {
 	public function action(){
 		$this->requireAdmin();
 
-		echo '<h1>OSM Upgrade Tools</h1>';
+		echo '<h1 style="color:red;font-size:3em;">FIXME: Upgrade/Migration system needs to be rebuilt</h1>';
+		return;
+
+		/* FIXME: entire upgrade tool disabled pending migration system rewrite
 
 		if (isset($_POST['action'])){
 			switch($_POST['action']){
@@ -39,7 +42,11 @@ class Upgrade extends \OSM\Tools\Route {
 			echo '</select>';
 		echo ' <input type="submit" value="Run" />';
 		echo '</form>';
+
+		FIXME: end of disabled block */
 	}
+
+	/* FIXME: private methods disabled pending migration system rewrite
 
 	private static function importConfig(){
 		echo '<pre>';
@@ -91,7 +98,6 @@ class Upgrade extends \OSM\Tools\Route {
 				$data['resourceType'] = '';
 				$data['actionData'] = '';
 
-
 				$line = explode("\t",$line);
 				$count = count($line);
 				if($list == 'whitelist' && $count == 1){
@@ -140,7 +146,6 @@ class Upgrade extends \OSM\Tools\Route {
 					$data['action'] = 'REDIRECT';
 				}
 
-
 				if ($data['url'] != ''){
 					\OSM\Tools\DB::insert('tbl_filter_entry',$data);
 				}
@@ -170,6 +175,7 @@ class Upgrade extends \OSM\Tools\Route {
 				\OSM\Tools\DB::insert('tbl_lab_permission',$fields);
 		        }
 		}
-
 	}
+
+	FIXME: end of disabled methods */
 }
