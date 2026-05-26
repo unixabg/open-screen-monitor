@@ -37,6 +37,17 @@ class Upgrade extends \OSM\Tools\Route {
 			$sql = static::$migrations[$v] ?? '-- No migration defined for version '.$v;
 			echo '<h3>Migration to version '.$v.'</h3>';
 			echo '<pre style="background:#111;color:#0f0;padding:1em;">'.htmlentities($sql).'</pre>';
+			echo '<p>Or run directly from CLI:</p>';
+			echo '<pre style="background:#111;color:#0f0;padding:1em;">';
+			echo htmlentities('# As osm user:')."
+";
+			echo htmlentities('mysql -u osm -p osm -e "'.str_replace('"','\"',$sql).'"')."
+
+";
+			echo htmlentities('# As root:')."
+";
+			echo htmlentities('mysql -u root -p osm -e "'.str_replace('"','\"',$sql).'"');
+			echo '</pre>';
 		}
 
 		echo '<p>After running all migrations, verify with:</p>';
