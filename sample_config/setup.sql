@@ -1,10 +1,10 @@
 CREATE TABLE `tbl_config` (
   `name` varchar(127) NOT NULL DEFAULT '',
-  `value` varchar(255) NOT NULL DEFAULT '',
+  `value` text NOT NULL DEFAULT '',
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '1');
+INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '2');
 
 CREATE TABLE `tbl_filter_entry` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

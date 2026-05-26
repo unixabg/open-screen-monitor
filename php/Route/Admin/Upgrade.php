@@ -8,10 +8,11 @@ class Upgrade extends \OSM\Tools\Route {
 	// When adding a schema change:
 	// 1. Increment DB_SCHEMA_VERSION below
 	// 2. Add a new entry to $migrations with the SQL to run
-	const DB_SCHEMA_VERSION = 1;
+	const DB_SCHEMA_VERSION = 2;
 
 	private static $migrations = [
 		1 => "INSERT INTO tbl_config (name, value) VALUES ('dbSchemaVersion', '1');",
+		2 => "ALTER TABLE tbl_config MODIFY value TEXT NOT NULL DEFAULT '';",
 	];
 
 	public function action(){
