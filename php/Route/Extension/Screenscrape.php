@@ -19,6 +19,18 @@ class Screenscrape extends \OSM\Tools\Route {
 		}
 		$data['text'] = strtolower($data['text']);
 
+		// check allowed user domains
+		$allowedUserDomains = \OSM\Tools\Config::get('allowedUserDomains');
+		if ($allowedUserDomains != '') {
+			$domains = array_map('trim', explode(',', $allowedUserDomains));
+			$emailDomain = substr($data['email'], strrpos($data['email'], '@') + 1);
+			if ($data['email'] == 'unknown' || !in_array($emailDomain, $domains)) {
+				\OSM\Tools\Log::add('screenscrape.denied', $data['email']);
+				http_response_code(403);
+				die();
+			}
+		}
+
 		//validate sessionID
 		$data['sessionID'] = preg_replace('/[^0-9a-z\-]/','',$data['sessionID']);
 
