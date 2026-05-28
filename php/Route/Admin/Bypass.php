@@ -112,12 +112,24 @@ class Bypass extends \OSM\Tools\Route {
 		echo '<br />';
 
 		echo '<table style="width:100%;">';
-		echo '<tr><th>Group</th><th>Email</th><th>Name</th><th>Delete</th></tr>';
+		echo '<tr><th>Group</th><th>Add to Group</th><th>Email</th><th>Name</th><th>Delete</th></tr>';
 		asort($groups);
+		$renderedGroups = [];
 		foreach($groups as $group => $users){
 			foreach($users as $email => $name){
 				echo '<tr>';
-				echo '<td>'.htmlentities($group).' (<a href="/?route=Admin\Bypass&group='.urlencode($group).'">View</a>)</td>';
+				echo '<td>'.htmlentities($group).' (<a href="/?route=Admin\\Bypass&group='.urlencode($group).'">View</a>)</td>';
+				// + button column — only show once per group
+				if (!isset($renderedGroups[$group])){
+					$renderedGroups[$group] = true;
+					echo '<td><form method="post" style="display:flex;gap:5px;">';
+					echo '<input type="hidden" name="add[group]" value="'.htmlentities($group).'" />';
+					echo '<input type="email" name="add[manual_email]" placeholder="user@example.com" required style="width:220px;" />';
+					echo '<input type="submit" value="+" />';
+					echo '</form></td>';
+				} else {
+					echo '<td></td>';
+				}
 				echo '<td>'.htmlentities($email).'</td>';
 				echo '<td>'.htmlentities($name).'</td>';
 				echo '<td><form method="post"><input type="hidden" name="delete" value="'.htmlentities($email).'" /><input type="submit" value="Delete" /></form></td>';
