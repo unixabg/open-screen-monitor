@@ -8,9 +8,13 @@ class Bypass extends \OSM\Tools\Route {
 		}
 
 		$namesByEmail = [];
-		$rows = \OSM\Tools\DB::selectRaw('select distinct email, name from tbl_oneroster where role = "student" order by email');
-		foreach($rows as $row){
-			$namesByEmail[ $row['email'] ] = $row['name'];
+		// Only query OneRoster if enabled — bypass works without it.
+		// If another roster tool is added in future, populate $namesByEmail here.
+		if (\OSM\Tools\Config::get('enableOneRoster')){
+			$rows = \OSM\Tools\DB::selectRaw('select distinct email, name from tbl_oneroster where role = "student" order by email');
+			foreach($rows as $row){
+				$namesByEmail[ $row['email'] ] = $row['name'];
+			}
 		}
 
 
@@ -50,9 +54,16 @@ class Bypass extends \OSM\Tools\Route {
 		//next let them add or delete bypass users
 		if ($add = $_POST['add'] ?? false){
 			$emails = $add['email'] ?? [];
+			// Allow manual email entry so bypass works without OneRoster.
+			// OneRoster checkboxes are a convenience only, not a gate.
+			$manualEmail = trim($add['manual_email'] ?? '');
+			if ($manualEmail != ''){ $emails[] = $manualEmail; }
 			$group = $add['group'] ?? '';
 			foreach($emails as $email){
-				if (isset($namesByEmail[$email]) && $group != ''){
+				$email = trim($email);
+				// Original gate: isset($namesByEmail[$email])
+				// Removed — any valid email can be bypassed regardless of roster.
+				if ($email != '' && $group != ''){
 					\OSM\Tools\TempDB::set('bypass/'.bin2hex($email),$group,\OSM\Tools\Config::get('bypassTimeout'));
 					\OSM\Tools\Log::add('bypass.addStudent',$email,$group);
 				}
@@ -80,14 +91,19 @@ class Bypass extends \OSM\Tools\Route {
 		echo '<form method="post">';
 		echo '<h3>Add Student:</h3>';
 		echo '<div style="display:flex;justify-content:space-around;"><b>Group Name:</b> <input required name="add[group]" /><input type="submit" /></div>';
-		echo '<div style="overflow-y:scroll;height:500px;display:inline-block;padding:10px;margin:10px;">';
-		echo '<table style="padding:10px;width:100%;">';
-			ksort($namesByEmail);
-			foreach($namesByEmail as $email => $name){
-				echo '<tr><td><input name="add[email][]" type="checkbox" value="'.htmlentities($email).'"></td><td>'.htmlentities($email).'</td><td>'.htmlentities($name).'</td></tr>';
-			}
-		echo '</table>';
+		echo '<div style="padding:10px;">';
+		echo '<b>Manual Email:</b> <input type="email" name="add[manual_email]" placeholder="user@example.com" style="width:300px;" />';
 		echo '</div>';
+		if (\OSM\Tools\Config::get('enableOneRoster') && !empty($namesByEmail)){
+			echo '<div style="overflow-y:scroll;height:500px;display:inline-block;padding:10px;margin:10px;">';
+			echo '<table style="padding:10px;width:100%;">';
+				ksort($namesByEmail);
+				foreach($namesByEmail as $email => $name){
+					echo '<tr><td><input name="add[email][]" type="checkbox" value="'.htmlentities($email).'"></td><td>'.htmlentities($email).'</td><td>'.htmlentities($name).'</td></tr>';
+				}
+			echo '</table>';
+			echo '</div>';
+		}
 		echo '</form>';
 		echo '</div>';
 
