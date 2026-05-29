@@ -6,6 +6,11 @@ class Googleclassroom extends \OSM\Tools\Route {
 		$this->requireLogin();
 		$this->requireCurrentGoogle();
 
+		if (!isset($_GET['class'])){
+			echo '<p>No classroom specified. Please select a classroom from the <a href="/?route=Monitor\Viewer">Monitor Viewer</a>.</p>';
+			die();
+		}
+
 		if (!\OSM\Tools\Config::get('enableGoogleClassroom')) {
 			die('OSM does not have Google Classroom enabled');
 		}
