@@ -31,6 +31,8 @@ if (!isset($_GET['route'])){
 		$_SESSION['lab'] = 'Non Enterprise Devices';
 		header('Location: /?route=Monitor\Viewer');
 		die();
+	} elseif (isset($_GET['upload_legacy'])){
+		$_GET['route'] = 'Extension\\Uploadlegacy';
 	} elseif (isset($_GET['upload'])){
 		$_GET['route'] = 'Extension\\Upload';
 	} elseif (isset($_GET['filter'])){
