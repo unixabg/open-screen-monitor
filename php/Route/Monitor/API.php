@@ -297,7 +297,7 @@ class API extends \OSM\Tools\Route {
 					'webSQL'=>true,
 				],
 			]);
-			$logData['text'] = $_POST['clearCache'];
+			$logData['text'] = $_POST['clearCache'] ?? '';
 			\OSM\Tools\Log::add('monitor.clearCache',$logTarget,$logData);
 			die();
 		}

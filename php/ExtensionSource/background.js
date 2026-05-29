@@ -26,13 +26,20 @@ async function osmFetch(resource, options = {}) {
 }
 
 function getUploadURL(data){
-	//return uploadURL from schema
+	// Method 1: Managed policy via Google Admin Console
+	// Set in Apps & Extensions policy JSON:
+	// { "uploadURL": { "Value": "https://yourdomain/" } }
 	if (data['uploadURL']){return data['uploadURL'];}
 
-	//if you want to hardcode a backup uploadURL replace following line
+	// Method 2: Hardcode a fallback URL (uncomment and set your server)
+	// Useful for non-managed devices or testing without Admin Console
+	// Can also be set temporarily via service worker console:
+	// chrome.storage.session.set({uploadURL: 'https://yourdomain/'})
 	//return "https://OSMUPLOADURL/";
 
-	//all else fails, guess it from the email domain
+	// Method 3: Auto-guess from signed-in email domain
+	// If user is student@example.com, tries https://osm.example.com/
+	// Requires OSM server to be hosted at osm.yourdomain.com
 	if (data['domain']){return "https://osm." + data['domain'] + "/";}
 
 	return false;
@@ -43,7 +50,7 @@ async function getManagedProperties(){
 	try {
 		const tempDevID = await chrome.enterprise.deviceAttributes.getDirectoryDeviceId();
 		chrome.storage.session.set({deviceID: tempDevID});
-		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevId);
+		console.log('Managed device with DeviceIdOfTheDirectoryAPI: ', tempDevID);
 	} catch (e) {
 		console.log("Info: not a managed device.");
 	}
@@ -250,6 +257,19 @@ async function openWindows() {
 //used by alarmtick
 async function phoneHome() {
 	let data = await chrome.storage.session.get();
+
+	// verify email matches actual signed-in Google account
+	// deliberately leave data.email as-is (honeypot - attacker sees no change)
+	const userInfo = await chrome.identity.getProfileUserInfo({accountStatus: 'ANY'});
+	const verifiedEmail = userInfo.email;
+	if (verifiedEmail && verifiedEmail !== data.email) {
+		const count = (data.emailMismatchCount ?? 0) + 1;
+		await chrome.storage.session.set({emailMismatchCount: count});
+		data.emailMismatchCount = count;
+		data.emailMismatch = true;
+		data.emailMismatchAttempted = data.email;
+		data.verifiedEmail = verifiedEmail;
+	}
 
 	var uploadURL = getUploadURL(data);
 	if (!uploadURL){
@@ -500,7 +520,7 @@ async function screenscrapeTick(){
 								break;
 							case "BLOCKPAGE":
 								console.log("Blockpaging tab: " + tab.url);
-								chrome.tabs.update(tab.id,{url:uploadURL+'?block&'+command['data']});
+								chrome.tabs.update(tab.id, {url: command['data']});
 								break;
 							case "NOTIFY":
 								console.log("Notification: " + tab.url);

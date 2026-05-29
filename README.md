@@ -61,6 +61,32 @@
 
 FIXME
 
+### Configuration
+
+Configuration is managed through the Config Editor at `/?route=Admin\Config`. Values are stored
+in `tbl_config` and override the defaults defined in `php/Tools/Config.php`.
+
+Key configuration options:
+
+| Key | Default | Description |
+|---|---|---|
+| `allowedUserDomains` | _(empty)_ | Comma-separated list of permitted email domains for extension uploads. Empty accepts all. Example: `example.com,anotherschool.org` |
+| `enableGoogleClassroom` | `false` | Enable Google Classroom integration on the index page |
+| `enableOneRoster` | `false` | Enable OneRoster roster sync and class monitoring |
+| `enableLab` | `true` | Enable device lab monitoring |
+| `screenscrape` | `false` | Enable page text scanning for keyword triggers |
+| `screenscrapeTime` | `20000` | Interval in milliseconds between screenscrape checks |
+| `deviceLastUserLookback` | `7` | Number of days to look back when finding last user of a device |
+| `allTeachersGetBypass` | `true` | Automatically grant bypass monitoring permission to all teachers |
+| `showNonEnterpriseDevices` | `false` | Show non-enterprise device catch-all option on index page |
+| `debug` | `true` | Write full request/response data to disk — disable in production |
+
+> **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
+| `filterViaServer` | `false` | Enable server-side URL filtering |
+| `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
+| `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
+| `userGroupTimeout` | `28800` | User group session timeout in seconds (default 8 hours) |
+
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
 ```

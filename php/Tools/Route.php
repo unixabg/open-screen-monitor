@@ -126,7 +126,12 @@ class Route {
 				echo '<div class="leftHeader">'.$this->leftHeader.'</div>';
 				echo '<h1 style="text-align:center;">'.htmlentities($this->title).'</h1>';
 				echo '<div style="display:flex; float:right; padding-top:5px; padding-right:10px;"><div>';
-					echo 'Version '.Config::get('version');
+					$appliedSchema = intval(\OSM\Tools\DB::select('tbl_config',['where'=>'name = :name','bindings'=>[':name'=>'dbSchemaVersion']])[0]['value'] ?? 0);
+					$requiredSchema = \OSM\Route\Admin\Upgrade::DB_SCHEMA_VERSION;
+					echo 'Version '.Config::get('version').' | Schema v'.$appliedSchema;
+					if ($appliedSchema < $requiredSchema){
+						echo ' <a href="/?route=Admin\\Upgrade" style="color:red;font-weight:bold;">(update required)</a>';
+					}
 					echo '<br /><a href="/">Home</a> ';
 					if (isset($_SESSION['token'])){
 						echo '| <a href="/?logout">Logout</a>';
@@ -174,7 +179,9 @@ class Route {
 				if ($value == ''){continue;}
 				$niceName[] = $value;
 			}
-			return implode(' - ',$niceName);
+			$result = implode(' - ',$niceName);
+			if ($result == ''){return $row['deviceid'];}
+			return $result.' - '.substr($row['deviceid'],0,8);
 		}
 		return '';
 	}
@@ -190,7 +197,11 @@ class Route {
 				$niceName[] = $value;
 			}
 			$row['niceName'] = implode(' - ',$niceName);
-			if ($row['niceName'] == ''){$row['niceName'] = $row['deviceid'];}
+			if ($row['niceName'] == ''){
+				$row['niceName'] = $row['deviceid'];
+			} else {
+				$row['niceName'] .= ' - '.substr($row['deviceid'],0,8);
+			}
 
 			if ($mode == 'labs'){
 				$toReturn[ $row['path'] ][ $row['deviceid'] ] = $row;

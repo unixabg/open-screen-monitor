@@ -44,6 +44,35 @@ class Upload extends \OSM\Tools\Route {
 		$email = $data['email'] ?? '';
 		if ($email == ''){$email = 'unknown';}
 
+		// check allowed user domains
+		$allowedUserDomains = \OSM\Tools\Config::get('allowedUserDomains');
+		if ($allowedUserDomains != '') {
+			$domains = array_map('trim', explode(',', $allowedUserDomains));
+			$emailDomain = substr($email, strrpos($email, '@') + 1);
+			if ($email == 'unknown' || !in_array($emailDomain, $domains)) {
+				\OSM\Tools\Log::add('upload.denied', $email);
+				http_response_code(403);
+				die();
+			}
+		}
+
+		// handle email mismatch reported by extension
+		if ($data['emailMismatch'] ?? false) {
+			$count = intval($data['emailMismatchCount'] ?? 1);
+			$realEmail = $data['verifiedEmail'] ?? 'unknown';
+			\OSM\Tools\Log::add('security.email_mismatch',
+				'attempt #'.$count.' real: '.$realEmail.' attempting as: '.$email
+			);
+			$alertEmail = \OSM\Tools\Config::get('securityAlertEmail');
+			if ($alertEmail != '' && \OSM\Tools\Config::get('enableSecurityAlerts') &&
+				($count === 1 || $count % intval(\OSM\Tools\Config::get('securityAlertFrequency') ?: 10) === 0)) {
+				mail($alertEmail,
+					'OSM Security Alert - Email Mismatch (attempt #'.$count.')',
+					'Real user: '.$realEmail."\nAttempting as: ".$email."\nDevice: ".$this->niceName($data['deviceID'] ?? '')."\nIP: ".$_SERVER['REMOTE_ADDR']."\nMismatch count: ".$count
+				);
+			}
+		}
+
 		//this is just to help keep collisions on the session id from happening
 		//if these values change it may cause issues
 		$sessionID .= '--'.md5($deviceID.$email);

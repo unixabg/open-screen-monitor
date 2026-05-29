@@ -19,6 +19,18 @@ class Screenscrape extends \OSM\Tools\Route {
 		}
 		$data['text'] = strtolower($data['text']);
 
+		// check allowed user domains
+		$allowedUserDomains = \OSM\Tools\Config::get('allowedUserDomains');
+		if ($allowedUserDomains != '') {
+			$domains = array_map('trim', explode(',', $allowedUserDomains));
+			$emailDomain = substr($data['email'], strrpos($data['email'], '@') + 1);
+			if ($data['email'] == 'unknown' || !in_array($emailDomain, $domains)) {
+				\OSM\Tools\Log::add('screenscrape.denied', $data['email']);
+				http_response_code(403);
+				die();
+			}
+		}
+
 		//validate sessionID
 		$data['sessionID'] = preg_replace('/[^0-9a-z\-]/','',$data['sessionID']);
 
@@ -35,7 +47,7 @@ class Screenscrape extends \OSM\Tools\Route {
 		$word = '';
 		$count = 1;
 
-		//go through filter
+		//go through filter for block actions
 		$filter = \OSM\Tools\Config::getFilter();
 		foreach($filter['entries'] as $entry){
 			if ($entry['resourceType'] != 'SCREENSCRAPE'){continue;}
@@ -98,22 +110,16 @@ class Screenscrape extends \OSM\Tools\Route {
 			'action' => $action,
 			'type' => '',
 			'url' => substr($data['url'],0,2047),
-			'initiator' => substr($data['initiator'],0,1023),
 		]);
 
 		//look for email triggers
-		$defaultTypes = \OSM\Tools\Config::get('filterviaserverDefaultTriggerTypes');
 		foreach($filter['entries'] as $entry){
 			if ($entry['resourceType'] != 'SCREENSCRAPE'){continue;}
 			if (!in_array($entry['action'],['TRIGGER','TRIGGER_EXEMPT'])){continue;}
 
-			if ($entry['resourceType'] != 'SCREENSCRAPE'){continue;}
-			if (!in_array($entry['action'],['BLOCK','BLOCKPAGE','BLOCKNOTIFY'])){continue;}
-
 			if ($entry['username'] != '' && !$this->testString($data['email'], $entry['username'])){continue;}
 
 			if (!$this->testURL($data,$entry['url'])){continue;}
-
 
 			$count = $entry['initiator'];
 			$count = explode(',',$count,2);
@@ -121,53 +127,50 @@ class Screenscrape extends \OSM\Tools\Route {
 			$count = $count[0];
 
 			if ($word != '' && substr_count($data['text'],$word) >= $count){
-				$action = $entry['action'];
-				$search = $entry['url'];
-				break;
-			}
+				// Log action to log file
+				\OSM\Tools\DB::insert('tbl_filter_log',[
+					'date' => date('Y-m-d',$now),
+					'time' => date('H:i:s',$now),
+					'ip' => $_SERVER['REMOTE_ADDR'],
+					'username' => $data['email'],
+					'deviceid' => $data['deviceID'],
+					'action' => $entry['action'],
+					'type' => 'trigger word: '.$word,
+					'url' => $data['url'],
+				]);
 
-			// Log action to log file
-			\OSM\Tools\DB::insert('tbl_filter_log',[
-				'date' => date('Y-m-d',$now),
-				'time' => date('H:i:s',$now),
-				'ip' => $_SERVER['REMOTE_ADDR'],
-				'username' => $data['email'],
-				'deviceid' => $data['deviceID'],
-				'action' => $entry['action'],
-				'type' => 'trigger word: '.$entry['url'],
-				'url' => $data['url'],
-			]);
+				if ($entry['action'] == 'TRIGGER_EXEMPT'){
+					break;
+				} elseif ($entry['action'] == 'TRIGGER'){
+					$email = $entry['appName'];
 
-			if ($entry['action'] == 'TRIGGER_EXEMPT'){
-				break;
-			} elseif ($entry['action'] == 'TRIGGER'){
-				$email = $entry['appName'];
-
-				$uid = md5(uniqid(time()));
-				// header
-				$header = "From: Open Screen Monitor <".$email.">\r\n";
-				$header .= "MIME-Version: 1.0\r\n";
-				$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
-				// message & attachment
-				$raw = "--".$uid."\r\n";
-				$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
-				$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-				$raw .= "User: ".$data['email']
-					."\nDevice: ".$this->niceName($data['deviceID'])
-					."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
-					."\nTriggered on keyword or url of: $url"
-					."\n".str_replace("\t","\n",$logentry)
-					."\r\n\r\n";
-				$screenshot = \OSM\Tools\TempDB::get('screenshot/'.$sessionID);;
-				if ($screenshot != '') {
-					$raw .= "--".$uid."\r\n";
-					$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
-					$raw .= "Content-Transfer-Encoding: base64\r\n";
-					$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
-					$raw .= chunk_split(base64_encode($screenshot))."\r\n\r\n";
+					$uid = md5(uniqid(time()));
+					// header
+					$header = "From: Open Screen Monitor <".$email.">\r\n";
+					$header .= "MIME-Version: 1.0\r\n";
+					$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n";
+					// message & attachment
+					$raw = "--".$uid."\r\n";
+					$raw .= "Content-type:text/plain; charset=iso-8859-1\r\n";
+					$raw .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+					$raw .= "User: ".$data['email']
+						."\nDevice: ".$this->niceName($data['deviceID'])
+						."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
+						."\nTriggered on keyword: ".$word
+						."\nURL: ".$data['url']
+						."\r\n\r\n";
+					$screenshot = \OSM\Tools\TempDB::get('screenshot/'.$data['sessionID']);
+					if ($screenshot != '') {
+						$raw .= "--".$uid."\r\n";
+						$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";
+						$raw .= "Content-Transfer-Encoding: base64\r\n";
+						$raw .= "Content-Disposition: attachment; filename=\"screenshot.jpg\"\r\n\r\n";
+						$raw .= chunk_split(base64_encode($screenshot))."\r\n\r\n";
+					}
+					$raw .= "--".$uid."--";
+					mail($email, 'OSM Trigger Alert', $raw, $header);
+					break;
 				}
-				$raw .= "--".$uid."--";
-				mail($email, 'OSM Trigger Alert', $raw, $header);
 			}
 		}
 	}

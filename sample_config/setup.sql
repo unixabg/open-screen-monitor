@@ -1,8 +1,10 @@
 CREATE TABLE `tbl_config` (
   `name` varchar(127) NOT NULL DEFAULT '',
-  `value` varchar(255) NOT NULL DEFAULT '',
+  `value` text NOT NULL DEFAULT '',
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '2');
 
 CREATE TABLE `tbl_filter_entry` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -31,7 +33,7 @@ CREATE TABLE `tbl_filter_log` (
   `username` varchar(63) NOT NULL DEFAULT '',
   `deviceid` varchar(63) NOT NULL DEFAULT '',
   `action` varchar(15) NOT NULL DEFAULT '',
-  `type` varchar(15) NOT NULL DEFAULT '',
+  `type` varchar(63) NOT NULL DEFAULT '',
   `url` varchar(2083) NOT NULL DEFAULT '',
   `date` date NOT NULL DEFAULT current_timestamp(),
   `time` time NOT NULL DEFAULT current_timestamp(),
@@ -59,6 +61,7 @@ CREATE TABLE `tbl_lab_device` (
   `annotatedlocation` varchar(127) NOT NULL DEFAULT '',
   `annotatedassetid` varchar(127) NOT NULL DEFAULT '',
   `lastSynced` datetime NOT NULL DEFAULT current_timestamp(),
+  `serialnumber` varchar(63) NOT NULL DEFAULT '',
   PRIMARY KEY (`deviceid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

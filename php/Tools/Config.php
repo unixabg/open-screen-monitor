@@ -9,7 +9,7 @@ class Config {
 			self::$config = [];
 
 			//set system wide version for php scripts
-			self::$config['version']='0.4.0.3';
+			self::$config['version']='0.4.0.4';
 
 			//set the default time chrome will wait between phone home attempst to the upload script
 			self::$config['uploadRefreshTime']=9000;
@@ -59,6 +59,14 @@ class Config {
 			self::$config['oneRosterUserIgnore'] = [];
 			self::$config['apiSecrets'] = [];
 			self::$config['allTeachersGetBypass'] = true;
+			//comma separated list of allowed email domains e.g. example.com,anotherschool.org
+			self::$config['allowedUserDomains'] = '';
+			//email address to receive security alert notifications
+			self::$config['securityAlertEmail'] = '';
+			//enable email alerts for security events (email mismatch detection)
+			self::$config['enableSecurityAlerts'] = false;
+			//send security alert email every N mismatch detections
+			self::$config['securityAlertFrequency'] = 10;
 
 			//overlay settings from database
 			$query = DB::select('tbl_config');
@@ -148,7 +156,7 @@ class Config {
 
 	public static function filterPath(){
 		//put in clients folder so might be ramdisked
-		return $GLOBALS['dataDir'].'clients/filter.json';
+		return $GLOBALS['dataDir'].'/clients/filter.json';
 	}
 
 	public static function refreshFilter(){

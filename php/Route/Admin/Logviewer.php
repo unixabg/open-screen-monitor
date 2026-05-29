@@ -25,7 +25,7 @@ class Logviewer extends \OSM\Tools\Route {
 		}
 		$where = implode(' AND ',$where);
 
-		$limit = ($pageNumber*$perPage).', '.(($pageNumber+1)*$perPage);
+		$limit = ($pageNumber*$perPage).', '.$perPage;
 		$rows = \OSM\Tools\DB::select('tbl_log',['where'=>$where,'bindings'=>$bindings,'order'=>'id desc','limit'=>$limit]);
 
 
