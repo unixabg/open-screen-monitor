@@ -59,10 +59,17 @@ class Screenscrape extends \OSM\Tools\Route {
 
 			$count = $entry['initiator'];
 			$count = explode(',',$count,2);
-			$word = strtolower($count[1] ?? '');
-			$count = $count[0];
+			$words = array_filter(array_map('trim',explode('|',strtolower($count[1] ?? ''))));
+			$count = intval($count[0]);
+			$word = '';
+			foreach($words as $w){
+				if ($w != '' && substr_count($data['text'],$w) >= $count){
+					$word = $w;
+					break;
+				}
+			}
 
-			if ($word != '' && substr_count($data['text'],$word) >= $count){
+			if ($word != ''){
 				$action = $entry['action'];
 				$search = $entry['url'];
 				break;
@@ -123,10 +130,17 @@ class Screenscrape extends \OSM\Tools\Route {
 
 			$count = $entry['initiator'];
 			$count = explode(',',$count,2);
-			$word = strtolower($count[1] ?? '');
-			$count = $count[0];
+			$words = array_filter(array_map('trim',explode('|',strtolower($count[1] ?? ''))));
+			$count = intval($count[0]);
+			$word = '';
+			foreach($words as $w){
+				if ($w != '' && substr_count($data['text'],$w) >= $count){
+					$word = $w;
+					break;
+				}
+			}
 
-			if ($word != '' && substr_count($data['text'],$word) >= $count){
+			if ($word != ''){
 				// Log action to log file
 				\OSM\Tools\DB::insert('tbl_filter_log',[
 					'date' => date('Y-m-d',$now),
