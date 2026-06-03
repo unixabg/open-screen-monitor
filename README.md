@@ -35,6 +35,26 @@
   - Now from the OSMClient edit button you will be able to choose DOWNLOAD JSON to the osm-data folder
     - **Please be mindful** to apply appropiate security and permissions to the client_secret.json file
 
+### Google Admin Console — Extension Policy URL
+
+When force-installing the extension via `ExtensionInstallForcelist` in Google Admin Console,
+the policy URL **must** point to the update manifest XML, not directly to the CRX file:
+
+**Correct:**
+```
+inheliheabkbamkaddmmebjmphdmlmbe;https://osm.yourdomain.com/?extfile=xml
+```
+
+**Incorrect:**
+```
+inheliheabkbamkaddmmebjmphdmlmbe;https://osm.yourdomain.com/?extfile=crx
+```
+
+Chrome uses the XML manifest to check the current version and locate the CRX download URL.
+Pointing directly to the CRX works for fresh installs only — extension updates will fail
+silently on persistent profiles. Ephemeral Chromebooks may appear to work with the CRX URL
+since they reinstall fresh on every login, masking the issue.
+
 ### Other notes (ymmv)
 - If using mode user on pristine install, you will need to create a permissions.tsv in the osm-data folder.
   - Create an entry for your admin user something like: username@yourdomain.com<TAB>admin
