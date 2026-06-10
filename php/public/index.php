@@ -32,6 +32,7 @@ if (!isset($_GET['route'])){
 		$_SESSION['groups']['non-enterprise-device'] = [
 			'name' => 'Non Enterprise Devices',
 			'type' => 'device',
+			'clients' => ['non-enterprise-device' => 'Non Enterprise Devices'],
 		];
 		header('Location: /?route=Monitor\Viewer&groupID=non-enterprise-device');
 		die();
