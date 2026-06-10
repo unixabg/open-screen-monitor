@@ -17,6 +17,11 @@ class Upload extends \OSM\Tools\Route {
 		$dataDir = $GLOBALS['dataDir'];
 		$toReturn = [];
 		$data = json_decode($_POST['data'],true);
+		if (is_null($data)){
+			\OSM\Tools\Log::add('upload.malformed', $_SERVER['REMOTE_ADDR'], ['raw'=>substr($_POST['data'],0,200)]);
+			http_response_code(400);
+			die();
+		}
 
 		//allow custom hooking here
 		//make sure to set restrictive permissions on this file
