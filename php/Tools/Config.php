@@ -9,7 +9,7 @@ class Config {
 			self::$config = [];
 
 			//set system wide version for php scripts
-			self::$config['version']='0.4.0.5-next';
+			self::$config['version']='0.4.0.5';
 
 			//set the default time chrome will wait between phone home attempst to the upload script
 			self::$config['uploadRefreshTime']=9000;
