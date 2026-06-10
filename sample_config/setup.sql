@@ -4,7 +4,7 @@ CREATE TABLE `tbl_config` (
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '2');
+INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '3');
 
 CREATE TABLE `tbl_filter_entry` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -82,7 +82,7 @@ CREATE TABLE `tbl_log` (
   `username` varchar(63) NOT NULL DEFAULT '',
   `type` varchar(63) NOT NULL DEFAULT '',
   `targetid` varchar(255) NOT NULL DEFAULT '',
-  `data` varchar(2083) NOT NULL DEFAULT '',
+  `data` text NOT NULL DEFAULT '',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

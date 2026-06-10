@@ -35,6 +35,26 @@
   - Now from the OSMClient edit button you will be able to choose DOWNLOAD JSON to the osm-data folder
     - **Please be mindful** to apply appropiate security and permissions to the client_secret.json file
 
+### Google Admin Console — Extension Policy URL
+
+When force-installing the extension via `ExtensionInstallForcelist` in Google Admin Console,
+the policy URL **must** point to the update manifest XML, not directly to the CRX file:
+
+**Correct:**
+```
+inheliheabkbamkaddmmebjmphdmlmbe;https://osm.yourdomain.com/?extfile=xml
+```
+
+**Incorrect:**
+```
+inheliheabkbamkaddmmebjmphdmlmbe;https://osm.yourdomain.com/?extfile=crx
+```
+
+Chrome uses the XML manifest to check the current version and locate the CRX download URL.
+Pointing directly to the CRX works for fresh installs only — extension updates will fail
+silently on persistent profiles. Ephemeral Chromebooks may appear to work with the CRX URL
+since they reinstall fresh on every login, masking the issue.
+
 ### Other notes (ymmv)
 - If using mode user on pristine install, you will need to create a permissions.tsv in the osm-data folder.
   - Create an entry for your admin user something like: username@yourdomain.com<TAB>admin
@@ -86,6 +106,43 @@ Key configuration options:
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
 | `userGroupTimeout` | `28800` | User group session timeout in seconds (default 8 hours) |
+
+### PHP Configuration
+
+The default PHP settings are conservative and will need tuning for production deployments.
+The following settings are a recommended starting point tested with approximately 700 concurrent users.
+
+Edit `/etc/php/8.4/fpm/php.ini` (adjust version as needed):
+
+```ini
+; Increase execution time for large filter log queries and Google Classroom sync
+max_execution_time = 300
+
+; Increase memory limit for screenshot processing and large classroom data
+memory_limit = 256M
+
+; post_max_size covers screenshot uploads from the extension (base64 encoded JPEG
+; plus tab data). OSM does not use PHP file uploads so upload_max_filesize is
+; not relevant — post_max_size is what matters. 32M provides comfortable headroom.
+post_max_size = 32M
+
+; Set to your local timezone for correct log timestamps
+date.timezone = "America/Chicago"
+```
+
+After making changes reload PHP-FPM:
+```bash
+systemctl reload php8.4-fpm
+```
+
+**PHP-FPM pool settings** — for larger deployments also review `/etc/php/8.4/fpm/pool.d/www.conf`:
+```ini
+; Increase max children for high concurrency (700+ users)
+pm.max_children = 50
+pm.start_servers = 10
+pm.min_spare_servers = 5
+pm.max_spare_servers = 20
+```
 
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
