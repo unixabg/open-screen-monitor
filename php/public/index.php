@@ -35,6 +35,7 @@ if (!isset($_GET['route'])){
 			'clients' => ['non-enterprise-device' => 'Non Enterprise Devices'],
 		];
 		header('Location: /?route=Monitor\Viewer&groupID=non-enterprise-device');
+		\OSM\Tools\Log::add('viewer.non-enterprise-device');
 		die();
 	} elseif (isset($_GET['upload_legacy'])){
 		$_GET['route'] = 'Extension\\Uploadlegacy';
