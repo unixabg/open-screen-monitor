@@ -8,12 +8,19 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		$this->requireAdmin();
 
 		$id = $_GET['id'] ?? '';
+		$copyFrom = $_GET['copy'] ?? '';
 
 		$data = [];
 		if ($id != ''){
 			$rows = \OSM\Tools\DB::select('tbl_filter_entry',['where'=>'id = :id','bindings'=>[':id'=>$id]]);
 			if (isset($rows[0])){
 				$data = $rows[0];
+			}
+		} elseif ($copyFrom != ''){
+			$rows = \OSM\Tools\DB::select('tbl_filter_entry',['where'=>'id = :id','bindings'=>[':id'=>$copyFrom]]);
+			if (isset($rows[0])){
+				$data = $rows[0];
+				unset($data['id']);
 			}
 		}
 

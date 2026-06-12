@@ -58,7 +58,7 @@ class Serverfilter extends \OSM\Tools\Route {
 			echo '<td>'.htmlentities($row['subnet']).'</td>';
 			echo '<td>'.htmlentities($row['initiator']).'</td>';
 			echo '<td>'.htmlentities($row['comment']).'</td>';
-			echo '<td><a href="/?route=Admin\\Serverfilteredit&id='.htmlentities($row['id']).'">Edit</a></td>';
+			echo '<td><a href="/?route=Admin\\Serverfilteredit&id='.htmlentities($row['id']).'">Edit</a> | <a href="/?route=Admin\\Serverfilteredit&copy='.htmlentities($row['id']).'">Copy</a></td>';
 			echo '</tr>';
 		}
 		echo '<tr><td colspan="14" style="text-align:center;"><input type="submit" name="action" value="Enable" /> <input type="submit" name="action" value="Disable" /> <input type="submit" name="action" value="Delete" /></td></tr>';
