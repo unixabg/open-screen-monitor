@@ -101,8 +101,8 @@ class Serverfilteredit extends \OSM\Tools\Route {
 
 		// PRIORITY
 		echo '<tr class="section"><td colspan="2">Priority</td></tr>';
-		echo '<tr><th>Purpose</th><td>Rules are evaluated in ascending priority order. Lower number = evaluated first. First matching rule wins for ALLOW/BLOCK actions. All matching TRIGGER rules fire.</td></tr>';
-		echo '<tr><th>Examples</th><td><ul><li><code>10</code> — evaluated before priority 20</li><li>Leave blank to append at end</li></ul></td></tr>';
+		echo '<tr><th>Purpose</th><td>Rules are evaluated in descending priority order. Higher number = evaluated first. First matching rule wins for ALLOW/BLOCK actions. All matching TRIGGER rules fire.</td></tr>';
+		echo '<tr><th>Examples</th><td><ul><li><code>20</code> — evaluated before priority 10</li><li>Leave blank to use the default priority</li></ul></td></tr>';
 
 		// URL
 		echo '<tr class="section"><td colspan="2">URL</td></tr>';
@@ -183,7 +183,7 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<tr><th>Block a site for one user</th><td>URL: <code>https://reddit.com</code> | Action: <code>BLOCKPAGE</code> | Username: <code>student@example.com</code></td></tr>';
 		echo '<tr><th>Alert on keyword in page text</th><td>Resource Type: <code>SCREENSCRAPE</code> | Action: <code>TRIGGER</code> | Username: <code>regex:.*@example\.com$</code> | Initiator: <code>1,badword|otherword</code> | App Name: <code>admin@example.com</code></td></tr>';
 		echo '<tr><th>Block page containing keyword</th><td>Resource Type: <code>SCREENSCRAPE</code> | Action: <code>BLOCKPAGE</code> | Initiator: <code>3,badword</code></td></tr>';
-		echo '<tr><th>Suppress trigger for specific URL</th><td>URL: <code>https://safepage.com</code> | Action: <code>TRIGGER_EXEMPT</code> | Priority: lower number than the TRIGGER rule</td></tr>';
+		echo '<tr><th>Suppress trigger for specific URL</th><td>URL: <code>https://safepage.com</code> | Action: <code>TRIGGER_EXEMPT</code> | Priority: higher number than the TRIGGER rule</td></tr>';
 
 		echo '</table>';
 
