@@ -36,9 +36,9 @@ class Serverfilter extends \OSM\Tools\Route {
 			.form h1 {text-align:center;}
 			.form table {width:100%;}
 			table.info {margin:auto;}
-			table.data {margin:auto;padding:10px;width:100%;font-size:11px;table-layout:fixed;}
-			table.data th, table.data td {padding:2px 4px;}
-			table.data td.truncate {max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+			table.data {margin:auto;padding:10px;width:100%;table-layout:fixed;}
+			table.data th, table.data td {padding:4px 6px;}
+			table.data td.truncate {max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 			tr.section td {padding:40px;text-align:center;font-weight:bold;}
 		';
 
