@@ -101,11 +101,48 @@ Key configuration options:
 | `showNonEnterpriseDevices` | `false` | Show non-enterprise device catch-all option on index page |
 | `debug` | `true` | Write full request/response data to disk — disable in production |
 
-> **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
 | `filterViaServer` | `false` | Enable server-side URL filtering |
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
 | `userGroupTimeout` | `28800` | User group session timeout in seconds (default 8 hours) |
+
+> **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
+
+### Storage Recommendations
+
+OSM writes frequently to `$dataDir/clients/` — every device upload (default every 9 seconds)
+writes approximately 10 files including a screenshot, session data, tabs, and metadata.
+Storage performance directly affects how well the server keeps up with active clients.
+
+**SSD or NVMe is strongly recommended for the system drive.**
+
+A typical mid-range SATA SSD (~500MB/s sequential, ~80,000 IOPS random) with OSM's
+~10 file writes per upload at 9 second intervals handles approximately:
+
+- **~500 concurrent clients** — comfortable, plenty of headroom
+- **~1000 concurrent clients** — manageable, watch MySQL buffer pool
+- **~2000+ concurrent clients** — start considering NVMe or a dedicated drive for `$dataDir/clients/`
+
+NVMe pushes these limits significantly higher — you will likely hit PHP-FPM or MySQL
+limits before storage becomes a concern.
+
+**For platter (HDD) based systems** — mount `$dataDir/clients/` on a dedicated SSD or NVMe
+drive to separate high-frequency TempDB writes from the main system. A ramdisk (tmpfs)
+is also an option for maximum performance but session and screenshot data is lost on reboot:
+
+```bash
+# /etc/fstab — ramdisk for clients directory (adjust size for your deployment)
+tmpfs /var/www/osm-data/clients tmpfs defaults,size=2G 0 0
+```
+
+Size guide for ramdisk:
+- 500 clients: 1G
+- 1000 clients: 2G
+- 2000 clients: 4G
+
+> **Note:** If `debug` is enabled in `config.php` the server writes full request and
+> response JSON for every upload. This significantly increases I/O load and should
+> not be left enabled on production platter-based systems.
 
 ### PHP Configuration
 

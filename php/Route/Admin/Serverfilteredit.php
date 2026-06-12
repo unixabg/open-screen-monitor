@@ -8,12 +8,19 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		$this->requireAdmin();
 
 		$id = $_GET['id'] ?? '';
+		$copyFrom = $_GET['copy'] ?? '';
 
 		$data = [];
 		if ($id != ''){
 			$rows = \OSM\Tools\DB::select('tbl_filter_entry',['where'=>'id = :id','bindings'=>[':id'=>$id]]);
 			if (isset($rows[0])){
 				$data = $rows[0];
+			}
+		} elseif ($copyFrom != ''){
+			$rows = \OSM\Tools\DB::select('tbl_filter_entry',['where'=>'id = :id','bindings'=>[':id'=>$copyFrom]]);
+			if (isset($rows[0])){
+				$data = $rows[0];
+				unset($data['id']);
 			}
 		}
 
@@ -94,8 +101,8 @@ class Serverfilteredit extends \OSM\Tools\Route {
 
 		// PRIORITY
 		echo '<tr class="section"><td colspan="2">Priority</td></tr>';
-		echo '<tr><th>Purpose</th><td>Rules are evaluated in ascending priority order. Lower number = evaluated first. First matching rule wins for ALLOW/BLOCK actions. All matching TRIGGER rules fire.</td></tr>';
-		echo '<tr><th>Examples</th><td><ul><li><code>10</code> — evaluated before priority 20</li><li>Leave blank to append at end</li></ul></td></tr>';
+		echo '<tr><th>Purpose</th><td>Rules are evaluated in descending priority order. Higher number = evaluated first. First matching rule wins for ALLOW/BLOCK actions. All matching TRIGGER rules fire.</td></tr>';
+		echo '<tr><th>Examples</th><td><ul><li><code>20</code> — evaluated before priority 10</li><li>Leave blank to use the default priority</li></ul></td></tr>';
 
 		// URL
 		echo '<tr class="section"><td colspan="2">URL</td></tr>';
@@ -138,7 +145,7 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<tr><th>Purpose</th><td>Limit the rule to a specific user or pattern of users. Leave blank to apply to all users.</td></tr>';
 		echo '<tr><th>Modes</th><td><ul>';
 		echo '<li><b>Exact match</b> — <code>student@example.com</code></li>';
-		echo '<li><b>regex:</b> — <code>regex:.*@mg\.k12\.mo\.us$</code> matches all users in the domain</li>';
+		echo '<li><b>regex:</b> — <code>regex:.*@example.com$</code> matches all users in the domain</li>';
 		echo '</ul></td></tr>';
 
 		// SUBNET
@@ -176,7 +183,7 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<tr><th>Block a site for one user</th><td>URL: <code>https://reddit.com</code> | Action: <code>BLOCKPAGE</code> | Username: <code>student@example.com</code></td></tr>';
 		echo '<tr><th>Alert on keyword in page text</th><td>Resource Type: <code>SCREENSCRAPE</code> | Action: <code>TRIGGER</code> | Username: <code>regex:.*@example\.com$</code> | Initiator: <code>1,badword|otherword</code> | App Name: <code>admin@example.com</code></td></tr>';
 		echo '<tr><th>Block page containing keyword</th><td>Resource Type: <code>SCREENSCRAPE</code> | Action: <code>BLOCKPAGE</code> | Initiator: <code>3,badword</code></td></tr>';
-		echo '<tr><th>Suppress trigger for specific URL</th><td>URL: <code>https://safepage.com</code> | Action: <code>TRIGGER_EXEMPT</code> | Priority: lower number than the TRIGGER rule</td></tr>';
+		echo '<tr><th>Suppress trigger for specific URL</th><td>URL: <code>https://safepage.com</code> | Action: <code>TRIGGER_EXEMPT</code> | Priority: higher number than the TRIGGER rule</td></tr>';
 
 		echo '</table>';
 
