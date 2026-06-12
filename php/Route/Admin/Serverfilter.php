@@ -36,7 +36,9 @@ class Serverfilter extends \OSM\Tools\Route {
 			.form h1 {text-align:center;}
 			.form table {width:100%;}
 			table.info {margin:auto;}
-			table.data {margin:auto;padding:10px;width:100%;}
+			table.data {margin:auto;padding:10px;width:100%;font-size:11px;table-layout:fixed;}
+			table.data th, table.data td {padding:2px 4px;}
+			table.data td.truncate {max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 			tr.section td {padding:40px;text-align:center;font-weight:bold;}
 		';
 
@@ -52,12 +54,12 @@ class Serverfilter extends \OSM\Tools\Route {
 			echo '<td>'.htmlentities($row['enabled']).'</td>';
 			echo '<td>'.htmlentities($row['action']).'</td>';
 			echo '<td>'.htmlentities($row['appName']).'</td>';
-			echo '<td>'.htmlentities($row['url']).'</td>';
+			echo '<td class="truncate" title="'.htmlentities($row['url']).'">'.htmlentities($row['url']).'</td>';
 			echo '<td>'.htmlentities($row['resourceType']).'</td>';
 			echo '<td>'.htmlentities($row['username']).'</td>';
 			echo '<td>'.htmlentities($row['subnet']).'</td>';
-			echo '<td>'.htmlentities($row['initiator']).'</td>';
-			echo '<td>'.htmlentities($row['comment']).'</td>';
+			echo '<td class="truncate" title="'.htmlentities($row['initiator']).'">'.htmlentities($row['initiator']).'</td>';
+			echo '<td class="truncate" title="'.htmlentities($row['comment']).'">'.htmlentities($row['comment']).'</td>';
 			echo '<td><a href="/?route=Admin\\Serverfilteredit&id='.htmlentities($row['id']).'">Edit</a> | <a href="/?route=Admin\\Serverfilteredit&copy='.htmlentities($row['id']).'">Copy</a></td>';
 			echo '</tr>';
 		}
