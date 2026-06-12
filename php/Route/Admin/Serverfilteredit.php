@@ -138,7 +138,7 @@ class Serverfilteredit extends \OSM\Tools\Route {
 		echo '<tr><th>Purpose</th><td>Limit the rule to a specific user or pattern of users. Leave blank to apply to all users.</td></tr>';
 		echo '<tr><th>Modes</th><td><ul>';
 		echo '<li><b>Exact match</b> — <code>student@example.com</code></li>';
-		echo '<li><b>regex:</b> — <code>regex:.*@mg\.k12\.mo\.us$</code> matches all users in the domain</li>';
+		echo '<li><b>regex:</b> — <code>regex:.*@example.com$</code> matches all users in the domain</li>';
 		echo '</ul></td></tr>';
 
 		// SUBNET
