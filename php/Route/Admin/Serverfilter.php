@@ -36,15 +36,29 @@ class Serverfilter extends \OSM\Tools\Route {
 			.form h1 {text-align:center;}
 			.form table {width:100%;}
 			table.info {margin:auto;}
-			table.data {margin:auto;padding:10px;width:100%;}
+			table.data {margin:auto;padding:10px;width:100%;font-size:12px;table-layout:fixed;}
 			table.data th, table.data td {padding:4px 6px;}
-			table.data td.truncate {max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+			table.data td.truncate {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 			tr.section td {padding:40px;text-align:center;font-weight:bold;}
 		';
 
 		echo '<h2 style="text-align:center;">Rules</h2>';
 		echo '<form method="post">';
 		echo '<table class="data">';
+		echo '<colgroup>';
+		echo '<col style="width:2%;">';
+		echo '<col style="width:4%;">';
+		echo '<col style="width:4%;">';
+		echo '<col style="width:6%;">';
+		echo '<col style="width:10%;">';
+		echo '<col style="width:24%;">';
+		echo '<col style="width:6%;">';
+		echo '<col style="width:10%;">';
+		echo '<col style="width:6%;">';
+		echo '<col style="width:14%;">';
+		echo '<col style="width:10%;">';
+		echo '<col style="width:4%;">';
+		echo '</colgroup>';
 		echo '<tr><th></th><th>Priority</th><th>Enabled</th><th>Action</th><th>App Name</th><th>URL</th><th>Resource Type</th><th>Username</th><th>Subnet</th><th>Initiator</th><th>Comment</th><th></th></tr>';
 		$rows = \OSM\Tools\DB::select('tbl_filter_entry',['order'=>'priority desc, appName asc, id asc']);
 		foreach($rows as $row){
