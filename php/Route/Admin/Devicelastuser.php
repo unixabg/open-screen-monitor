@@ -74,37 +74,28 @@ class Devicelastuser extends \OSM\Tools\Route {
 				echo '<b>Annotated Info:</b> '.htmlentities($nicename);
 				echo '<br /><b>Device ID:</b> '.htmlentities($deviceid);
 
-				$users = [];
-				for($i=0;$i<$dayLookBack;$i++){
-					$day = strtotime('-'.$i.' days');
-					$rows = \OSM\Tools\DB::select('tbl_filter_log',[
-						'fields' => [
-							'date' => date('Y-m-d',$day),
-							'deviceid' => $deviceid,
-						],
-						'order' => 'time desc',
-					]);
-					foreach($rows as $row){
-						if (!isset($users[$row['username']])){
-							$users[$row['username']] = [
-								'date' => $row['date'],
-								'time' => $row['time'],
-								'ip'   => $row['ip'],
-							];
-						}
-					}
-				}
+				$users = \OSM\Tools\DB::selectRaw('
+					SELECT username, MAX(date) as date, MAX(time) as time, ip
+					FROM tbl_filter_log
+					WHERE deviceid = :deviceid
+					AND date >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+					GROUP BY username
+					ORDER BY date DESC, time DESC
+				',[
+					':deviceid' => $deviceid,
+					':days'     => $dayLookBack,
+				]);
 
 				if (!empty($users)){
 					echo '<br />';
 					echo '<table>';
 					echo '<tr><th>Username</th><th>Last Seen Date</th><th>Last Seen Time</th><th>IP</th></tr>';
-					foreach($users as $username => $info){
+					foreach($users as $row){
 						echo '<tr>';
-						echo '<td>'.htmlentities($username).'</td>';
-						echo '<td>'.htmlentities($info['date']).'</td>';
-						echo '<td>'.htmlentities($info['time']).'</td>';
-						echo '<td>'.htmlentities($info['ip']).'</td>';
+						echo '<td>'.htmlentities($row['username']).'</td>';
+						echo '<td>'.htmlentities($row['date']).'</td>';
+						echo '<td>'.htmlentities($row['time']).'</td>';
+						echo '<td>'.htmlentities($row['ip']).'</td>';
 						echo '</tr>';
 					}
 					echo '</table>';

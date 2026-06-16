@@ -181,6 +181,60 @@ pm.min_spare_servers = 5
 pm.max_spare_servers = 20
 ```
 
+### MariaDB Tuning
+
+Default MariaDB settings are conservative and will need tuning for production deployments.
+The following settings are recommended based on production experience with ~700 concurrent users
+on a server with 64GB RAM shared across several containers.
+
+Edit `/etc/mysql/mariadb.conf.d/50-server.cnf`:
+
+```ini
+# Thread pool — more efficient than one-thread-per-connection under high concurrency
+thread_handling         = pool-of-threads
+thread_pool_size        = 16
+thread_cache_size       = 100
+max_connections         = 200
+
+# InnoDB buffer pool — most important setting for read performance.
+# Set to 50-70% of RAM dedicated to MariaDB. With a small pool, reads hit disk
+# instead of memory — OSM's filter log hit ratio dropped to 83% at 128MB.
+# At 8GB on a 64GB server the hit ratio climbed to 99%+ after warmup.
+innodb_buffer_pool_size        = 8G
+
+# Reduce fsync on every commit for write performance.
+# Setting 2 flushes once per second instead of per transaction.
+# Risk: lose up to 1 second of transactions on unexpected power failure.
+# Acceptable for OSM's filter log insert workload.
+innodb_flush_log_at_trx_commit = 2
+
+# Larger log file reduces checkpoint flush frequency
+innodb_log_file_size           = 512M
+
+# Temp tables — slightly larger for complex GROUP BY queries in usage reports
+tmp_table_size                 = 64M
+max_heap_table_size            = 64M
+```
+
+After making changes restart MariaDB:
+```bash
+systemctl restart mariadb
+```
+
+**Verify buffer pool size took effect:**
+```bash
+mysql -u root -p -e "SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+```
+
+**Monitor buffer pool hit ratio** — should be 99%+ after warmup under production load:
+```bash
+mysql -u root -p -e "SELECT (1 - (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_reads') / (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_read_requests')) * 100 AS hit_ratio_pct;"
+```
+
+> **Note:** Scale `innodb_buffer_pool_size` to your available RAM. A general guideline is
+> 50-70% of RAM dedicated to MariaDB. On a shared server, account for other containers.
+> The `thread_pool_size` should roughly match your PHP-FPM `pm.max_children` setting.
+
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
 ```

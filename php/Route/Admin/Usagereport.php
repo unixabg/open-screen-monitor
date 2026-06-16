@@ -55,7 +55,7 @@ class Usagereport extends \OSM\Tools\Route {
 				FROM (
 					SELECT username, sec_to_time(Floor(time_to_sec(time)/(5*60))*(5*60)) as roundedTime
 					FROM tbl_filter_log
-					WHERE date = :date
+					WHERE date = :date AND type = "main_frame"
 					GROUP BY username, roundedTime
 				) buckets
 				GROUP BY username
@@ -64,7 +64,7 @@ class Usagereport extends \OSM\Tools\Route {
 			]);
 
 			echo '<h2>Estimated Screen Time by User</h2>';
-			echo '<p><i>Estimated based on activity within 5-minute windows. This is an approximation of active browsing time, not exact screen-on time.</i></p>';
+			echo '<p><i>Estimated based on page navigation activity (main_frame) within 5-minute windows. This is an approximation of active browsing time, not exact screen-on time.</i></p>';
 
 			echo '<form method="post" id="screentimeform">';
 			echo '<input type="hidden" name="date" value="'.htmlentities($_POST['date']).'" />';

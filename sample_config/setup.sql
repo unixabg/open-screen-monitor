@@ -4,7 +4,7 @@ CREATE TABLE `tbl_config` (
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '4');
+INSERT INTO `tbl_config` (`name`, `value`) VALUES ('dbSchemaVersion', '6');
 
 CREATE TABLE `tbl_filter_entry` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -40,7 +40,8 @@ CREATE TABLE `tbl_filter_log` (
   `initiator` varchar(1023) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `filterlogdate` (`date`),
-  KEY `idx_date_time_username` (`date`,`time`,`username`)
+  KEY `idx_date_time_username` (`date`,`time`,`username`),
+  KEY `idx_deviceid_date` (`deviceid`,`date`,`username`,`time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
