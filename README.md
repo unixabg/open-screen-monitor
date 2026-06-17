@@ -108,6 +108,196 @@ Key configuration options:
 
 > **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
 
+
+### Server-Side URL Filtering
+
+OSM includes a powerful server-side URL filtering system that intercepts and evaluates every
+browser request made by managed Chrome devices. Filtering is enabled via `filterViaServer = true`
+in the Config Editor at `/?route=Admin\Config`. Rules are managed at `/?route=Admin\Serverfilter`.
+
+#### How Filtering Works
+
+Every time a managed Chrome device makes a web request (page load, background API call, image, etc.),
+the OSM extension sends the request details to the OSM server before allowing it to proceed.
+The server evaluates the request against the configured filter rules and returns an action.
+The extension executes that action — allowing, blocking, redirecting, or notifying — in real time.
+
+This happens transparently and typically within milliseconds. The student sees either the page
+load normally, a block page, or a Chrome notification depending on the action taken.
+
+#### Rule Evaluation Order
+
+Rules are evaluated in **descending priority order** — the highest priority number is evaluated first.
+
+- The **first matching rule wins** for ALLOW, BLOCK, BLOCKPAGE, and BLOCKNOTIFY actions.
+  Once a match is found, evaluation stops.
+- **All matching TRIGGER rules fire** — unlike other actions, every TRIGGER rule that matches
+  the request will send its alert, not just the first one.
+- **TRIGGER_EXEMPT** stops TRIGGER processing. Use it to suppress alerts for specific URLs
+  that would otherwise match a broader TRIGGER rule.
+
+**Example:** A TRIGGER rule at priority 10 alerts on any social media visit. A TRIGGER_EXEMPT
+rule at priority 20 (evaluated first) suppresses the alert for an approved educational social
+media page. The exempt rule fires first, stops TRIGGER processing, and no alert is sent.
+
+#### URL Matching Modes
+
+The URL field supports three matching modes:
+
+- **Substring (default)** — matches if the request URL starts with the value.
+  `https://example.com` matches `https://example.com/any/path` but not `https://www.example.com/`.
+
+- **`simple:`** — matches the domain and any subdomain, ignoring the path.
+  `simple:example.com` matches `https://example.com/page`, `https://www.example.com/page`,
+  and `https://subdomain.example.com/anything`.
+
+- **`regex:`** — full regular expression match against the entire URL including query string.
+  `regex:.*\.example\.com.*` matches any URL containing `.example.com`.
+  `regex:^https://accounts\.google\.com/o/oauth2/.*redirect_uri=https%3A%2F%2Fosm\.example\.com.*$`
+  matches a specific OAuth redirect flow.
+
+- **Leave blank** — matches all URLs. Useful when scoping by Username or Resource Type alone.
+
+> **Technical note:** Dots in regex patterns must be escaped as `\.` to match a literal period.
+> An unescaped `.` matches any character. `simple:example.com` and `regex:.*\.example\.com.*`
+> are both safer than `regex:.*example.com.*` which would also match `exampleXcom`.
+
+#### Resource Types
+
+Resource Type limits a rule to a specific category of browser request. Leave blank to use
+the default filter types configured in `filterviaserverDefaultFilterTypes` (typically
+`main_frame`, `sub_frame`, and `xmlhttprequest`).
+
+| Resource Type | What it covers | Common use |
+|---|---|---|
+| `main_frame` | Top-level page navigations — typing a URL, clicking a link | Most blocking rules |
+| `sub_frame` | Iframes and embedded frames within a page | Blocking embedded content |
+| `xmlhttprequest` | Background API and AJAX calls | Blocking data exfiltration |
+| `script` | JavaScript files loaded by pages | Advanced content blocking |
+| `image` | Image files | Rarely needed |
+| `media` | Audio and video files | Blocking media streaming |
+| `stylesheet` | CSS files | Rarely needed |
+| `SCREENSCRAPE` | Page text content scan — not a URL filter | Keyword monitoring |
+| _(blank)_ | Uses `filterviaserverDefaultFilterTypes` from config | General purpose rules |
+
+**Tip:** Using `main_frame` for blocking rules is usually sufficient and most efficient —
+it catches page navigations without evaluating every background request. Add `xmlhttprequest`
+if you need to block API-level access to a service (e.g. a student using a service's API
+directly rather than its website).
+
+#### Filter Modes
+
+Each device group can operate in one of two filter modes, configured per group:
+
+**defaultallow** — everything is permitted unless a BLOCK or BLOCKPAGE rule explicitly matches.
+Use this for general monitoring where you want to allow most browsing but block specific sites.
+This is the simplest mode to start with.
+
+**defaultdeny** — everything is blocked unless an ALLOW rule explicitly matches.
+Use this for controlled environments like testing sessions or specific class activities
+where you want to permit only a defined set of sites. This mode is more restrictive
+and requires carefully defined ALLOW rules to function correctly.
+
+#### App Grouping for Classroom Management
+
+App grouping is one of OSM's most powerful classroom management features. It allows
+administrators to define named sets of allowed URLs (apps) and assign them to specific
+groups or classrooms operating in **defaultdeny** mode.
+
+**How it works:**
+1. Define an app in the filter rules — a set of ALLOW rules with the same `App Name` value
+   (e.g. `math-tools`)
+2. Enable that app for specific groups/classrooms via the App management interface
+3. Students in those groups only have access to the URLs permitted by their enabled apps
+4. Different classrooms can have different app sets active simultaneously
+
+**Example — Classroom activity management:**
+
+A school has three concurrent classes:
+
+| Class | App Enabled | Accessible Sites |
+|---|---|---|
+| Math test | `math-tools` | Khan Academy, Desmos, approved calculator |
+| Reading | `reading-tools` | Approved reading platform, dictionary |
+| Free period | `general-browsing` | Broader set of educational sites |
+
+Each classroom's Chromebooks automatically get the correct restrictions based on their
+group assignment — no manual intervention needed per device.
+
+**Defining an app:**
+Add ALLOW rules with a matching `App Name` value:
+```
+Action: ALLOW | URL: simple:khanacademy.org  | App Name: math-tools
+Action: ALLOW | URL: simple:desmos.com       | App Name: math-tools
+Action: ALLOW | URL: simple:wolframalpha.com | App Name: math-tools
+```
+
+Then enable `math-tools` for the relevant classroom groups. Students in those groups
+can access Khan Academy, Desmos, and Wolfram Alpha — and nothing else if the group
+is in `defaultdeny` mode.
+
+#### Common Rule Examples
+
+**Block a site for all users:**
+```
+URL: simple:youtube.com | Action: BLOCKPAGE | Priority: 10
+```
+
+**Allow a site for all users (in defaultdeny mode):**
+```
+URL: simple:google.com | Action: ALLOW | Priority: 10
+```
+
+**Block a site for one specific user:**
+```
+URL: simple:reddit.com | Action: BLOCKPAGE | Username: student@example.com | Priority: 10
+```
+
+**Block a site for all students matching a pattern (class of 2027):**
+```
+URL: simple:reddit.com | Action: BLOCKPAGE | Username: regex:^27[a-z]+@example\.com$ | Priority: 10
+```
+
+**Alert admin when a student visits a specific site:**
+```
+URL: simple:example.com | Action: TRIGGER | App Name: admin@example.com | Priority: 10
+```
+
+**Alert admin when a keyword appears on a page:**
+```
+Resource Type: SCREENSCRAPE | Action: TRIGGER | Initiator: 1,badword|otherword | App Name: admin@example.com
+```
+
+**Block page containing a keyword:**
+```
+Resource Type: SCREENSCRAPE | Action: BLOCKPAGE | Initiator: 3,badword
+```
+
+**Suppress a trigger for a specific safe URL (evaluated before the TRIGGER rule):**
+```
+URL: https://safepage.com | Action: TRIGGER_EXEMPT | Priority: 20
+```
+_(TRIGGER rule at Priority: 10 — TRIGGER_EXEMPT fires first since 20 > 10)_
+
+#### Rule Testing Tips
+
+After adding or editing a rule, verify it is working as expected:
+
+1. Have a test device trigger the rule (visit the target URL as the target user)
+2. Go to `/?route=Monitor\Filterlog`
+3. Search by date and Action (e.g. `BLOCKPAGE`, `TRIGGER`, `BLOCKNOTIFY`)
+4. Confirm the expected entries appear with the correct URL, username, and action
+
+If a rule is not firing, check:
+- **Priority** — a higher-priority rule may be matching first and stopping evaluation
+- **Resource Type** — the request type may not match your rule's resource type setting
+- **Username** — verify the regex or exact match against the actual email format
+- **URL matching mode** — substring matching requires the URL to start with the value,
+  not just contain it anywhere
+
+> **Full field reference** is available in the admin UI at `/?route=Admin\Serverfilteredit`
+> when adding or editing a rule.
+
 ### Storage Recommendations
 
 OSM writes frequently to `$dataDir/clients/` — every device upload (default every 9 seconds)
