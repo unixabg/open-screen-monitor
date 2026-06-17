@@ -174,11 +174,30 @@ systemctl reload php8.4-fpm
 
 **PHP-FPM pool settings** — for larger deployments also review `/etc/php/8.4/fpm/pool.d/www.conf`:
 ```ini
-; Increase max children for high concurrency (700+ users)
-pm.max_children = 50
-pm.start_servers = 10
-pm.min_spare_servers = 5
-pm.max_spare_servers = 20
+; Tested with 500-800 concurrent users on a 64GB server
+pm = dynamic
+pm.max_children = 100
+pm.start_servers = 20
+pm.min_spare_servers = 10
+pm.max_spare_servers = 40
+pm.max_requests = 500
+```
+
+**Capacity estimates** based on `pm.max_children` (assumes ~75ms avg request time, 9 second upload interval):
+
+| `pm.max_children` | Comfortable Max | Hard Limit |
+|---|---|---|
+| `50` (default) | ~700 users | ~1,500 users |
+| `100` | ~1,500 users | ~3,000 users |
+| `150` | ~2,000 users | ~4,000 users |
+
+> **Note:** If screenscrape is enabled for all users it adds a request every 20 seconds per
+> device on top of the 9-second upload cycle, increasing request rate by ~45%. Factor this
+> in when planning capacity for large deployments.
+
+Verify settings after reload:
+```bash
+php-fpm8.4 -tt 2>&1 | grep "pm"
 ```
 
 ### MariaDB Tuning
