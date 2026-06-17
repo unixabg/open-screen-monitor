@@ -156,6 +156,7 @@ class Index extends \OSM\Tools\Route {
 					echo '<li class="list-group-item"><a href="/?route=Admin\Synconeroster" >Sync One Roster</a></li>';
 				}
 				echo '<li class="list-group-item"><a href="/?route=Admin\Usagereport" >Usage Report</a></li>';
+				echo '<li class="list-group-item"><a href="/?route=Admin\Userusagereport" >User Usage Report</a></li>';
 				echo '<li class="list-group-item"><a href="/?route=Admin\Logviewer">View Log</a></li>';
 				echo '<li class="list-group-item"><a href="/?route=Monitor\Filterlog">View Browsing History</a></li>';
 				if (\OSM\Tools\Config::get('showNonEnterpriseDevices')){
