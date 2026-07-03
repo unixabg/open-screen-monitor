@@ -30,6 +30,7 @@ class Filterlog extends \OSM\Tools\Route {
 
 
 		$date = isset($_POST['date']) ? ($_POST['date'] == ''?'':date('Y-m-d',strtotime($_POST['date']))) : date('Y-m-d');
+		$enddate = isset($_POST['enddate']) ? ($_POST['enddate'] == ''?'':date('Y-m-d',strtotime($_POST['enddate']))) : '';
 
 		$urlfilter = $_POST['urlfilter'] ?? '';
 
@@ -80,10 +81,32 @@ class Filterlog extends \OSM\Tools\Route {
 		if (isset($_POST['search'])){
 			$where = [];
 			$bindings = [];
+			$rangeError = '';
 
-			if ($date != ''){
+			//date range validation
+			$maxRangeDays = 14;
+			if ($enddate != '' && $date != '' && $enddate != $date){
+				$startTs = strtotime($date);
+				$endTs   = strtotime($enddate);
+				$rangeDays = ($endTs - $startTs) / 86400 + 1;
+				if ($endTs < $startTs){
+					$rangeError = 'End date must be on or after start date.';
+				} elseif ($rangeDays > $maxRangeDays){
+					$rangeError = 'Date range exceeds maximum of '.$maxRangeDays.' days. Please narrow your selection.';
+				} elseif ($urlfilter == '' && $username == '' && $action == '' && $device == '' && $deviceid == '' && $devicesearch == ''){
+					$rangeError = 'Multi-day searches require at least one filter (URL, Username, Action, or Device) to limit result size.';
+				} else {
+					$where[] = 'date BETWEEN :date AND :enddate';
+					$bindings[':date'] = $date;
+					$bindings[':enddate'] = $enddate;
+				}
+			} elseif ($date != ''){
 				$where[] = 'date = :date';
 				$bindings[':date'] = $date;
+			}
+
+			if ($rangeError != ''){
+				$results = '<p style="color:red;font-weight:bold;">'.htmlentities($rangeError).'</p>';
 			}
 			if ($urlfilter != ''){
 				$where[] = 'url like :url';
@@ -159,7 +182,7 @@ class Filterlog extends \OSM\Tools\Route {
 			}
 
 			$where = implode(' AND ',$where);
-			$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc, id desc']);
+			$rows = ($rangeError == '') ? \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc, id desc']) : [];
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
@@ -210,6 +233,7 @@ class Filterlog extends \OSM\Tools\Route {
 		echo '<tr><td>';
 		echo '<form method="post" class="searchForm">';
 		echo 'Date:<br /><input type="date" name="date" value="'.htmlentities($date).'" />';
+		echo '<br />End Date (optional, max 14 days, requires a filter):<br /><input type="date" name="enddate" value="'.htmlentities($enddate).'" />';
 		echo '<br />URL Filter:<br /><input type="text" name="urlfilter" value="'.htmlentities($urlfilter).'" />';
 		echo '<br />Action:<br /><select name="action">';
 			foreach($actions as $key=>$value){
