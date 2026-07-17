@@ -465,73 +465,78 @@ async function screenscrapeTick(){
 		return;
 	}
 
-	//restrict to only active tab
+	//scan the active tab of every window
+	//a student can split screen two windows, so each window's visible tab
+	//must be scanned or visible content in the unfocused window is missed
 	const tabarray = await chrome.tabs.query({active: true});
-	try{
-		var tab = tabarray[0];
-		var results = await chrome.scripting.executeScript({
-			target: {tabId: tab.id, allFrames: true},
-			func: OSMDumpBodyInnerText
-		});
-
-		for (const pageText of results) {
-			//console.debug('Page Text: ' + pageText.result);
-			results = pageText.result;
-		}
-		//console.debug(results);
-		if (results && results.length > 0){
-			//results = results.replace(/(\r\n|\n|\r)/gm, ' ');
-			//console.debug(results);
-			results = {
-				text:results,
-				url:tab.url,
-				sessionID: data.sessionID,
-				email:data.email,
-				deviceID:data.deviceID
-			};
-
-
-			var uploadURL = getUploadURL(data);
-			if (!uploadURL){
-				console.log(data);
-				console.log('No uploadURL no screenscrape');
-				return;
-			}
-
-			const fetchdata = await osmFetch(uploadURL+'?screenscrape',{
-				method: 'POST',
-				headers: {
-					"Content-type": "application/x-www-form-urlencoded"
-				},
-				body: "data=" + encodeURIComponent(JSON.stringify(results))
+	for (var ti=0;ti<tabarray.length;ti++) {
+		try{
+			var tab = tabarray[ti];
+			var frames = await chrome.scripting.executeScript({
+				target: {tabId: tab.id, allFrames: true},
+				func: OSMDumpBodyInnerText
 			});
-			const response = await fetchdata.json();
-			console.debug('Screenscrape request/response',results,response);
 
-			//see if we need to do anything
-			if ("commands" in response) {
-				for (var i=0;i<response["commands"].length;i++) {
-					var command = response["commands"][i];
-					try {
-						switch (command["action"]) {
-							case "BLOCK":
-								console.log("Blocking tab: " + tab.url);
-								chrome.tabs.remove(tab.id);
-								break;
-							case "BLOCKPAGE":
-								console.log("Blockpaging tab: " + tab.url);
-								chrome.tabs.update(tab.id, {url: command['data']});
-								break;
-							case "NOTIFY":
-								console.log("Notification: " + tab.url);
-								chrome.notifications.create("",command['data']);
-								break;
-						}
-					} catch (e) {console.error(e);}
+			//concatenate text from all frames
+			//previously only the last frame's text survived the loop
+			var text = '';
+			for (const pageText of frames) {
+				//console.debug('Page Text: ' + pageText.result);
+				text = text + (pageText.result ?? '') + "\n";
+			}
+			//console.debug(text);
+			if (text.trim().length > 0){
+				var results = {
+					text:text,
+					url:tab.url,
+					sessionID: data.sessionID,
+					email:data.email,
+					deviceID:data.deviceID
+				};
+
+
+				var uploadURL = getUploadURL(data);
+				if (!uploadURL){
+					console.log(data);
+					console.log('No uploadURL no screenscrape');
+					return;
+				}
+
+				const fetchdata = await osmFetch(uploadURL+'?screenscrape',{
+					method: 'POST',
+					headers: {
+						"Content-type": "application/x-www-form-urlencoded"
+					},
+					body: "data=" + encodeURIComponent(JSON.stringify(results))
+				});
+				const response = await fetchdata.json();
+				console.debug('Screenscrape request/response',results,response);
+
+				//see if we need to do anything
+				if ("commands" in response) {
+					for (var i=0;i<response["commands"].length;i++) {
+						var command = response["commands"][i];
+						try {
+							switch (command["action"]) {
+								case "BLOCK":
+									console.log("Blocking tab: " + tab.url);
+									chrome.tabs.remove(tab.id);
+									break;
+								case "BLOCKPAGE":
+									console.log("Blockpaging tab: " + tab.url);
+									chrome.tabs.update(tab.id, {url: command['data']});
+									break;
+								case "NOTIFY":
+									console.log("Notification: " + tab.url);
+									chrome.notifications.create("",command['data']);
+									break;
+							}
+						} catch (e) {console.error(e);}
+					}
 				}
 			}
-		}
-	} catch (e) {console.error(e);}
+		} catch (e) {console.error(e);}
+	}
 }
 
 //used by alarmlistener and setTimeout
