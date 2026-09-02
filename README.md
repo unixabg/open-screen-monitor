@@ -406,10 +406,9 @@ thread_cache_size       = 100
 max_connections         = 200
 
 # InnoDB buffer pool — most important setting for read performance.
-# Set to 50-70% of RAM dedicated to MariaDB. With a small pool, reads hit disk
-# instead of memory — OSM's filter log hit ratio dropped to 83% at 128MB.
-# At 8GB on a 64GB server the hit ratio climbed to 99%+ after warmup.
-innodb_buffer_pool_size        = 8G
+# Size this against your DAILY ROW VOLUME, not just total RAM. See the
+# sizing guidance below the config block.
+innodb_buffer_pool_size        = 24G
 
 # Reduce fsync on every commit for write performance.
 # Setting 2 flushes once per second instead of per transaction.
@@ -440,9 +439,38 @@ mysql -u root -p -e "SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
 mysql -u root -p -e "SELECT (1 - (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_reads') / (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_read_requests')) * 100 AS hit_ratio_pct;"
 ```
 
-> **Note:** Scale `innodb_buffer_pool_size` to your available RAM. A general guideline is
-> 50-70% of RAM dedicated to MariaDB. On a shared server, account for other containers.
+**Sizing the buffer pool**
+
+The buffer pool caches table and index pages in memory. Reads that hit the pool are fast;
+reads that miss go to disk. Because `tbl_filter_log` grows quickly, the pool needs to be
+sized against how much *recent history* you want cached, not just as a percentage of RAM.
+
+Production experience on a 64GB server:
+
+| Buffer pool | Filter log size | Result |
+|---|---|---|
+| 128M (default) | 1.5GB | 83% hit ratio — frequent disk reads, slow reports |
+| 8G | 9.4GB (~1.8M rows/day) | 99% hit ratio for recent dates, but only ~1 day cached |
+| 24G | 9.4GB+ (~4M rows/day) | Several days cached — historical queries much faster |
+
+A concrete example of why this matters: a full-day domain summary query took **62 seconds**
+against an uncached historical date with an 8G pool, and **10 seconds** once the same data
+was cached in a 24G pool. The query and indexes were identical — the difference was entirely
+disk reads versus memory.
+
+**Guidance:**
+- Estimate your daily row volume (`SELECT COUNT(*) FROM tbl_filter_log WHERE date = CURDATE()`)
+- Decide how many days of history should stay fast (reports typically query the last 7-30 days)
+- Size the pool to hold that working set, up to roughly 50-70% of RAM dedicated to MariaDB
+- On a shared server, account for other containers
+
+> **Note:** Changing `innodb_buffer_pool_size` requires a full MariaDB **restart**, not a reload.
+> Expect the hit ratio to start low and climb over the first hour as the pool warms up.
 > The `thread_pool_size` should roughly match your PHP-FPM `pm.max_children` setting.
+
+**Growth planning:** at ~4M rows per day during a school term, `tbl_filter_log` can add
+several GB per month. Plan a retention policy — many districts purge annually during summer
+break, keeping 12-18 months of history.
 
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 

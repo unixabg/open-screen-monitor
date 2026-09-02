@@ -44,6 +44,7 @@ class Googleclassroom extends \OSM\Tools\Route {
 		$_SESSION['groups'][$groupID] = [
 			'name' => $_SESSION['userLabNames'][$_GET['class']] ?? $_GET['class'],
 			'type' => 'user',
+			'clients' => [],
 		];
 
 		foreach ($students as $student) {
