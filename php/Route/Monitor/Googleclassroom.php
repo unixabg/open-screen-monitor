@@ -48,8 +48,14 @@ class Googleclassroom extends \OSM\Tools\Route {
 		];
 
 		foreach ($students as $student) {
-			$email = $student['profile']['emailAddress'];
-			$name = $student['profile']['name']['fullName'];
+			//API can return profiles without an email - log them so we can
+			//identify the cause before deciding on permanent handling
+			$email = $student['profile']['emailAddress'] ?? '';
+			if ($email == ''){
+				\OSM\Tools\Log::add('classroom.noemail', $_GET['class'], $student['profile'] ?? $student);
+				continue;
+			}
+			$name = $student['profile']['name']['fullName'] ?? $email;
 			$_SESSION['clients']['users'][$email] = $name;
 			$_SESSION['groups'][$groupID]['clients'][$email] = $name;
 		}
