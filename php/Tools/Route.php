@@ -24,6 +24,8 @@ class Route {
                 $validuntil = $_SESSION['validuntil'] ?? 0;
                 if ($validuntil < time()){
 			if ($redirect){
+				//remember where they were headed so login can return them there
+				$_SESSION['loginredirect'] = $this->getRoutePath();
 				header('Location: '.$this->urlRoot());
 				die();
 			} else {

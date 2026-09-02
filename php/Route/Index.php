@@ -11,6 +11,11 @@ class Index extends \OSM\Tools\Route {
 				.welcome {padding-bottom:50px;}
 			';
 			echo '<h2 class="welcome">Hello '.htmlentities($_SESSION['name'].' ('.$_SESSION['email'].')').'</h2>';
+
+			//session expires while the page sits open, so bounce to login at that moment
+			//rather than letting the user click stale links
+			echo '<script>setTimeout(function(){window.location="/";},'.(($validuntil - time()) * 1000).');</script>';
+
 			echo '<div class="columns">';
 
 			$allTeachersGetBypass = \OSM\Tools\Config::get('allTeachersGetBypass');
