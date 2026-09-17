@@ -182,7 +182,22 @@ class Filterlog extends \OSM\Tools\Route {
 			}
 
 			$where = implode(' AND ',$where);
-			$rows = ($rangeError == '') ? \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc, id desc']) : [];
+
+			//cap results - an unfiltered day can match millions of rows which
+			//exhausts PHP memory and cannot be usefully displayed or printed
+			$maxResults = 5000;
+			$rows = [];
+			$totalMatches = 0;
+			if ($rangeError == ''){
+				$countRows = \OSM\Tools\DB::selectRaw('SELECT COUNT(*) AS c FROM tbl_filter_log'.($where != '' ? ' WHERE '.$where : ''),$bindings);
+				$totalMatches = intval($countRows[0]['c'] ?? 0);
+				$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'id desc','limit'=>$maxResults]);
+			}
+
+			if ($totalMatches > $maxResults){
+				$results .= '<p style="color:#b00;font-weight:bold;">Showing the most recent '.number_format($maxResults).' of '.number_format($totalMatches).' matching entries. Narrow your search (add a username, URL filter, or device) to see complete results.</p>';
+			}
+
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
