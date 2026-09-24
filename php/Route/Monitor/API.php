@@ -109,7 +109,9 @@ class API extends \OSM\Tools\Route {
 							$data['sessions'][$sessionID]['email'] = $email;
 							$data['sessions'][$sessionID]['clientName'] = $clientName;
 						} else {
-							$data['sessions'][$sessionID]['title'] = $email.'<br />('.$clientName.')';
+							//email and clientName come from unauthenticated extension uploads
+							//and the viewer inserts title with innerHTML, so escape here
+							$data['sessions'][$sessionID]['title'] = htmlentities($email).'<br />('.htmlentities($clientName).')';
 						}
 					}
 				}

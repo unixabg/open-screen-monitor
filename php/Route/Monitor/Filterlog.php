@@ -201,19 +201,20 @@ class Filterlog extends \OSM\Tools\Route {
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
-				$results .= '<b>Action:</b> '.$row['action'].'<br />';
-				$results .= '<b>Date:</b> '.$row['date'].'<br />';
-				$results .= '<b>Time:</b> '.$row['time'].'<br />';
+				$results .= '<b>Action:</b> '.htmlentities($row['action']).'<br />';
+				$results .= '<b>Date:</b> '.htmlentities($row['date']).'<br />';
+				$results .= '<b>Time:</b> '.htmlentities($row['time']).'<br />';
 				$results .= '<b>User:</b> '.htmlentities($row['username']).'<br />';
 				$results .= '<b>Annotated Info:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
 				if (isset($_POST['showadvanced'])) {
-					$results .= '<br /><b>IP:</b> '.$row['ip'];
+					//type and initiator come from unauthenticated extension requests
+					$results .= '<br /><b>IP:</b> '.htmlentities($row['ip']);
 					if ($row['action'] == 'KEYWORDBLOCK') {
-						$results .= '<br /><b>Key Word:</b> '.$row['type'];
+						$results .= '<br /><b>Key Word:</b> '.htmlentities($row['type']);
 					} else {
-						$results .= '<br /><b>Type:</b> '.$row['type'];
+						$results .= '<br /><b>Type:</b> '.htmlentities($row['type']);
 					}
-					$results .= '<br /><b>Initiator:</b> '.$row['initiator'];
+					$results .= '<br /><b>Initiator:</b> '.htmlentities($row['initiator']);
 				}
 				$results .= '</td><td>'.htmlentities($row['url']).'</td></tr>';
 
