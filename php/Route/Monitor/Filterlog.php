@@ -159,25 +159,31 @@ class Filterlog extends \OSM\Tools\Route {
 				}
 			}
 
-			if (!$_SESSION['admin']){
-				$subwhere = [];
+			//non-admins only see devices/users from groups they have opened this session
+			//(a lab, class, or bypass group puts them in $_SESSION['clients'])
+			if (!($_SESSION['admin'] ?? false)){
+				$clientWhere = [];
 				$i = 0;
-				foreach(['devices','users'] as $type){
-					if (!isset($_SESSION['clients'][$type])){continue;}
+				foreach(['devices'=>'deviceid','users'=>'username'] as $clientType => $column){
+					$clientIDs = array_keys($_SESSION['clients'][$clientType] ?? []);
+					if (count($clientIDs) == 0){continue;}
 
-					$subwhere = [];
-					foreach($_SESSION['clients'][$type] as $clientID => $clientName){
-						$subwhere[] = ':client'.$i;
+					$placeholders = [];
+					foreach($clientIDs as $clientID){
+						$placeholders[] = ':client'.$i;
 						$bindings[':client'.$i] = $clientID;
 						$i++;
 					}
-					$subwhere = '('.implode(',',$subwhere).')';
+					$clientWhere[] = $column.' IN ('.implode(',',$placeholders).')';
+				}
 
-					if ($type == 'devices'){
-						$where[] = 'deviceid IN '.$subwhere;
-					} elseif ($type == 'users'){
-						$where[] = 'username IN '.$subwhere;
-					}
+				if (count($clientWhere) == 0){
+					//no groups opened means nothing to show, not everything
+					$where[] = '1=0';
+					$results .= '<p style="color:red;font-weight:bold;">No results: open one of your labs or classes first, then view browsing history from there.</p>';
+				} else {
+					//a row matches if it is one of their devices OR one of their users
+					$where[] = '('.implode(' OR ',$clientWhere).')';
 				}
 			}
 
