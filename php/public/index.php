@@ -3,6 +3,16 @@ namespace OSM;
 
 require_once('../config.php');
 
+//harden the session cookie before the session starts
+//	httponly: page javascript cannot read the cookie (limits damage from any xss)
+//	secure: only sent over https (only enabled when this request came in over https)
+//	samesite: not sent on cross-site form posts (blocks forged admin form submissions)
+session_set_cookie_params([
+	'httponly' => true,
+	'secure' => ($_SERVER['HTTPS'] ?? '') != '',
+	'samesite' => 'Lax',
+]);
+
 //we will need a session everywhere that this page goes
 session_start();
 

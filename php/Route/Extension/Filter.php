@@ -179,8 +179,8 @@ class Filter extends \OSM\Tools\Route {
 					'username' => $data['email'],
 					'deviceid' => $data['deviceID'],
 					'action' => $entry['action'],
-					'type' => 'trigger word: '.$entry['url'],
-					'url' => $data['url'],
+					'type' => substr('trigger word: '.$entry['url'],0,63),
+					'url' => substr($data['url'],0,2047),
 				]);
 
 				if ($entry['action'] == 'TRIGGER_EXEMPT'){

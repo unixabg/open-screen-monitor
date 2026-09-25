@@ -22,7 +22,8 @@ class Lab extends \OSM\Tools\Route {
 			header('Location: /?route=Monitor\Viewer&groupID='.urlencode($groupID));
 			\OSM\Tools\Log::add('viewer.lab',$groupID);
 		} else {
-			//they don't have permission to this lab but are valid, redirect back
+			//they don't have permission to this lab (or it no longer exists), log and redirect back
+			\OSM\Tools\Log::add('access.denied','Monitor\\Lab',['lab'=>$_GET['lab'] ?? '']);
 			header('Location: ?');
 		}
 		die();

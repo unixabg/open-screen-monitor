@@ -7,6 +7,11 @@ class Filterlog extends \OSM\Tools\Route {
 
 		$this->requireLogin();
 
+		//non-admins must open one of their labs or classes first; that is what fills
+		//$_SESSION['clients'] and decides whose history they may see
+		if (!($_SESSION['admin'] ?? false) && empty($_SESSION['clients']['devices']) && empty($_SESSION['clients']['users'])){
+			$this->denyAccess('Permission Denied: open one of your labs or classes first, then view browsing history from there.');
+		}
 
 		$rows = \OSM\Tools\DB::select('tbl_lab_device');
 		$deviceNames = [];
@@ -159,46 +164,68 @@ class Filterlog extends \OSM\Tools\Route {
 				}
 			}
 
-			if (!$_SESSION['admin']){
-				$subwhere = [];
+			//non-admins only see devices/users from groups they have opened this session
+			//(a lab, class, or bypass group puts them in $_SESSION['clients'])
+			if (!($_SESSION['admin'] ?? false)){
+				$clientWhere = [];
 				$i = 0;
-				foreach(['devices','users'] as $type){
-					if (!isset($_SESSION['clients'][$type])){continue;}
+				foreach(['devices'=>'deviceid','users'=>'username'] as $clientType => $column){
+					$clientIDs = array_keys($_SESSION['clients'][$clientType] ?? []);
+					if (count($clientIDs) == 0){continue;}
 
-					$subwhere = [];
-					foreach($_SESSION['clients'][$type] as $clientID => $clientName){
-						$subwhere[] = ':client'.$i;
+					$placeholders = [];
+					foreach($clientIDs as $clientID){
+						$placeholders[] = ':client'.$i;
 						$bindings[':client'.$i] = $clientID;
 						$i++;
 					}
-					$subwhere = '('.implode(',',$subwhere).')';
+					$clientWhere[] = $column.' IN ('.implode(',',$placeholders).')';
+				}
 
-					if ($type == 'devices'){
-						$where[] = 'deviceid IN '.$subwhere;
-					} elseif ($type == 'users'){
-						$where[] = 'username IN '.$subwhere;
-					}
+				if (count($clientWhere) == 0){
+					//no groups opened means nothing to show, not everything
+					$where[] = '1=0';
+					$results .= '<p style="color:red;font-weight:bold;">No results: open one of your labs or classes first, then view browsing history from there.</p>';
+				} else {
+					//a row matches if it is one of their devices OR one of their users
+					$where[] = '('.implode(' OR ',$clientWhere).')';
 				}
 			}
 
 			$where = implode(' AND ',$where);
-			$rows = ($rangeError == '') ? \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'date desc, time desc, id desc']) : [];
+
+			//cap results - an unfiltered day can match millions of rows which
+			//exhausts PHP memory and cannot be usefully displayed or printed
+			$maxResults = 5000;
+			$rows = [];
+			$totalMatches = 0;
+			if ($rangeError == ''){
+				$countRows = \OSM\Tools\DB::selectRaw('SELECT COUNT(*) AS c FROM tbl_filter_log'.($where != '' ? ' WHERE '.$where : ''),$bindings);
+				$totalMatches = intval($countRows[0]['c'] ?? 0);
+				$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'id desc','limit'=>$maxResults]);
+			}
+
+			if ($totalMatches > $maxResults){
+				$results .= '<p style="color:#b00;font-weight:bold;">Showing the most recent '.number_format($maxResults).' of '.number_format($totalMatches).' matching entries. Narrow your search (add a username, URL filter, or device) to see complete results.</p>';
+			}
+
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
-				$results .= '<b>Action:</b> '.$row['action'].'<br />';
-				$results .= '<b>Date:</b> '.$row['date'].'<br />';
-				$results .= '<b>Time:</b> '.$row['time'].'<br />';
+				$results .= '<b>Action:</b> '.htmlentities($row['action']).'<br />';
+				$results .= '<b>Date:</b> '.htmlentities($row['date']).'<br />';
+				$results .= '<b>Time:</b> '.htmlentities($row['time']).'<br />';
 				$results .= '<b>User:</b> '.htmlentities($row['username']).'<br />';
 				$results .= '<b>Annotated Info:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
 				if (isset($_POST['showadvanced'])) {
-					$results .= '<br /><b>IP:</b> '.$row['ip'];
+					//type and initiator come from unauthenticated extension requests
+					$results .= '<br /><b>IP:</b> '.htmlentities($row['ip']);
 					if ($row['action'] == 'KEYWORDBLOCK') {
-						$results .= '<br /><b>Key Word:</b> '.$row['type'];
+						$results .= '<br /><b>Key Word:</b> '.htmlentities($row['type']);
 					} else {
-						$results .= '<br /><b>Type:</b> '.$row['type'];
+						$results .= '<br /><b>Type:</b> '.htmlentities($row['type']);
 					}
-					$results .= '<br /><b>Initiator:</b> '.$row['initiator'];
+					$results .= '<br /><b>Initiator:</b> '.htmlentities($row['initiator']);
 				}
 				$results .= '</td><td>'.htmlentities($row['url']).'</td></tr>';
 

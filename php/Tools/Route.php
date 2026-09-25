@@ -24,6 +24,8 @@ class Route {
                 $validuntil = $_SESSION['validuntil'] ?? 0;
                 if ($validuntil < time()){
 			if ($redirect){
+				//remember where they were headed so login can return them there
+				$_SESSION['loginredirect'] = $this->getRoutePath();
 				header('Location: '.$this->urlRoot());
 				die();
 			} else {
@@ -45,10 +47,18 @@ class Route {
 		return ($_SESSION['admin'] ?? false);
 	}
 
+	//log a refused request to tbl_log (type "access.denied", target = route name) and stop
+	//search the Log Viewer for type access.denied to see who tried what
+	public function denyAccess($message = 'Permission Denied', $details = ''){
+		$route = substr(get_class($this), strlen('OSM\\Route\\'));
+		\OSM\Tools\Log::add('access.denied', $route, $details);
+		die($message);
+	}
+
 	public function requireAdmin(){
 		$this->requireLogin();
 		if (!$this->isAdmin()){
-			die('Permission Denied');
+			$this->denyAccess();
 		}
 	}
 

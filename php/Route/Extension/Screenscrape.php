@@ -149,8 +149,8 @@ class Screenscrape extends \OSM\Tools\Route {
 					'username' => $data['email'],
 					'deviceid' => $data['deviceID'],
 					'action' => $entry['action'],
-					'type' => 'trigger word: '.$word,
-					'url' => $data['url'],
+					'type' => substr('trigger word: '.$word,0,63),
+					'url' => substr($data['url'],0,2047),
 				]);
 
 				if ($entry['action'] == 'TRIGGER_EXEMPT'){

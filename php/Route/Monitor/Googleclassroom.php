@@ -15,6 +15,13 @@ class Googleclassroom extends \OSM\Tools\Route {
 			die('OSM does not have Google Classroom enabled');
 		}
 
+		//only open classes this person teaches
+		//the home page fills userLabNames from Google with teacherId=me (all courses for admins),
+		//so a class id typed into the url that is not on their own list is refused
+		if (!($_SESSION['admin'] ?? false) && !isset($_SESSION['userLabNames'][$_GET['class']])){
+			$this->denyAccess('Permission Denied: you are not a teacher of this class. Open your classes from the home page.', ['class'=>$_GET['class']]);
+		}
+
 		//sync clients in course
 		$context = stream_context_create(['http'=>[
 			'method'=>'GET',
@@ -48,8 +55,14 @@ class Googleclassroom extends \OSM\Tools\Route {
 		];
 
 		foreach ($students as $student) {
-			$email = $student['profile']['emailAddress'];
-			$name = $student['profile']['name']['fullName'];
+			//API can return profiles without an email - log them so we can
+			//identify the cause before deciding on permanent handling
+			$email = $student['profile']['emailAddress'] ?? '';
+			if ($email == ''){
+				\OSM\Tools\Log::add('classroom.noemail', $_GET['class'], $student['profile'] ?? $student);
+				continue;
+			}
+			$name = $student['profile']['name']['fullName'] ?? $email;
 			$_SESSION['clients']['users'][$email] = $name;
 			$_SESSION['groups'][$groupID]['clients'][$email] = $name;
 		}
