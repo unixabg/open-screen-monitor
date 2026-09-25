@@ -20,7 +20,8 @@ class Oneroster extends \OSM\Tools\Route {
 		}
 
 		if (!$authValid){
-			//they don't have permission to this class but are valid, redirect back
+			//they don't have permission to this class, log and redirect back
+			\OSM\Tools\Log::add('access.denied','Monitor\\Oneroster',['class'=>$_GET['class'] ?? '']);
 			header('Location: ?');
 		} else {
 			$groupID = 'user{'.$_GET['class'].'}';

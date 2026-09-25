@@ -30,7 +30,7 @@ class Devicelastuser extends \OSM\Tools\Route {
 		}
 
 		if (!$valid){
-			die('Permission Denied');
+			$this->denyAccess();
 		}
 
 		$this->css = '

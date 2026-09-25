@@ -4,7 +4,7 @@ namespace OSM\Route\Admin;
 class Bypass extends \OSM\Tools\Route {
 	public function action(){
 		if (!($_SESSION['bypass'] ?? false)){
-			die('Permission Denied');
+			$this->denyAccess();
 		}
 
 		$namesByEmail = [];

@@ -58,7 +58,7 @@ class Route {
 	public function requireAdmin(){
 		$this->requireLogin();
 		if (!$this->isAdmin()){
-			die('Permission Denied');
+			$this->denyAccess();
 		}
 	}
 
