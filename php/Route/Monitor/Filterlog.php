@@ -7,6 +7,11 @@ class Filterlog extends \OSM\Tools\Route {
 
 		$this->requireLogin();
 
+		//non-admins must open one of their labs or classes first; that is what fills
+		//$_SESSION['clients'] and decides whose history they may see
+		if (!($_SESSION['admin'] ?? false) && empty($_SESSION['clients']['devices']) && empty($_SESSION['clients']['users'])){
+			$this->denyAccess('Permission Denied: open one of your labs or classes first, then view browsing history from there.');
+		}
 
 		$rows = \OSM\Tools\DB::select('tbl_lab_device');
 		$deviceNames = [];

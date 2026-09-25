@@ -47,6 +47,14 @@ class Route {
 		return ($_SESSION['admin'] ?? false);
 	}
 
+	//log a refused request to tbl_log (type "access.denied", target = route name) and stop
+	//search the Log Viewer for type access.denied to see who tried what
+	public function denyAccess($message = 'Permission Denied', $details = ''){
+		$route = substr(get_class($this), strlen('OSM\\Route\\'));
+		\OSM\Tools\Log::add('access.denied', $route, $details);
+		die($message);
+	}
+
 	public function requireAdmin(){
 		$this->requireLogin();
 		if (!$this->isAdmin()){
