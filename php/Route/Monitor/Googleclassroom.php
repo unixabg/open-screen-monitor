@@ -15,6 +15,13 @@ class Googleclassroom extends \OSM\Tools\Route {
 			die('OSM does not have Google Classroom enabled');
 		}
 
+		//only open classes this person teaches
+		//the home page fills userLabNames from Google with teacherId=me (all courses for admins),
+		//so a class id typed into the url that is not on their own list is refused
+		if (!($_SESSION['admin'] ?? false) && !isset($_SESSION['userLabNames'][$_GET['class']])){
+			$this->denyAccess('Permission Denied: you are not a teacher of this class. Open your classes from the home page.', ['class'=>$_GET['class']]);
+		}
+
 		//sync clients in course
 		$context = stream_context_create(['http'=>[
 			'method'=>'GET',
