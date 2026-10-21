@@ -21,6 +21,8 @@ DB_NAME    ?= osm
 DB_USER    ?= osm
 WEB_USER   ?= www-data
 NGINX_SITE ?= /etc/nginx/sites-enabled/osm
+# auto: drop the [::]:80 listen when the kernel has no IPv6 (no /proc/net/if_inet6)
+NGINX_IPV6 ?= auto
 
 PACKAGES = nginx mariadb-server curl \
 	php$(PHP_VER)-fpm php$(PHP_VER)-xml php$(PHP_VER)-curl \
@@ -37,7 +39,8 @@ help:
 	echo "  install    deps + install-files + nginx + data + db"
 	echo "  deps       apt install nginx, mariadb and php$(PHP_VER) packages"
 	echo "  install-files  copy php/ and sample_config/ to $(OSM_DIR)"
-	echo "  nginx      install the nginx site (skipped if $(NGINX_SITE) exists)"
+	echo "  nginx      install the nginx site (skipped if $(NGINX_SITE) exists;"
+	echo "             IPv4-only if the kernel has no IPv6, or with NGINX_IPV6=no)"
 	echo "  data       create $(DATA_DIR) and fix ownership/permissions"
 	echo "  db         create database and $(DATA_DIR)/db.json (skipped if db.json exists)"
 	echo "  check      smoke test the install"
@@ -88,6 +91,14 @@ nginx:
 			-e 's#/var/www/osm-data/#$(DATA_DIR)/#' \
 			-e 's#php8\.4-fpm#php$(PHP_VER)-fpm#' \
 			"$(SRC_DIR)/sample_config/nginx-site" > "$(NGINX_SITE)"
+		ipv6="$(NGINX_IPV6)"
+		if [ "$$ipv6" = auto ]; then
+			[ -e /proc/net/if_inet6 ] && ipv6=yes || ipv6=no
+		fi
+		if [ "$$ipv6" = no ]; then
+			sed -i '/^[[:space:]]*listen \[::\]:/d' "$(NGINX_SITE)"
+			echo "  no IPv6: removed the [::] listen lines (override with NGINX_IPV6=yes)"
+		fi
 		rm -f /etc/nginx/sites-enabled/default
 	fi
 	nginx -t

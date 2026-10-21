@@ -500,7 +500,9 @@ make check
 - The database password is generated and written to `/var/www/osm-data/db.json`
   (mode 640, owned by www-data).
 - Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
-  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`.
+- IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
+  without the `[::]:80` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
 - Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
   as an admin and open `/?route=Admin\Upgrade`.
 - `make uninstall` removes the code and nginx site but keeps data and database.
