@@ -3,7 +3,7 @@
 # Fresh install on Debian trixie (as root):
 #   git clone https://github.com/unixabg/open-screen-monitor.git --branch next
 #   cd open-screen-monitor
-#   make install
+#   make install            (HTTPS on 443 with a self signed cert, see `make cert`)
 #   cp /path/to/client_secret.json /var/www/osm-data/ && make data
 #   make check
 #
@@ -21,25 +21,30 @@ DB_NAME    ?= osm
 DB_USER    ?= osm
 WEB_USER   ?= www-data
 NGINX_SITE ?= /etc/nginx/sites-enabled/osm
-# auto: drop the [::]:80 listen when the kernel has no IPv6 (no /proc/net/if_inet6)
+# auto: drop the [::] listen when the kernel has no IPv6 (no /proc/net/if_inet6)
 NGINX_IPV6 ?= auto
+# HTTPS only: nginx reads $(CERT_DIR)/server.cer and server.key
+CERT_DIR   ?= /var/www/cert
+OSM_HOST   ?= $(shell hostname -f 2>/dev/null || hostname)
+CERT_DAYS  ?= 3650
 
-PACKAGES = nginx mariadb-server curl \
+PACKAGES = nginx mariadb-server curl openssl \
 	php$(PHP_VER)-fpm php$(PHP_VER)-xml php$(PHP_VER)-curl \
 	php$(PHP_VER)-odbc php$(PHP_VER)-mysql php$(PHP_VER)-zip
 
 SRC_DIR := $(CURDIR)
 
-.PHONY: all help deps install install-files nginx data db check upgrade uninstall purge
+.PHONY: all help deps install install-files cert nginx data db check upgrade uninstall purge
 
 all: help
 
 help:
 	@echo "Open Screen Monitor make targets (run as root):"
-	echo "  install    deps + install-files + nginx + data + db"
+	echo "  install    deps + install-files + cert + nginx + data + db"
 	echo "  deps       apt install nginx, mariadb and php$(PHP_VER) packages"
 	echo "  install-files  copy php/ and sample_config/ to $(OSM_DIR)"
-	echo "  nginx      install the nginx site (skipped if $(NGINX_SITE) exists;"
+	echo "  cert       self signed cert for $(OSM_HOST) in $(CERT_DIR) (skipped if one exists)"
+	echo "  nginx      install the HTTPS-only nginx site (skipped if $(NGINX_SITE) exists;"
 	echo "             IPv4-only if the kernel has no IPv6, or with NGINX_IPV6=no)"
 	echo "  data       create $(DATA_DIR) and fix ownership/permissions"
 	echo "  db         create database and $(DATA_DIR)/db.json (skipped if db.json exists)"
@@ -54,7 +59,7 @@ deps:
 	apt-get update
 	apt-get -y install $(PACKAGES)
 
-install: deps install-files nginx data db
+install: deps install-files cert nginx data db
 	@echo
 	echo "Open Screen Monitor installed."
 	if [ ! -f "$(DATA_DIR)/client_secret.json" ]; then
@@ -82,7 +87,29 @@ install-files:
 	done
 	chown -R root:root "$(OSM_DIR)/php" "$(OSM_DIR)/sample_config"
 
-nginx:
+# Put your own server.cer (full chain) and server.key in $(CERT_DIR) before
+# `make install` to use them instead; replace them later and `service nginx reload`.
+cert:
+	@if [ -f "$(CERT_DIR)/server.cer" ] && [ -f "$(CERT_DIR)/server.key" ]; then
+		echo "Certificate exists in $(CERT_DIR); leaving it alone."
+		exit 0
+	fi
+	host="$(OSM_HOST)"
+	san="DNS:$$host"
+	[ "$${host%%.*}" != "$$host" ] && san="$$san,DNS:$${host%%.*}"
+	echo "Creating self signed certificate for $$host ($$san) ..."
+	mkdir -p "$(CERT_DIR)"
+	chmod 755 "$(CERT_DIR)"
+	umask 077
+	openssl req -x509 -newkey rsa:4096 -sha256 -days $(CERT_DAYS) -nodes \
+		-keyout "$(CERT_DIR)/server.key" -out "$(CERT_DIR)/server.cer" \
+		-subj "/CN=$$host" -addext "subjectAltName=$$san"
+	chmod 600 "$(CERT_DIR)/server.key"
+	chmod 644 "$(CERT_DIR)/server.cer"
+	echo "  wrote $(CERT_DIR)/server.cer and server.key"
+	echo "  Chromebooks need this cert trusted in Google Admin (see README, Self Signed Certificate)."
+
+nginx: cert
 	@echo "Configuring nginx ..."
 	if [ -e "$(NGINX_SITE)" ]; then
 		echo "  $(NGINX_SITE) exists; leaving it alone."
@@ -90,6 +117,7 @@ nginx:
 		sed -e 's#/var/www/osm/php/public#$(OSM_DIR)/php/public#' \
 			-e 's#/var/www/osm-data/#$(DATA_DIR)/#' \
 			-e 's#php8\.4-fpm#php$(PHP_VER)-fpm#' \
+			-e 's#/var/www/cert/#$(CERT_DIR)/#' \
 			"$(SRC_DIR)/sample_config/nginx-site" > "$(NGINX_SITE)"
 		ipv6="$(NGINX_IPV6)"
 		if [ "$$ipv6" = auto ]; then
@@ -167,13 +195,26 @@ check:
 	required=$$(grep -o 'DB_SCHEMA_VERSION = [0-9]*' "$(OSM_DIR)/php/Route/Admin/Upgrade.php" | grep -o '[0-9]*$$' || true)
 	[ -n "$$applied" ] && [ "$$applied" = "$$required" ] && ok "schema version $$applied" \
 		|| ko "schema version is '$$applied', code requires '$$required' (see /?route=Admin\\Upgrade)"
-	body=$$(curl -s --noproxy '*' -w '\n%{http_code}' http://localhost/ || true)
+	if [ -f "$(CERT_DIR)/server.cer" ]; then
+		if openssl x509 -checkend $$((14*86400)) -noout -in "$(CERT_DIR)/server.cer" >/dev/null; then
+			ok "certificate valid past 14 days ($$(openssl x509 -enddate -noout -in "$(CERT_DIR)/server.cer" | cut -d= -f2))"
+		else
+			ko "certificate in $(CERT_DIR) expires within 14 days or has expired"
+		fi
+	else
+		ko "no certificate at $(CERT_DIR)/server.cer (run 'make cert')"
+	fi
+	# -k: a self signed cert is expected; trust is set up on the Chromebooks
+	body=$$(curl -sk --noproxy '*' -w '\n%{http_code}' https://localhost/ || true)
 	code=$${body##*$$'\n'}
-	case "$$code" in 200|302) ok "GET / -> $$code";; *) ko "GET / -> $$code";; esac
+	case "$$code" in 200|302) ok "GET https://localhost/ -> $$code";; *) ko "GET https://localhost/ -> $$code";; esac
 	if grep -qiE 'Missing|Fatal error|Parse error|Uncaught' <<<"$$body"; then
 		ko "page error: $$(grep -oiE '(Missing|Fatal error|Parse error|Uncaught).{0,100}' <<<"$$body" | head -1)"
 	fi
-	code=$$(curl -s --noproxy '*' -o /dev/null -w '%{http_code}' http://localhost/config.php || true)
+	code=$$(curl -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 5 http://localhost/ || true)
+	[ "$$code" = 000 ] && ok "nothing answers on port 80" \
+		|| echo "  [WARN] something answers http://localhost/ ($$code); OSM itself only listens on 443"
+	code=$$(curl -sk --noproxy '*' -o /dev/null -w '%{http_code}' https://localhost/config.php || true)
 	[ "$$code" = 404 ] && ok "config.php not served" || ko "config.php returned $$code"
 	if [ -s "$(DATA_DIR)/error.log" ]; then ko "$(DATA_DIR)/error.log has entries"; fi
 	exit $$fail

@@ -474,8 +474,9 @@ break, keeping 12-18 months of history.
 
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
-The `Makefile` does the whole server setup: packages, code, nginx site,
-`osm-data` and the database. Run `make help` for the individual targets.
+The `Makefile` does the whole server setup: packages, code, an HTTPS-only nginx
+site (port 443, nothing on port 80), a certificate, `osm-data` and the database.
+Run `make help` for the individual targets.
 
 ```
 #get the code
@@ -483,8 +484,11 @@ apt -y install git make
 git clone https://github.com/unixabg/open-screen-monitor.git --branch next
 cd open-screen-monitor
 
-#install packages, code (/var/www/osm), nginx site, /var/www/osm-data and database
-make install
+#optional: use your own certificate instead of a generated self signed one
+#mkdir -p /var/www/cert && cp fullchain.pem /var/www/cert/server.cer && cp privkey.pem /var/www/cert/server.key
+
+#install packages, code (/var/www/osm), cert, nginx site, /var/www/osm-data and database
+make install OSM_HOST=osm.yourdomain.com
 
 #add client secret from google, then fix its permissions
 cp /path/to/client_secret.json /var/www/osm-data/
@@ -494,15 +498,23 @@ make data
 make check
 ```
 
+- HTTPS only: if `/var/www/cert/server.cer` and `server.key` do not exist, `make cert`
+  creates a self signed certificate for `OSM_HOST` (default `hostname -f`) with
+  `subjectAltName=DNS:osm.yourdomain.com,DNS:osm`. Chromebooks must trust it, see
+  Self Signed Certificate above. To switch to a real certificate later, replace the two
+  files and run `service nginx reload`. Use https:// for the OAuth JavaScript origins
+  and redirect URIs.
+- Existing installs on port 80: `rm /etc/nginx/sites-enabled/osm && make nginx`
+  installs the HTTPS-only site (an existing site is otherwise left alone).
 - `make install` is safe to re-run. It will not replace an existing nginx site
   (`/etc/nginx/sites-enabled/osm`) or touch an existing database; if `db.json`
   is missing but the `osm` database exists, it stops instead of dropping it.
 - The database password is generated and written to `/var/www/osm-data/db.json`
   (mode 640, owned by www-data).
 - Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
-  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`.
 - IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
-  without the `[::]:80` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
+  without the `[::]:443` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
 - Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
   as an admin and open `/?route=Admin\Upgrade`.
 - `make uninstall` removes the code and nginx site but keeps data and database.
