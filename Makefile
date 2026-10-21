@@ -27,6 +27,14 @@ NGINX_IPV6 ?= auto
 CERT_DIR   ?= /var/www/cert
 OSM_HOST   ?= $(shell hostname -f 2>/dev/null || hostname)
 CERT_DAYS  ?= 3650
+# make letsencrypt: HTTP-01 on a port 80 listener that is up only while certbot validates
+LE_EMAIL     ?=
+LE_TEST      ?= no
+LE_SERVER    ?=
+LE_CERT_NAME ?= osm
+ACME_DIR     ?= /var/www/acme
+LE_HOOKS     := /etc/letsencrypt/renewal-hooks
+ACME_SITE    := /etc/nginx/sites-available/osm-acme
 
 PACKAGES = nginx mariadb-server curl openssl \
 	php$(PHP_VER)-fpm php$(PHP_VER)-xml php$(PHP_VER)-curl \
@@ -34,7 +42,7 @@ PACKAGES = nginx mariadb-server curl openssl \
 
 SRC_DIR := $(CURDIR)
 
-.PHONY: all help deps install install-files cert nginx data db check upgrade uninstall purge
+.PHONY: all help deps install install-files cert letsencrypt nginx data db check upgrade uninstall purge
 
 all: help
 
@@ -44,6 +52,8 @@ help:
 	echo "  deps       apt install nginx, mariadb and php$(PHP_VER) packages"
 	echo "  install-files  copy php/ and sample_config/ to $(OSM_DIR)"
 	echo "  cert       self signed cert for $(OSM_HOST) in $(CERT_DIR) (skipped if one exists)"
+	echo "  letsencrypt  replace the cert with one from Let's Encrypt for OSM_HOST; port 80 is"
+	echo "             opened only while validating, at issue and at each renewal (LE_TEST=yes: dry run)"
 	echo "  nginx      install the HTTPS-only nginx site (skipped if $(NGINX_SITE) exists;"
 	echo "             IPv4-only if the kernel has no IPv6, or with NGINX_IPV6=no)"
 	echo "  data       create $(DATA_DIR) and fix ownership/permissions"
@@ -108,6 +118,100 @@ cert:
 	chmod 644 "$(CERT_DIR)/server.cer"
 	echo "  wrote $(CERT_DIR)/server.cer and server.key"
 	echo "  Chromebooks need this cert trusted in Google Admin (see README, Self Signed Certificate)."
+
+# Let's Encrypt over HTTP-01. Port 80 (forwarded from the router) must reach this
+# server, but nginx only listens on it while certbot validates: the open/close
+# scripts below wrap this first request and, as certbot renewal hooks, every
+# renewal. The certificate is linked into $(CERT_DIR), so the nginx site is unchanged.
+letsencrypt:
+	@host="$(OSM_HOST)"
+	case "$$host" in
+		*.*) ;;
+		*) echo "ERROR: OSM_HOST must be the public DNS name: make letsencrypt OSM_HOST=osm.yourdomain.com" >&2; exit 1;;
+	esac
+	if [ ! -e "$(NGINX_SITE)" ]; then
+		echo "ERROR: $(NGINX_SITE) not found; run 'make install' first." >&2
+		exit 1
+	fi
+	echo "Installing certbot ..."
+	DEBIAN_FRONTEND=noninteractive apt-get -y -q install certbot >/dev/null
+	mkdir -p "$(ACME_DIR)" "$(LE_HOOKS)/pre" "$(LE_HOOKS)/post" "$(LE_HOOKS)/deploy"
+	chmod 755 "$(ACME_DIR)"
+	listen6="	listen [::]:80;"
+	ipv6="$(NGINX_IPV6)"
+	if [ "$$ipv6" = auto ]; then
+		[ -e /proc/net/if_inet6 ] && ipv6=yes || ipv6=no
+	fi
+	[ "$$ipv6" = no ] && listen6=""
+	cat > "$(ACME_SITE)" <<EOF
+	# Open Screen Monitor: temporary port 80 listener for Let's Encrypt HTTP-01.
+	# Linked into sites-enabled only while certbot validates; see $(LE_HOOKS).
+	server {
+		listen 80;
+	$$listen6
+		server_name $$host;
+		location /.well-known/acme-challenge/ {
+			root $(ACME_DIR);
+		}
+		location / {
+			return 444;
+		}
+	}
+	EOF
+	cat > "$(LE_HOOKS)/pre/osm-open-port-80" <<EOF
+	#!/bin/sh
+	# Open Screen Monitor: enable the port 80 ACME listener before validation.
+	ln -sf "$(ACME_SITE)" /etc/nginx/sites-enabled/osm-acme
+	nginx -t -q && service nginx reload >/dev/null
+	sleep 2
+	EOF
+	cat > "$(LE_HOOKS)/post/osm-close-port-80" <<EOF
+	#!/bin/sh
+	# Open Screen Monitor: remove the port 80 ACME listener after validation.
+	rm -f /etc/nginx/sites-enabled/osm-acme
+	nginx -t -q && service nginx reload >/dev/null
+	sleep 2
+	EOF
+	cat > "$(LE_HOOKS)/deploy/osm-reload-nginx" <<EOF
+	#!/bin/sh
+	# Open Screen Monitor: load the renewed certificate.
+	service nginx reload >/dev/null
+	EOF
+	chmod 755 "$(LE_HOOKS)"/pre/osm-open-port-80 "$(LE_HOOKS)"/post/osm-close-port-80 "$(LE_HOOKS)"/deploy/osm-reload-nginx
+	args="certonly --webroot -w $(ACME_DIR) -d $$host --cert-name $(LE_CERT_NAME) --non-interactive --agree-tos --keep-until-expiring"
+	if [ -n "$(LE_EMAIL)" ]; then args="$$args --email $(LE_EMAIL)"; else args="$$args --register-unsafely-without-email"; fi
+	[ -n "$(LE_SERVER)" ] && args="$$args --server $(LE_SERVER)"
+	[ "$(LE_TEST)" = yes ] && args="$$args --dry-run"
+	trap '"$(LE_HOOKS)/post/osm-close-port-80"; echo "Port 80 closed."' EXIT
+	echo "Opening port 80 for validation ..."
+	"$(LE_HOOKS)/pre/osm-open-port-80"
+	if ! certbot $$args; then
+		echo >&2
+		echo "certbot failed (output above). If validation of $$host failed, check that:" >&2
+		echo "  - $$host resolves publicly to your router's public IP" >&2
+		echo "  - the router forwards TCP 80 to this server (443 too, for clients outside)" >&2
+		echo "  - no firewall blocks port 80 in front of this server" >&2
+		echo "Retest without using up rate limits: make letsencrypt LE_TEST=yes OSM_HOST=$$host" >&2
+		exit 1
+	fi
+	if [ "$(LE_TEST)" = yes ]; then
+		echo "Dry run passed. Get the real certificate with: make letsencrypt OSM_HOST=$$host"
+		exit 0
+	fi
+	live=/etc/letsencrypt/live/$(LE_CERT_NAME)
+	mkdir -p "$(CERT_DIR)"
+	for pair in "server.cer fullchain.pem" "server.key privkey.pem"; do
+		set -- $$pair
+		f="$(CERT_DIR)/$$1"
+		if [ -e "$$f" ] && [ ! -L "$$f" ]; then mv "$$f" "$$f.selfsigned"; fi
+		ln -sfn "$$live/$$2" "$$f"
+	done
+	nginx -t
+	service nginx reload
+	echo "Let's Encrypt certificate installed for $$host:"
+	echo "  $(CERT_DIR)/server.cer -> $$live/fullchain.pem"
+	echo "  renewals run from certbot.timer and open port 80 only while validating;"
+	echo "  keep the router forwarding TCP 80 to this server so they can succeed."
 
 nginx: cert
 	@echo "Configuring nginx ..."
@@ -212,6 +316,13 @@ check:
 		ko "page error: $$(grep -oiE '(Missing|Fatal error|Parse error|Uncaught).{0,100}' <<<"$$body" | head -1)"
 	fi
 	code=$$(curl -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 5 http://localhost/ || true)
+	if [ -L "$(CERT_DIR)/server.cer" ] && readlink "$(CERT_DIR)/server.cer" | grep -q '^/etc/letsencrypt/'; then
+		if systemctl is-enabled certbot.timer >/dev/null 2>&1; then
+			ok "Let's Encrypt certificate; certbot.timer enabled"
+		else
+			echo "  [WARN] Let's Encrypt certificate but certbot.timer is not enabled; renewals will not run"
+		fi
+	fi
 	[ "$$code" = 000 ] && ok "nothing answers on port 80" \
 		|| echo "  [WARN] something answers http://localhost/ ($$code); OSM itself only listens on 443"
 	code=$$(curl -sk --noproxy '*' -o /dev/null -w '%{http_code}' https://localhost/config.php || true)

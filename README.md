@@ -504,6 +504,19 @@ make check
   Self Signed Certificate above. To switch to a real certificate later, replace the two
   files and run `service nginx reload`. Use https:// for the OAuth JavaScript origins
   and redirect URIs.
+- Let's Encrypt: `make letsencrypt OSM_HOST=osm.yourdomain.com` (optionally `LE_EMAIL=you@yourdomain.com`)
+  replaces the self signed certificate with a Let's Encrypt one.
+  - Needs `osm.yourdomain.com` to resolve publicly to your router, and the router to
+    forward TCP 80 (and 443 for clients outside) to this server.
+  - Port 80 is only open while Let's Encrypt validates: nginx enables a listener that
+    serves just `/.well-known/acme-challenge/` and closes it again, both for this first
+    certificate and for every renewal (certbot renewal hooks in
+    `/etc/letsencrypt/renewal-hooks`). Keep the port 80 forward in place so renewals work.
+  - Try it first with `LE_TEST=yes`, a dry run against Let's Encrypt staging that does not
+    count against rate limits or change the certificate.
+  - `/var/www/cert/server.cer` and `server.key` become links into `/etc/letsencrypt/live/osm/`;
+    the self signed pair is kept as `*.selfsigned`. Chromebooks trust the certificate
+    without the Google Admin certificate setup.
 - Existing installs on port 80: `rm /etc/nginx/sites-enabled/osm && make nginx`
   installs the HTTPS-only site (an existing site is otherwise left alone).
 - `make install` is safe to re-run. It will not replace an existing nginx site
@@ -512,7 +525,7 @@ make check
 - The database password is generated and written to `/var/www/osm-data/db.json`
   (mode 640, owned by www-data).
 - Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
-  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`, `LE_EMAIL`, `LE_TEST`.
 - IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
   without the `[::]:443` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
 - Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
