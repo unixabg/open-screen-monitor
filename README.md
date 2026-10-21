@@ -16,7 +16,7 @@
 ### Getting started
 - Clone the repository
 - Configure the chrome-extension for your deployment (FIXME)
-- Install the server side PHP
+- Install the server side PHP (see Example Setup below, `make install`)
 - Make the data directory **Attention - DO NOT make this folder a public access folder from the web!**
  - The defaults will attempt to add osm to your domain name. So something like osm.yourdomain.com .
    - https://osm.yourdomain.com/ is the default location for the osm php files
@@ -474,39 +474,34 @@ break, keeping 12-18 months of history.
 
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
+The `Makefile` does the whole server setup: packages, code, nginx site,
+`osm-data` and the database. Run `make help` for the individual targets.
+
 ```
 #get the code
-git clone https://github.com/unixabg/open-screen-monitor.git --branch next /var/www/osm/
+apt -y install git make
+git clone https://github.com/unixabg/open-screen-monitor.git --branch next
+cd open-screen-monitor
 
-#install dependencies
-apt -y install nginx php8.4-fpm php8.4-xml php8.4-curl php8.4-odbc php8.4-mysql php8.4-zip mariadb-server git
+#install packages, code (/var/www/osm), nginx site, /var/www/osm-data and database
+make install
 
-#configure nginx
-rm -r /etc/nginx/sites-enabled/default
-cp /var/www/osm/sample_config/nginx-site /etc/nginx/sites-enabled/osm
-service nginx restart
+#add client secret from google, then fix its permissions
+cp /path/to/client_secret.json /var/www/osm-data/
+make data
 
-#setup osm-dir
-mkdir /var/www/osm-data
-chown www-data:www-data /var/www/osm-data
-
-#add client secret from google
-nano /var/www/osm-data/client_secret.json
-
-#setup db
-DBPASS=`cat /proc/sys/kernel/random/uuid`
-
-mysql << EOL
-DROP DATABASE IF EXISTS osm;
-CREATE DATABASE osm;
-
-DROP USER IF EXISTS osm@localhost;
-CREATE USER 'osm'@'localhost' IDENTIFIED BY '${DBPASS}';
-GRANT ALL PRIVILEGES ON osm.* TO 'osm'@'localhost';
-FLUSH PRIVILEGES;
-EOL
-
-mysql -h localhost -u osm -p${DBPASS} osm < /var/www/osm/sample_config/setup.sql
-
-echo "{\"hostname\":\"localhost\",\"user\":\"osm\",\"password\":\"${DBPASS}\",\"dbname\":\"osm\"}" > /var/www/osm-data/db.json
+#verify
+make check
 ```
+
+- `make install` is safe to re-run. It will not replace an existing nginx site
+  (`/etc/nginx/sites-enabled/osm`) or touch an existing database; if `db.json`
+  is missing but the `osm` database exists, it stops instead of dropping it.
+- The database password is generated and written to `/var/www/osm-data/db.json`
+  (mode 640, owned by www-data).
+- Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`.
+- Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
+  as an admin and open `/?route=Admin\Upgrade`.
+- `make uninstall` removes the code and nginx site but keeps data and database.
+  `make purge CONFIRM=yes` also deletes `/var/www/osm-data` and the database.
