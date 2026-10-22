@@ -11,6 +11,8 @@
 #                        including dbSchemaVersion in tbl_config
 #   client_secret.json   Google OAuth client, needed to sign in on a rebuilt server
 #   permissions.tsv      if present
+#   extension/key.pem    the extension signing key; Chrome derives the extension ID from
+#                        it, so a rebuilt server needs it to keep the same ID
 # db.json is left out on purpose: make install creates a new one with a new password.
 #
 # The dump goes to a temporary file and only replaces the day's backup when everything
@@ -62,8 +64,19 @@ MYSQL_PWD="$DB_PASS" mysqldump --single-transaction -h "${DB_HOST:-localhost}" -
 tail -n 1 "$WORK/osm.sql" | grep -q '^-- Dump completed' || fail "dump is incomplete"
 
 for f in client_secret.json permissions.tsv; do
-	[ -f "$DATA_DIR/$f" ] && cp -p "$DATA_DIR/$f" "$WORK/"
+	if [ -f "$DATA_DIR/$f" ]; then cp -p "$DATA_DIR/$f" "$WORK/"; fi
 done
+
+EXT_ID=""
+if [ -f "$DATA_DIR/extension/key.pem" ]; then
+	mkdir "$WORK/extension"
+	cp -p "$DATA_DIR/extension/key.pem" "$WORK/extension/"
+	# same ID the extension build computes: sha256 of the public key, first 16 bytes as a-p
+	EXT_ID=$(openssl pkey -in "$DATA_DIR/extension/key.pem" -pubout -outform DER \
+		| sha256sum | cut -c1-32 | tr 0-9a-f a-p) || fail "could not read extension/key.pem"
+else
+	echo "osm-backup: warning: no $DATA_DIR/extension/key.pem yet (extension never built)" >&2
+fi
 
 ( cd "$WORK" && tar -czf "$WORK.tar.gz" -- * ) || fail "tar failed"
 mv -f "$WORK.tar.gz" "$OUT"
@@ -73,3 +86,4 @@ find "$BACKUP_DIR" -maxdepth 1 -name 'osm_backup_*.tar.gz' ! -name "$(basename "
 	-mtime +"$KEEP_DAYS" -delete
 
 echo "Backup complete: $OUT ($(du -h "$OUT" | cut -f1))"
+if [ -n "$EXT_ID" ]; then echo "Extension ID: $EXT_ID"; fi

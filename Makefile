@@ -350,7 +350,7 @@ data:
 	mkdir -p "$(DATA_DIR)"
 	chown $(WEB_USER):$(WEB_USER) "$(DATA_DIR)"
 	chmod 750 "$(DATA_DIR)"
-	for f in client_secret.json db.json permissions.tsv; do
+	for f in client_secret.json db.json permissions.tsv extension/key.pem; do
 		if [ -f "$(DATA_DIR)/$$f" ]; then
 			chown $(WEB_USER):$(WEB_USER) "$(DATA_DIR)/$$f"
 			chmod 640 "$(DATA_DIR)/$$f"

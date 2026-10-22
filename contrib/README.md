@@ -122,9 +122,16 @@ about what data was transmitted. Server-side tracking is undetectable by this me
 
 Backs up everything an administrator sets up in OSM: filter entries and groups, group
 settings, labs and lab permissions, OneRoster data and `tbl_config` (including
-`dbSchemaVersion`), together with `client_secret.json` and `permissions.tsv` from
-`osm-data`. The two log tables, `tbl_filter_log` and `tbl_log`, are left out because
-of their size. `db.json` is left out because `make install` creates a new one.
+`dbSchemaVersion`), together with `client_secret.json`, `permissions.tsv` and the
+extension signing key `extension/key.pem` from `osm-data`. The two log tables,
+`tbl_filter_log` and `tbl_log`, are left out because of their size. `db.json` is left
+out because `make install` creates a new one.
+
+The signing key matters: Chrome derives the extension ID from it, and the ID is what the
+Google Admin console force-installs. Without the old key a rebuilt server generates a new
+one, so the extension gets a new ID and devices will not take it as an update. Each run
+prints the ID the key gives, to compare with the ID in the Admin console. The built
+`ext.crx`, `ext.zip` and `update.xml` are not backed up; they are rebuilt from the key.
 
 ```bash
 ./osm-backup.sh                          # /var/backups/osm/osm_backup_YYYYMMDD.tar.gz
@@ -140,7 +147,9 @@ and passes the password through the environment rather than the command line.
   disk) leaves earlier backups untouched and exits non-zero, so the scheduler reports it.
   Running it twice on the same day replaces that day's backup.
 - **Consistent:** `--single-transaction` takes a snapshot without locking the running site.
-- **Sensitive:** backups hold the Google client secret and lab and roster data. The backup
+- **Sensitive:** backups hold the Google client secret, the extension signing key and lab
+  and roster data. Anyone with the signing key can sign an extension that Chrome accepts
+  as OSM. The backup
   directory is created `700 root` and each backup `600`; keep any copies just as private.
 - **Location:** the default `/var/backups/osm` is outside `osm-data`, so `make purge` does
   not delete it. It is still on the same server; copy backups elsewhere (`BACKUP_DIR` on
@@ -197,17 +206,28 @@ tar -xzf /var/backups/osm/osm_backup_YYYYMMDD.tar.gz -C /root/osm-restore
 mysql osm < /root/osm-restore/osm.sql
 cp /root/osm-restore/client_secret.json /var/www/osm-data/
 cp /root/osm-restore/permissions.tsv /var/www/osm-data/ 2>/dev/null || true
+if [ -f /root/osm-restore/extension/key.pem ]; then
+	install -d -o www-data -g www-data -m 750 /var/www/osm-data/extension
+	install -o www-data -g www-data -m 640 /root/osm-restore/extension/key.pem /var/www/osm-data/extension/
+fi
 make data       # ownership and permissions of the copied files
 make check
 rm -rf /root/osm-restore
 ```
+
+Restore the key **before** building the extension on a new server; a build without it
+creates a new key and a new extension ID. Then sign in as an admin, open Build Extension
+(`/?route=Admin\Buildextension`) and choose **(Re)Build CRX**. The `appid` in
+`https://osm.yourdomain.com/?extfile=xml` should match the extension ID the backup printed
+and the one in the Admin console.
 
 The restore replaces those seven tables with the backup's contents; the log tables are
 not touched. If the backup came from an older OSM version, `make check` reports a schema
 version mismatch: sign in as an admin and open `/?route=Admin\Upgrade`.
 
 **Status:** tested on a scratch install: backup, failure handling, retention and a
-restore after `make purge` and reinstall.
+restore after `make purge` and reinstall, including the extension key keeping the same
+extension ID.
 
 ---
 
