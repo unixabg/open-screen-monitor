@@ -540,8 +540,12 @@ make check
   Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`, `LE_EMAIL`, `LE_TEST`, `FPM_MAX_CHILDREN`, `FPM_START`, `FPM_MIN_SPARE`, `FPM_MAX_SPARE`, `OSM_TZ`.
 - IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
   without the `[::]:443` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
-- Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
-  as an admin and open `/?route=Admin\Upgrade`.
+- Upgrading, including installs made with older instructions: `git pull`, then
+  `make install` and `make check`. `make install` keeps the existing nginx site, certificate,
+  database and PHP tuning, and adds what is new. A site whose HTTPS is set up another way (for
+  example by certbot's nginx plugin) is detected: its certificate is used and checked, and no
+  self signed one is made. If the schema version changed, sign in as an admin and open
+  `/?route=Admin\Upgrade`. (`make upgrade` only replaces the code.)
 - `make uninstall` removes the code and nginx site but keeps data and database.
   `make purge CONFIRM=yes` also deletes `/var/www/osm-data` and the database. It keeps a
   Let's Encrypt certificate, because Let's Encrypt limits how many certificates for the same

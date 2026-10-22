@@ -39,6 +39,8 @@ OSM_TZ           ?= $(or $(shell readlink /etc/localtime 2>/dev/null | sed -n 's
 # otherwise make fpm never lowers what a server is already tuned to.
 FPM_EXPLICIT     := $(if $(filter command% environment%,$(foreach v,FPM_MAX_CHILDREN FPM_START FPM_MIN_SPARE FPM_MAX_SPARE,$(origin $(v)))),yes,no)
 FPM_POOL_FILE     = /etc/php/$(PHP_VER)/fpm/pool.d/zz-osm.conf
+# the certificate the existing nginx site actually uses (first active ssl_certificate line)
+SITE_CERT_CMD     = sed -n 's/^[[:space:]]*ssl_certificate[[:space:]]\{1,\}\([^;[:space:]]*\).*/\1/p' "$(NGINX_SITE)" 2>/dev/null | head -1
 FPM_INI_FILE      = /etc/php/$(PHP_VER)/fpm/conf.d/99-osm.ini
 LE_EMAIL     ?=
 LE_TEST      ?= no
@@ -115,7 +117,12 @@ install-files:
 # Put your own server.cer (full chain) and server.key in $(CERT_DIR) before
 # `make install` to use them instead; replace them later and `service nginx reload`.
 cert:
-	@if [ -f "$(CERT_DIR)/server.cer" ] && [ -f "$(CERT_DIR)/server.key" ]; then
+	@site_cert=$$($(SITE_CERT_CMD) || true)
+	if [ -n "$$site_cert" ] && [ "$$(realpath -m "$$site_cert")" != "$$(realpath -m "$(CERT_DIR)/server.cer")" ]; then
+		echo "The nginx site uses its own certificate ($$site_cert); not creating one in $(CERT_DIR)."
+		exit 0
+	fi
+	if [ -f "$(CERT_DIR)/server.cer" ] && [ -f "$(CERT_DIR)/server.key" ]; then
 		echo "Certificate exists in $(CERT_DIR); leaving it alone."
 		exit 0
 	fi
@@ -146,6 +153,12 @@ letsencrypt:
 	esac
 	if [ ! -e "$(NGINX_SITE)" ]; then
 		echo "ERROR: $(NGINX_SITE) not found; run 'make install' first." >&2
+		exit 1
+	fi
+	if grep -q 'managed by Certbot' "$(NGINX_SITE)"; then
+		echo "ERROR: $(NGINX_SITE) is managed by certbot's nginx plugin, which already gets and" >&2
+		echo "       renews its certificate (see: certbot certificates). make letsencrypt is not needed." >&2
+		echo "       To switch to the Makefile's site instead: rm $(NGINX_SITE) && make nginx" >&2
 		exit 1
 	fi
 	echo "Installing certbot ..."
@@ -433,14 +446,16 @@ check:
 	required=$$(grep -o 'DB_SCHEMA_VERSION = [0-9]*' "$(OSM_DIR)/php/Route/Admin/Upgrade.php" | grep -o '[0-9]*$$' || true)
 	[ -n "$$applied" ] && [ "$$applied" = "$$required" ] && ok "schema version $$applied" \
 		|| ko "schema version is '$$applied', code requires '$$required' (see /?route=Admin\\Upgrade)"
-	if [ -f "$(CERT_DIR)/server.cer" ]; then
-		if openssl x509 -checkend $$((14*86400)) -noout -in "$(CERT_DIR)/server.cer" >/dev/null; then
-			ok "certificate valid past 14 days ($$(openssl x509 -enddate -noout -in "$(CERT_DIR)/server.cer" | cut -d= -f2))"
+	cert=$$($(SITE_CERT_CMD) || true)
+	[ -n "$$cert" ] || cert="$(CERT_DIR)/server.cer"
+	if [ -f "$$cert" ]; then
+		if openssl x509 -checkend $$((14*86400)) -noout -in "$$cert" >/dev/null; then
+			ok "certificate valid past 14 days ($$(openssl x509 -enddate -noout -in "$$cert" | cut -d= -f2), $$cert)"
 		else
-			ko "certificate in $(CERT_DIR) expires within 14 days or has expired"
+			ko "certificate $$cert expires within 14 days or has expired"
 		fi
 	else
-		ko "no certificate at $(CERT_DIR)/server.cer (run 'make cert')"
+		ko "no certificate at $$cert (run 'make cert')"
 	fi
 	# -k: a self signed cert is expected; trust is set up on the Chromebooks
 	body=$$(curl -sk --noproxy '*' -w '\n%{http_code}' https://localhost/ || true)
@@ -450,7 +465,7 @@ check:
 		ko "page error: $$(grep -oiE '(Missing|Fatal error|Parse error|Uncaught).{0,100}' <<<"$$body" | head -1)"
 	fi
 	code=$$(curl -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 5 http://localhost/ || true)
-	if [ -L "$(CERT_DIR)/server.cer" ] && readlink "$(CERT_DIR)/server.cer" | grep -q '^/etc/letsencrypt/'; then
+	if [ -f "$$cert" ] && case "$$(readlink -f "$$cert")" in /etc/letsencrypt/*) true;; *) false;; esac; then
 		if systemctl is-enabled certbot.timer >/dev/null 2>&1; then
 			ok "Let's Encrypt certificate; certbot.timer enabled"
 		else
@@ -460,8 +475,13 @@ check:
 	n=$$(php-fpm$(PHP_VER) -tt 2>&1 | sed -n 's/.*pm\.max_children = \([0-9]*\).*/\1/p' | head -1)
 	if [ -n "$$n" ] && [ "$$n" -ge 10 ]; then ok "php-fpm pm.max_children $$n"
 	else echo "  [WARN] php-fpm pm.max_children is $${n:-unknown}; run 'make fpm' (Debian ships 5)"; fi
-	if grep -q 'reached pm.max_children' /var/log/php$(PHP_VER)-fpm.log 2>/dev/null; then
-		echo "  [WARN] php-fpm log shows the worker limit was reached; consider make fpm FPM_MAX_CHILDREN=..."
+	# only since php-fpm last started or reloaded, so a limit raised since then does not keep warning
+	last=$$(awk '/ready to handle connections/{l=""} /reached pm.max_children/{l=$$0} END{print l}' \
+		/var/log/php$(PHP_VER)-fpm.log 2>/dev/null || true)
+	if [ -n "$$last" ]; then
+		ts=$${last%%]*}; ts=$${ts#[}
+		lim=$$(sed -n 's/.*setting (\([0-9]*\)).*/\1/p' <<<"$$last")
+		echo "  [WARN] php-fpm reached its worker limit ($$lim) at $$ts; consider make fpm FPM_MAX_CHILDREN=..."
 	fi
 	tz=$$(php-fpm$(PHP_VER) -i 2>/dev/null | sed -n 's/^date.timezone => \([^ ]*\).*/\1/p')
 	[ "$$tz" = "$(OSM_TZ)" ] && ok "php timezone $$tz" \
