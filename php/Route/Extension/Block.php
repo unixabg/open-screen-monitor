@@ -5,15 +5,26 @@ class Block extends \OSM\Tools\Route {
 	public function action(){
 		$dataDir = $GLOBALS['dataDir'];
 
-		$data = $_GET['data'] ?? '';
-		$data = base64_decode($data);
-		$data = gzuncompress($data);
-		$data = json_decode($data,true);
+		//details of the blocked request, packed by Filter/Screenscrape into ?block&data=
+		//a damaged or truncated link still shows the block page, just without details
+		$data = [];
+		$raw = base64_decode($_GET['data'] ?? '', true);
+		if ($raw !== false && $raw !== ''){
+			try {
+				$json = gzuncompress($raw);
+			} catch (\ErrorException $e) {
+				$json = false;
+			}
+			if ($json !== false){
+				$decoded = json_decode($json,true);
+				if (is_array($decoded)){$data = $decoded;}
+			}
+		}
 
 		//allow custom hooking here
 		//make sure to set restrictive permissions on this file
 		if (file_exists($dataDir.'/custom/block-prepend.php')){
-			$returnAfterIncude = false;
+			$returnAfterInclude = false;
 			include($dataDir.'/custom/block-prepend.php');
 			if ($returnAfterInclude) {return;}
 		}
