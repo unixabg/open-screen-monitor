@@ -344,13 +344,18 @@ and leaves the packaged `php.ini` and `pool.d/www.conf` untouched. Keep it that 
 locally edited packaged config file can make a later PHP update stop at a config file
 prompt, and unattended-upgrades then skips that update.
 
-- `/etc/php/8.4/fpm/pool.d/zz-osm.conf` sets the pool size (default 20 workers):
+- `/etc/php/8.4/fpm/pool.d/zz-osm.conf` sets the pool size (20 workers on a new install):
   `make fpm FPM_MAX_CHILDREN=100 FPM_START=20 FPM_MIN_SPARE=10 FPM_MAX_SPARE=40`
 - `/etc/php/8.4/fpm/conf.d/99-osm.ini` sets `date.timezone` to the system timezone
   (override with `OSM_TZ=America/Chicago`). Without it PHP logs in UTC.
 
-`make fpm` tests the configuration with `php-fpm8.4 -t` before reloading and removes its
-files again if php-fpm rejects them. `make check` reports the worker count and timezone, and
+`make fpm` never lowers a server's existing tuning on its own: on the first run it keeps
+the current pool settings if they allow more workers than the default (for example a
+`www.conf` tuned by hand), and on later runs it keeps what `zz-osm.conf` already has. Only
+values given on the command line change it, and it says when that lowers the worker count.
+Give all four values together; any left out take the defaults (20, 4, 2, 6). It tests the
+configuration with `php-fpm8.4 -t` before reloading and puts the previous files back if
+php-fpm rejects the change. `make check` reports the worker count and timezone, and
 warns when the php-fpm log shows the worker limit was reached.
 
 `max_execution_time` and `post_max_size` are already set for OSM in the nginx site

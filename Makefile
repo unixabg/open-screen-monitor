@@ -35,6 +35,9 @@ FPM_START        ?= 4
 FPM_MIN_SPARE    ?= 2
 FPM_MAX_SPARE    ?= 6
 OSM_TZ           ?= $(or $(shell readlink /etc/localtime 2>/dev/null | sed -n 's|.*/zoneinfo/||p'),UTC)
+# Values given on the command line (or in the environment) are applied as given;
+# otherwise make fpm never lowers what a server is already tuned to.
+FPM_EXPLICIT     := $(if $(filter command% environment%,$(foreach v,FPM_MAX_CHILDREN FPM_START FPM_MIN_SPARE FPM_MAX_SPARE,$(origin $(v)))),yes,no)
 FPM_POOL_FILE     = /etc/php/$(PHP_VER)/fpm/pool.d/zz-osm.conf
 FPM_INI_FILE      = /etc/php/$(PHP_VER)/fpm/conf.d/99-osm.ini
 LE_EMAIL     ?=
@@ -66,7 +69,8 @@ help:
 	echo "  letsencrypt-remove  delete the Let's Encrypt cert, hooks and port 80 site (needs CONFIRM=yes)"
 	echo "  nginx      install the HTTPS-only nginx site (skipped if $(NGINX_SITE) exists;"
 	echo "             IPv4-only if the kernel has no IPv6, or with NGINX_IPV6=no)"
-	echo "  fpm        php$(PHP_VER)-fpm workers ($(FPM_MAX_CHILDREN)) and timezone ($(OSM_TZ)) as drop-in files"
+	echo "  fpm        php$(PHP_VER)-fpm pool size and timezone ($(OSM_TZ)) as drop-in files; keeps a"
+	echo "             higher existing worker count unless FPM_MAX_CHILDREN=... is given (default $(FPM_MAX_CHILDREN))"
 	echo "  data       create $(DATA_DIR) and fix ownership/permissions"
 	echo "  db         create database and $(DATA_DIR)/db.json (skipped if db.json exists)"
 	echo "  check      smoke test the install"
@@ -314,15 +318,37 @@ nginx: cert
 # if php-fpm rejects them, so a bad value cannot leave php-fpm stopped.
 fpm:
 	@echo "Configuring php$(PHP_VER)-fpm ..."
+	# current effective [www] pool settings, from all files php-fpm loads
+	pool(){ php-fpm$(PHP_VER) -tt 2>&1 | sed 's/^\[[^]]*\] NOTICE: //' \
+		| awk -v k="$$1" '/^\[www\]$$/{w=1;next} /^\[/{w=0} w && $$1==k {print $$3; exit}'; }
+	cur_mode=$$(pool pm); cur_max=$$(pool pm.max_children)
+	cur_start=$$(pool pm.start_servers); cur_min=$$(pool pm.min_spare_servers); cur_spare=$$(pool pm.max_spare_servers)
+	if [ "$(FPM_EXPLICIT)" = yes ]; then
+		mode=dynamic; max=$(FPM_MAX_CHILDREN); start=$(FPM_START); min=$(FPM_MIN_SPARE); spare=$(FPM_MAX_SPARE)
+		why="as given"
+		if [ -n "$$cur_max" ] && [ "$$max" -lt "$$cur_max" ]; then why="lowered from $$cur_max as given"; fi
+	elif [ -n "$$cur_max" ] && { [ -e "$(FPM_POOL_FILE)" ] || [ "$$cur_max" -gt $(FPM_MAX_CHILDREN) ]; }; then
+		mode=$$cur_mode; max=$$cur_max; start=$$cur_start; min=$$cur_min; spare=$$cur_spare
+		why="kept the existing setting; change with make fpm FPM_MAX_CHILDREN=..."
+	else
+		mode=dynamic; max=$(FPM_MAX_CHILDREN); start=$(FPM_START); min=$(FPM_MIN_SPARE); spare=$(FPM_MAX_SPARE)
+		why="default, raised from $${cur_max:-unknown}"
+	fi
+	# keep the previous files so a rejected change can be undone exactly
+	for f in "$(FPM_POOL_FILE)" "$(FPM_INI_FILE)"; do
+		rm -f "$$f.osm-bak"
+		if [ -e "$$f" ]; then cp -p "$$f" "$$f.osm-bak"; fi
+	done
 	cat > "$(FPM_POOL_FILE)" <<EOF
 	; Open Screen Monitor (make fpm): pool size. Overrides the same settings in
 	; www.conf, which is left as packaged. Change with make fpm FPM_MAX_CHILDREN=...
+	; (make fpm keeps these values on later runs unless new ones are given.)
 	[www]
-	pm = dynamic
-	pm.max_children = $(FPM_MAX_CHILDREN)
-	pm.start_servers = $(FPM_START)
-	pm.min_spare_servers = $(FPM_MIN_SPARE)
-	pm.max_spare_servers = $(FPM_MAX_SPARE)
+	pm = $$mode
+	pm.max_children = $$max
+	pm.start_servers = $$start
+	pm.min_spare_servers = $$min
+	pm.max_spare_servers = $$spare
 	EOF
 	cat > "$(FPM_INI_FILE)" <<EOF
 	; Open Screen Monitor (make fpm): overrides php.ini, which is left as packaged.
@@ -330,11 +356,14 @@ fpm:
 	EOF
 	if ! out=$$(php-fpm$(PHP_VER) -t 2>&1); then
 		echo "$$out" >&2
-		rm -f "$(FPM_POOL_FILE)" "$(FPM_INI_FILE)"
-		echo "ERROR: php-fpm rejected these settings; removed them again, php-fpm left as it was." >&2
+		for f in "$(FPM_POOL_FILE)" "$(FPM_INI_FILE)"; do
+			if [ -e "$$f.osm-bak" ]; then mv -f "$$f.osm-bak" "$$f"; else rm -f "$$f"; fi
+		done
+		echo "ERROR: php-fpm rejected these settings; put the previous ones back, php-fpm left as it was." >&2
 		exit 1
 	fi
-	echo "  workers: $(FPM_MAX_CHILDREN) max, timezone: $(OSM_TZ)"
+	rm -f "$(FPM_POOL_FILE).osm-bak" "$(FPM_INI_FILE).osm-bak"
+	echo "  workers: $$max max ($$why), timezone: $(OSM_TZ)"
 	if dpkg -V php$(PHP_VER)-fpm php$(PHP_VER)-common 2>/dev/null | grep -qE ' c /etc/php/.*/fpm/(php\.ini|pool\.d/www\.conf)$$'; then
 		echo "  note: the packaged php.ini or www.conf has local edits (see dpkg -V php$(PHP_VER)-fpm)."
 		echo "        The settings above override them; restoring the stock file keeps upgrades prompt-free."
