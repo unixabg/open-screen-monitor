@@ -28,6 +28,15 @@ CERT_DIR   ?= /var/www/cert
 OSM_HOST   ?= $(shell hostname -f 2>/dev/null || hostname)
 CERT_DAYS  ?= 3650
 # make letsencrypt: HTTP-01 on a port 80 listener that is up only while certbot validates
+# make fpm: drop-in files, so the packaged www.conf and php.ini stay stock
+# (a locally edited conffile can make unattended-upgrades hold back PHP updates)
+FPM_MAX_CHILDREN ?= 20
+FPM_START        ?= 4
+FPM_MIN_SPARE    ?= 2
+FPM_MAX_SPARE    ?= 6
+OSM_TZ           ?= $(or $(shell readlink /etc/localtime 2>/dev/null | sed -n 's|.*/zoneinfo/||p'),UTC)
+FPM_POOL_FILE     = /etc/php/$(PHP_VER)/fpm/pool.d/zz-osm.conf
+FPM_INI_FILE      = /etc/php/$(PHP_VER)/fpm/conf.d/99-osm.ini
 LE_EMAIL     ?=
 LE_TEST      ?= no
 LE_SERVER    ?=
@@ -42,7 +51,7 @@ PACKAGES = nginx mariadb-server curl openssl \
 
 SRC_DIR := $(CURDIR)
 
-.PHONY: all help deps install install-files cert letsencrypt nginx data db check upgrade uninstall purge
+.PHONY: all help deps install install-files cert letsencrypt letsencrypt-remove nginx fpm data db check upgrade uninstall purge
 
 all: help
 
@@ -54,8 +63,10 @@ help:
 	echo "  cert       self signed cert for $(OSM_HOST) in $(CERT_DIR) (skipped if one exists)"
 	echo "  letsencrypt  replace the cert with one from Let's Encrypt for OSM_HOST; port 80 is"
 	echo "             opened only while validating, at issue and at each renewal (LE_TEST=yes: dry run)"
+	echo "  letsencrypt-remove  delete the Let's Encrypt cert, hooks and port 80 site (needs CONFIRM=yes)"
 	echo "  nginx      install the HTTPS-only nginx site (skipped if $(NGINX_SITE) exists;"
 	echo "             IPv4-only if the kernel has no IPv6, or with NGINX_IPV6=no)"
+	echo "  fpm        php$(PHP_VER)-fpm workers ($(FPM_MAX_CHILDREN)) and timezone ($(OSM_TZ)) as drop-in files"
 	echo "  data       create $(DATA_DIR) and fix ownership/permissions"
 	echo "  db         create database and $(DATA_DIR)/db.json (skipped if db.json exists)"
 	echo "  check      smoke test the install"
@@ -69,7 +80,7 @@ deps:
 	apt-get update
 	apt-get -y install $(PACKAGES)
 
-install: deps install-files cert nginx data db
+install: deps install-files cert nginx fpm data db
 	@echo
 	echo "Open Screen Monitor installed."
 	if [ ! -f "$(DATA_DIR)/client_secret.json" ]; then
@@ -182,15 +193,46 @@ letsencrypt:
 	if [ -n "$(LE_EMAIL)" ]; then args="$$args --email $(LE_EMAIL)"; else args="$$args --register-unsafely-without-email"; fi
 	[ -n "$(LE_SERVER)" ] && args="$$args --server $(LE_SERVER)"
 	[ "$(LE_TEST)" = yes ] && args="$$args --dry-run"
-	trap '"$(LE_HOOKS)/post/osm-close-port-80"; echo "Port 80 closed."' EXIT
+	log=$$(mktemp)
+	token="osm-preflight-$$$$"
+	trap 'rm -f "$$log" "$(ACME_DIR)/.well-known/acme-challenge/$$token"; "$(LE_HOOKS)/post/osm-close-port-80"; echo "Port 80 closed."' EXIT
 	echo "Opening port 80 for validation ..."
 	"$(LE_HOOKS)/pre/osm-open-port-80"
-	if ! certbot $$args; then
+	# preflight: our own listener must serve a challenge file on port 80 locally
+	mkdir -p "$(ACME_DIR)/.well-known/acme-challenge"
+	echo "$$token" > "$(ACME_DIR)/.well-known/acme-challenge/$$token"
+	got=$$(curl -s --noproxy '*' --max-time 5 -H "Host: $$host" "http://127.0.0.1/.well-known/acme-challenge/$$token" || true)
+	if [ "$$got" != "$$token" ]; then
+		echo "ERROR: the port 80 listener on this server is not serving challenge files." >&2
+		echo "       Something else may hold port 80 here; check: ss -ltnp 'sport = :80'" >&2
+		exit 1
+	fi
+	echo "  port 80 listener answers locally"
+	set +e
+	certbot $$args 2>&1 | tee "$$log"
+	rc=$${PIPESTATUS[0]}
+	set -e
+	if [ "$$rc" -ne 0 ]; then
 		echo >&2
-		echo "certbot failed (output above). If validation of $$host failed, check that:" >&2
-		echo "  - $$host resolves publicly to your router's public IP" >&2
-		echo "  - the router forwards TCP 80 to this server (443 too, for clients outside)" >&2
-		echo "  - no firewall blocks port 80 in front of this server" >&2
+		if grep -q 'Invalid response from https://' "$$log"; then
+			echo "Port 80 for $$host was redirected to HTTPS before reaching this server: something" >&2
+			echo "else answers port 80 on your public IP (an old NAT forward or a redirect on the firewall)." >&2
+			echo "Point the TCP 80 forward at this server. Test from outside: curl -sI http://$$host/" >&2
+		elif grep -qi 'Timeout during connect' "$$log"; then
+			echo "Let's Encrypt could not connect to port 80 on $$host, but the listener answers here," >&2
+			echo "so the firewall is not passing TCP 80 to this server: check the NAT forward and the" >&2
+			echo "WAN pass rule for port 80 (they should match the ones for 443)." >&2
+		elif grep -qi 'Connection refused' "$$log"; then
+			echo "Port 80 on $$host refused the connection: the forward points at a host where nothing" >&2
+			echo "listens on 80. Check the forward's target IP is this server." >&2
+		elif grep -qiE 'DNS problem|NXDOMAIN|no valid A records' "$$log"; then
+			echo "DNS problem: $$host must resolve publicly to your public IP." >&2
+		else
+			echo "certbot failed (output above). If validation of $$host failed, check that:" >&2
+			echo "  - $$host resolves publicly to your router's public IP" >&2
+			echo "  - the router forwards TCP 80 to this server (443 too, for clients outside)" >&2
+			echo "  - no firewall blocks port 80 in front of this server" >&2
+		fi
 		echo "Retest without using up rate limits: make letsencrypt LE_TEST=yes OSM_HOST=$$host" >&2
 		exit 1
 	fi
@@ -212,6 +254,33 @@ letsencrypt:
 	echo "  $(CERT_DIR)/server.cer -> $$live/fullchain.pem"
 	echo "  renewals run from certbot.timer and open port 80 only while validating;"
 	echo "  keep the router forwarding TCP 80 to this server so they can succeed."
+
+# Separate from purge on purpose: Let's Encrypt limits how many certificates can be
+# issued for the same name per week, so purge keeps the certificate for reuse.
+letsencrypt-remove:
+	@if [ "$(CONFIRM)" != yes ]; then
+		echo "letsencrypt-remove deletes the Let's Encrypt certificate, its renewal hooks and the" >&2
+		echo "port 80 site. Getting a new one later counts against Let's Encrypt's weekly limits." >&2
+		echo "Run: make letsencrypt-remove CONFIRM=yes" >&2
+		exit 1
+	fi
+	echo "Removing Let's Encrypt setup ..."
+	if command -v certbot >/dev/null && [ -d /etc/letsencrypt/live/$(LE_CERT_NAME) ]; then
+		certbot delete --cert-name $(LE_CERT_NAME) --non-interactive
+	fi
+	rm -f "$(LE_HOOKS)/pre/osm-open-port-80" "$(LE_HOOKS)/post/osm-close-port-80" \
+		"$(LE_HOOKS)/deploy/osm-reload-nginx" /etc/nginx/sites-enabled/osm-acme "$(ACME_SITE)"
+	for f in server.cer server.key; do
+		if [ -L "$(CERT_DIR)/$$f" ] && readlink "$(CERT_DIR)/$$f" | grep -q '^/etc/letsencrypt/'; then
+			rm -f "$(CERT_DIR)/$$f"
+			if [ -f "$(CERT_DIR)/$$f.selfsigned" ]; then mv "$(CERT_DIR)/$$f.selfsigned" "$(CERT_DIR)/$$f"; fi
+		fi
+	done
+	if [ -e "$(NGINX_SITE)" ]; then
+		$(MAKE) --no-print-directory cert
+		nginx -t && service nginx reload
+	fi
+	echo "Let's Encrypt setup removed."
 
 nginx: cert
 	@echo "Configuring nginx ..."
@@ -238,6 +307,42 @@ nginx: cert
 		service nginx reload
 	else
 		service nginx restart
+	fi
+
+# Pool size and timezone go in our own files instead of the packaged www.conf and
+# php.ini. The config is tested before reloading and our files are removed again
+# if php-fpm rejects them, so a bad value cannot leave php-fpm stopped.
+fpm:
+	@echo "Configuring php$(PHP_VER)-fpm ..."
+	cat > "$(FPM_POOL_FILE)" <<EOF
+	; Open Screen Monitor (make fpm): pool size. Overrides the same settings in
+	; www.conf, which is left as packaged. Change with make fpm FPM_MAX_CHILDREN=...
+	[www]
+	pm = dynamic
+	pm.max_children = $(FPM_MAX_CHILDREN)
+	pm.start_servers = $(FPM_START)
+	pm.min_spare_servers = $(FPM_MIN_SPARE)
+	pm.max_spare_servers = $(FPM_MAX_SPARE)
+	EOF
+	cat > "$(FPM_INI_FILE)" <<EOF
+	; Open Screen Monitor (make fpm): overrides php.ini, which is left as packaged.
+	date.timezone = "$(OSM_TZ)"
+	EOF
+	if ! out=$$(php-fpm$(PHP_VER) -t 2>&1); then
+		echo "$$out" >&2
+		rm -f "$(FPM_POOL_FILE)" "$(FPM_INI_FILE)"
+		echo "ERROR: php-fpm rejected these settings; removed them again, php-fpm left as it was." >&2
+		exit 1
+	fi
+	echo "  workers: $(FPM_MAX_CHILDREN) max, timezone: $(OSM_TZ)"
+	if dpkg -V php$(PHP_VER)-fpm php$(PHP_VER)-common 2>/dev/null | grep -qE ' c /etc/php/.*/fpm/(php\.ini|pool\.d/www\.conf)$$'; then
+		echo "  note: the packaged php.ini or www.conf has local edits (see dpkg -V php$(PHP_VER)-fpm)."
+		echo "        The settings above override them; restoring the stock file keeps upgrades prompt-free."
+	fi
+	if service php$(PHP_VER)-fpm status >/dev/null 2>&1; then
+		service php$(PHP_VER)-fpm reload
+	else
+		service php$(PHP_VER)-fpm restart
 	fi
 
 data:
@@ -323,6 +428,15 @@ check:
 			echo "  [WARN] Let's Encrypt certificate but certbot.timer is not enabled; renewals will not run"
 		fi
 	fi
+	n=$$(php-fpm$(PHP_VER) -tt 2>&1 | sed -n 's/.*pm\.max_children = \([0-9]*\).*/\1/p' | head -1)
+	if [ -n "$$n" ] && [ "$$n" -ge 10 ]; then ok "php-fpm pm.max_children $$n"
+	else echo "  [WARN] php-fpm pm.max_children is $${n:-unknown}; run 'make fpm' (Debian ships 5)"; fi
+	if grep -q 'reached pm.max_children' /var/log/php$(PHP_VER)-fpm.log 2>/dev/null; then
+		echo "  [WARN] php-fpm log shows the worker limit was reached; consider make fpm FPM_MAX_CHILDREN=..."
+	fi
+	tz=$$(php-fpm$(PHP_VER) -i 2>/dev/null | sed -n 's/^date.timezone => \([^ ]*\).*/\1/p')
+	[ "$$tz" = "$(OSM_TZ)" ] && ok "php timezone $$tz" \
+		|| echo "  [WARN] php timezone is '$${tz:-unset}', system is $(OSM_TZ); run 'make fpm'"
 	[ "$$code" = 000 ] && ok "nothing answers on port 80" \
 		|| echo "  [WARN] something answers http://localhost/ ($$code); OSM itself only listens on 443"
 	code=$$(curl -sk --noproxy '*' -o /dev/null -w '%{http_code}' https://localhost/config.php || true)
@@ -338,6 +452,10 @@ uninstall:
 	@echo "Uninstalling Open Screen Monitor (keeping $(DATA_DIR) and database) ..."
 	rm -f "$(NGINX_SITE)"
 	nginx -t >/dev/null 2>&1 && { service nginx reload 2>/dev/null || true; }
+	if [ -e "$(FPM_POOL_FILE)" ] || [ -e "$(FPM_INI_FILE)" ]; then
+		rm -f "$(FPM_POOL_FILE)" "$(FPM_INI_FILE)"
+		service php$(PHP_VER)-fpm reload 2>/dev/null || true
+	fi
 	if [ "$$(realpath -m "$(SRC_DIR)")" != "$$(realpath -m "$(OSM_DIR)")" ]; then
 		rm -rf "$(OSM_DIR)/php" "$(OSM_DIR)/sample_config"
 		rmdir --ignore-fail-on-non-empty "$(OSM_DIR)" 2>/dev/null || true
@@ -352,3 +470,7 @@ purge:
 	rm -rf "$(DATA_DIR)"
 	mysql -e "DROP DATABASE IF EXISTS $(DB_NAME); DROP USER IF EXISTS '$(DB_USER)'@'localhost';"
 	echo "Purged."
+	if [ -d /etc/letsencrypt/live/$(LE_CERT_NAME) ]; then
+		echo "Kept the Let's Encrypt certificate and its renewal; after a reinstall, make letsencrypt"
+		echo "reuses it. To delete it too: make letsencrypt-remove CONFIRM=yes"
+	fi

@@ -339,30 +339,32 @@ Size guide for ramdisk:
 The default PHP settings are conservative and will need tuning for production deployments.
 The following settings are a recommended starting point tested with approximately 700 concurrent users.
 
-Edit `/etc/php/8.4/fpm/php.ini` (adjust version as needed):
+`make install` (or `make fpm` on its own) writes OSM's PHP settings to two drop-in files
+and leaves the packaged `php.ini` and `pool.d/www.conf` untouched. Keep it that way: a
+locally edited packaged config file can make a later PHP update stop at a config file
+prompt, and unattended-upgrades then skips that update.
+
+- `/etc/php/8.4/fpm/pool.d/zz-osm.conf` sets the pool size (default 20 workers):
+  `make fpm FPM_MAX_CHILDREN=100 FPM_START=20 FPM_MIN_SPARE=10 FPM_MAX_SPARE=40`
+- `/etc/php/8.4/fpm/conf.d/99-osm.ini` sets `date.timezone` to the system timezone
+  (override with `OSM_TZ=America/Chicago`). Without it PHP logs in UTC.
+
+`make fpm` tests the configuration with `php-fpm8.4 -t` before reloading and removes its
+files again if php-fpm rejects them. `make check` reports the worker count and timezone, and
+warns when the php-fpm log shows the worker limit was reached.
+
+`max_execution_time` and `post_max_size` are already set for OSM in the nginx site
+(`fastcgi_param PHP_VALUE`). Other `php.ini` settings, such as a larger `memory_limit` for
+large classroom data, can go in `99-osm.ini`:
 
 ```ini
-; Increase execution time for large filter log queries and Google Classroom sync
-max_execution_time = 300
-
 ; Increase memory limit for screenshot processing and large classroom data
 memory_limit = 256M
-
-; post_max_size covers screenshot uploads from the extension (base64 encoded JPEG
-; plus tab data). OSM does not use PHP file uploads so upload_max_filesize is
-; not relevant — post_max_size is what matters. 32M provides comfortable headroom.
-post_max_size = 32M
-
-; Set to your local timezone for correct log timestamps
-date.timezone = "America/Chicago"
 ```
 
-After making changes reload PHP-FPM:
-```bash
-systemctl reload php8.4-fpm
-```
+Then reload PHP-FPM with `systemctl reload php8.4-fpm`.
 
-**PHP-FPM pool settings** — for larger deployments also review `/etc/php/8.4/fpm/pool.d/www.conf`:
+**PHP-FPM pool settings for larger deployments** (pass these to `make fpm`, or put them in `zz-osm.conf`):
 ```ini
 ; Tested with 500-800 concurrent users on a 64GB server
 pm = dynamic
@@ -377,7 +379,9 @@ pm.max_requests = 500
 
 | `pm.max_children` | Comfortable Max | Hard Limit |
 |---|---|---|
-| `50` (default) | ~700 users | ~1,500 users |
+| `5` (Debian package default) | ~70 users | ~150 users |
+| `20` (`make fpm` default) | ~280 users | ~600 users |
+| `50` | ~700 users | ~1,500 users |
 | `100` | ~1,500 users | ~3,000 users |
 | `150` | ~2,000 users | ~4,000 users |
 
@@ -512,6 +516,9 @@ make check
     serves just `/.well-known/acme-challenge/` and closes it again, both for this first
     certificate and for every renewal (certbot renewal hooks in
     `/etc/letsencrypt/renewal-hooks`). Keep the port 80 forward in place so renewals work.
+  - Before asking Let's Encrypt, it checks that its port 80 listener serves a test file
+    locally. On failure it explains the common causes: an old NAT forward that redirects
+    port 80 to HTTPS, a firewall that does not pass TCP 80, a forward to the wrong IP, or DNS.
   - Try it first with `LE_TEST=yes`, a dry run against Let's Encrypt staging that does not
     count against rate limits or change the certificate.
   - `/var/www/cert/server.cer` and `server.key` become links into `/etc/letsencrypt/live/osm/`;
@@ -525,10 +532,14 @@ make check
 - The database password is generated and written to `/var/www/osm-data/db.json`
   (mode 640, owned by www-data).
 - Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
-  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`, `LE_EMAIL`, `LE_TEST`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`, `LE_EMAIL`, `LE_TEST`, `FPM_MAX_CHILDREN`, `FPM_START`, `FPM_MIN_SPARE`, `FPM_MAX_SPARE`, `OSM_TZ`.
 - IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
   without the `[::]:443` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
 - Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
   as an admin and open `/?route=Admin\Upgrade`.
 - `make uninstall` removes the code and nginx site but keeps data and database.
-  `make purge CONFIRM=yes` also deletes `/var/www/osm-data` and the database.
+  `make purge CONFIRM=yes` also deletes `/var/www/osm-data` and the database. It keeps a
+  Let's Encrypt certificate, because Let's Encrypt limits how many certificates for the same
+  name it issues per week; after a reinstall `make letsencrypt` reuses it.
+  `make letsencrypt-remove CONFIRM=yes` deletes the certificate, its renewal hooks and the
+  port 80 site, and goes back to a self signed certificate.
