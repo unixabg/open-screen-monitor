@@ -9,7 +9,7 @@ class Config {
 			self::$config = [];
 
 			//set system wide version for php scripts
-			self::$config['version']='0.4.1.0';
+			self::$config['version']='0.4.1.1';
 
 			//set the default time chrome will wait between phone home attempst to the upload script
 			self::$config['uploadRefreshTime']=9000;
@@ -172,13 +172,35 @@ class Config {
 
 		$data['entries'] = \OSM\Tools\DB::selectRaw('select * from tbl_filter_entry where enabled = 1 order by priority desc, appName asc, id asc');
 
-		file_put_contents(static::filterPath(),json_encode($data,\JSON_PRETTY_PRINT), \LOCK_EX);
+		//write to a temp file and rename it over the cache. rename() is atomic, so a filter
+		//request reading at the same moment sees either the old file or the new one, never
+		//an empty or half-written file. if the write fails (e.g. clients/ is full) the old
+		//cache is left in place and the fresh rules are still returned to the caller
+		$path = static::filterPath();
+		$tmp = $path.'.tmp.'.getmypid().'.'.mt_rand();
+		$json = json_encode($data,\JSON_PRETTY_PRINT);
+		try {
+			if (file_put_contents($tmp,$json) === strlen($json)){
+				rename($tmp,$path);
+			}
+		} catch (\Throwable $e) {
+			//fall through; cleanup below
+		}
+		if (file_exists($tmp)){
+			unlink($tmp);
+		}
+
+		return $data;
 	}
 
 	public static function getFilter(){
-		if (!file_exists(static::filterPath())){
-			static::refreshFilter();
+		$path = static::filterPath();
+		$filter = file_exists($path) ? json_decode(file_get_contents($path),true) : null;
+
+		//missing or unreadable cache: rebuild it from the database
+		if (!is_array($filter) || !isset($filter['entries'])){
+			$filter = static::refreshFilter();
 		}
-		return json_decode(file_get_contents(static::filterPath()),true);
+		return $filter;
 	}
 }

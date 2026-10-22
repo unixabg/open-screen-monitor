@@ -145,9 +145,23 @@ class Buildextension extends \OSM\Tools\Route {
 		//////////////////////////
 
 		//make sure we have a private key to work with
-		if (!file_exists($outputFolder.'/key.pem')){
+		//the extension ID is derived from this key, so it is created once and kept
+		//(contrib/osm-backup.sh backs it up); a new key means a new extension ID
+		$keyFile = $outputFolder.'/key.pem';
+		if (!file_exists($keyFile)){
 			$privKey = openssl_pkey_new(['private_key_bits'=>2048]);
-			openssl_pkey_export_to_file($privKey,$outputFolder.'/key.pem');
+			//create it unreadable by other users from the start (owner rw, group r)
+			$oldUmask = umask(0027);
+			$written = openssl_pkey_export_to_file($privKey,$keyFile);
+			umask($oldUmask);
+			if (!$written){
+				throw new \Exception('Could not write the extension key '.$keyFile);
+			}
+		}
+		//tighten keys created by older versions (were left world readable);
+		//only when we own the file, since chmod on another owner's file raises a warning
+		if ((fileperms($keyFile) & 0137) && function_exists('posix_geteuid') && fileowner($keyFile) === posix_geteuid()){
+			chmod($keyFile,0640);
 		}
 
 		//get manifext for app version

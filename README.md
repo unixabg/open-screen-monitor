@@ -16,7 +16,7 @@
 ### Getting started
 - Clone the repository
 - Configure the chrome-extension for your deployment (FIXME)
-- Install the server side PHP
+- Install the server side PHP (see Example Setup below, `make install`)
 - Make the data directory **Attention - DO NOT make this folder a public access folder from the web!**
  - The defaults will attempt to add osm to your domain name. So something like osm.yourdomain.com .
    - https://osm.yourdomain.com/ is the default location for the osm php files
@@ -339,30 +339,37 @@ Size guide for ramdisk:
 The default PHP settings are conservative and will need tuning for production deployments.
 The following settings are a recommended starting point tested with approximately 700 concurrent users.
 
-Edit `/etc/php/8.4/fpm/php.ini` (adjust version as needed):
+`make install` (or `make fpm` on its own) writes OSM's PHP settings to two drop-in files
+and leaves the packaged `php.ini` and `pool.d/www.conf` untouched. Keep it that way: a
+locally edited packaged config file can make a later PHP update stop at a config file
+prompt, and unattended-upgrades then skips that update.
+
+- `/etc/php/8.4/fpm/pool.d/zz-osm.conf` sets the pool size (20 workers on a new install):
+  `make fpm FPM_MAX_CHILDREN=100 FPM_START=20 FPM_MIN_SPARE=10 FPM_MAX_SPARE=40`
+- `/etc/php/8.4/fpm/conf.d/99-osm.ini` sets `date.timezone` to the system timezone
+  (override with `OSM_TZ=America/Chicago`). Without it PHP logs in UTC.
+
+`make fpm` never lowers a server's existing tuning on its own: on the first run it keeps
+the current pool settings if they allow more workers than the default (for example a
+`www.conf` tuned by hand), and on later runs it keeps what `zz-osm.conf` already has. Only
+values given on the command line change it, and it says when that lowers the worker count.
+Give all four values together; any left out take the defaults (20, 4, 2, 6). It tests the
+configuration with `php-fpm8.4 -t` before reloading and puts the previous files back if
+php-fpm rejects the change. `make check` reports the worker count and timezone, and
+warns when the php-fpm log shows the worker limit was reached.
+
+`max_execution_time` and `post_max_size` are already set for OSM in the nginx site
+(`fastcgi_param PHP_VALUE`). Other `php.ini` settings, such as a larger `memory_limit` for
+large classroom data, can go in `99-osm.ini`:
 
 ```ini
-; Increase execution time for large filter log queries and Google Classroom sync
-max_execution_time = 300
-
 ; Increase memory limit for screenshot processing and large classroom data
 memory_limit = 256M
-
-; post_max_size covers screenshot uploads from the extension (base64 encoded JPEG
-; plus tab data). OSM does not use PHP file uploads so upload_max_filesize is
-; not relevant — post_max_size is what matters. 32M provides comfortable headroom.
-post_max_size = 32M
-
-; Set to your local timezone for correct log timestamps
-date.timezone = "America/Chicago"
 ```
 
-After making changes reload PHP-FPM:
-```bash
-systemctl reload php8.4-fpm
-```
+Then reload PHP-FPM with `systemctl reload php8.4-fpm`.
 
-**PHP-FPM pool settings** — for larger deployments also review `/etc/php/8.4/fpm/pool.d/www.conf`:
+**PHP-FPM pool settings for larger deployments** (pass these to `make fpm`, or put them in `zz-osm.conf`):
 ```ini
 ; Tested with 500-800 concurrent users on a 64GB server
 pm = dynamic
@@ -377,7 +384,9 @@ pm.max_requests = 500
 
 | `pm.max_children` | Comfortable Max | Hard Limit |
 |---|---|---|
-| `50` (default) | ~700 users | ~1,500 users |
+| `5` (Debian package default) | ~70 users | ~150 users |
+| `20` (`make fpm` default) | ~280 users | ~600 users |
+| `50` | ~700 users | ~1,500 users |
 | `100` | ~1,500 users | ~3,000 users |
 | `150` | ~2,000 users | ~4,000 users |
 
@@ -474,39 +483,68 @@ break, keeping 12-18 months of history.
 
 ### Example Setup (tested in debian trixie systemd-nspawn container as root)
 
+The `Makefile` does the whole server setup: packages, code, an HTTPS-only nginx
+site (port 443, nothing on port 80), a certificate, `osm-data` and the database.
+Run `make help` for the individual targets.
+
 ```
 #get the code
-git clone https://github.com/unixabg/open-screen-monitor.git --branch next /var/www/osm/
+apt -y install git make
+git clone https://github.com/unixabg/open-screen-monitor.git
+cd open-screen-monitor
 
-#install dependencies
-apt -y install nginx php8.4-fpm php8.4-xml php8.4-curl php8.4-odbc php8.4-mysql php8.4-zip mariadb-server git
+#optional: use your own certificate instead of a generated self signed one
+#mkdir -p /var/www/cert && cp fullchain.pem /var/www/cert/server.cer && cp privkey.pem /var/www/cert/server.key
 
-#configure nginx
-rm -r /etc/nginx/sites-enabled/default
-cp /var/www/osm/sample_config/nginx-site /etc/nginx/sites-enabled/osm
-service nginx restart
+#install packages, code (/var/www/osm), cert, nginx site, /var/www/osm-data and database
+make install OSM_HOST=osm.yourdomain.com
 
-#setup osm-dir
-mkdir /var/www/osm-data
-chown www-data:www-data /var/www/osm-data
+#add client secret from google, then fix its permissions
+cp /path/to/client_secret.json /var/www/osm-data/
+make data
 
-#add client secret from google
-nano /var/www/osm-data/client_secret.json
-
-#setup db
-DBPASS=`cat /proc/sys/kernel/random/uuid`
-
-mysql << EOL
-DROP DATABASE IF EXISTS osm;
-CREATE DATABASE osm;
-
-DROP USER IF EXISTS osm@localhost;
-CREATE USER 'osm'@'localhost' IDENTIFIED BY '${DBPASS}';
-GRANT ALL PRIVILEGES ON osm.* TO 'osm'@'localhost';
-FLUSH PRIVILEGES;
-EOL
-
-mysql -h localhost -u osm -p${DBPASS} osm < /var/www/osm/sample_config/setup.sql
-
-echo "{\"hostname\":\"localhost\",\"user\":\"osm\",\"password\":\"${DBPASS}\",\"dbname\":\"osm\"}" > /var/www/osm-data/db.json
+#verify
+make check
 ```
+
+- HTTPS only: if `/var/www/cert/server.cer` and `server.key` do not exist, `make cert`
+  creates a self signed certificate for `OSM_HOST` (default `hostname -f`) with
+  `subjectAltName=DNS:osm.yourdomain.com,DNS:osm`. Chromebooks must trust it, see
+  Self Signed Certificate above. To switch to a real certificate later, replace the two
+  files and run `service nginx reload`. Use https:// for the OAuth JavaScript origins
+  and redirect URIs.
+- Let's Encrypt: `make letsencrypt OSM_HOST=osm.yourdomain.com` (optionally `LE_EMAIL=you@yourdomain.com`)
+  replaces the self signed certificate with a Let's Encrypt one.
+  - Needs `osm.yourdomain.com` to resolve publicly to your router, and the router to
+    forward TCP 80 (and 443 for clients outside) to this server.
+  - Port 80 is only open while Let's Encrypt validates: nginx enables a listener that
+    serves just `/.well-known/acme-challenge/` and closes it again, both for this first
+    certificate and for every renewal (certbot renewal hooks in
+    `/etc/letsencrypt/renewal-hooks`). Keep the port 80 forward in place so renewals work.
+  - Before asking Let's Encrypt, it checks that its port 80 listener serves a test file
+    locally. On failure it explains the common causes: an old NAT forward that redirects
+    port 80 to HTTPS, a firewall that does not pass TCP 80, a forward to the wrong IP, or DNS.
+  - Try it first with `LE_TEST=yes`, a dry run against Let's Encrypt staging that does not
+    count against rate limits or change the certificate.
+  - `/var/www/cert/server.cer` and `server.key` become links into `/etc/letsencrypt/live/osm/`;
+    the self signed pair is kept as `*.selfsigned`. Chromebooks trust the certificate
+    without the Google Admin certificate setup.
+- Existing installs on port 80: `rm /etc/nginx/sites-enabled/osm && make nginx`
+  installs the HTTPS-only site (an existing site is otherwise left alone).
+- `make install` is safe to re-run. It will not replace an existing nginx site
+  (`/etc/nginx/sites-enabled/osm`) or touch an existing database; if `db.json`
+  is missing but the `osm` database exists, it stops instead of dropping it.
+- The database password is generated and written to `/var/www/osm-data/db.json`
+  (mode 640, owned by www-data).
+- Defaults can be overridden, e.g. `make install PHP_VER=8.3 OSM_DIR=/srv/osm`.
+  Variables: `PHP_VER`, `OSM_DIR`, `DATA_DIR`, `DB_NAME`, `DB_USER`, `WEB_USER`, `NGINX_SITE`, `NGINX_IPV6`, `CERT_DIR`, `OSM_HOST`, `CERT_DAYS`, `LE_EMAIL`, `LE_TEST`, `FPM_MAX_CHILDREN`, `FPM_START`, `FPM_MIN_SPARE`, `FPM_MAX_SPARE`, `OSM_TZ`.
+- IPv4-only hosts: if the kernel has no IPv6, the nginx site is installed
+  without the `[::]:443` listen line. Force it either way with `NGINX_IPV6=no` or `NGINX_IPV6=yes`.
+- Upgrading: `git pull && make upgrade`, then if the schema version changed, sign in
+  as an admin and open `/?route=Admin\Upgrade`.
+- `make uninstall` removes the code and nginx site but keeps data and database.
+  `make purge CONFIRM=yes` also deletes `/var/www/osm-data` and the database. It keeps a
+  Let's Encrypt certificate, because Let's Encrypt limits how many certificates for the same
+  name it issues per week; after a reinstall `make letsencrypt` reuses it.
+  `make letsencrypt-remove CONFIRM=yes` deletes the certificate, its renewal hooks and the
+  port 80 site, and goes back to a self signed certificate.
