@@ -490,7 +490,7 @@ Run `make help` for the individual targets.
 ```
 #get the code
 apt -y install git make
-git clone https://github.com/unixabg/open-screen-monitor.git --branch next
+git clone https://github.com/unixabg/open-screen-monitor.git
 cd open-screen-monitor
 
 #optional: use your own certificate instead of a generated self signed one

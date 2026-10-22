@@ -1,7 +1,7 @@
 # Makefile for Open Screen Monitor
 #
 # Fresh install on Debian trixie (as root):
-#   git clone https://github.com/unixabg/open-screen-monitor.git --branch next
+#   git clone https://github.com/unixabg/open-screen-monitor.git
 #   cd open-screen-monitor
 #   make install            (HTTPS on 443 with a self signed cert, see `make cert`)
 #   cp /path/to/client_secret.json /var/www/osm-data/ && make data
