@@ -54,6 +54,8 @@ class Config {
 			self::$config['cacheCleanupOnStartup'] = false;
 			self::$config['cacheCleanupTime'] = 0;
 			self::$config['cacheCleanupExclude'] = [];
+			//how long a cache clear from Admin > Clear User Cache waits for an offline user to check in
+			self::$config['cacheClearPendingTimeout'] = 604800; //60*60*24*7
 			self::$config['disableGroups'] = false;
 			self::$config['debug'] = true;
 			self::$config['oneRosterUserIgnore'] = [];

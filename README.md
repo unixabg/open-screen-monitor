@@ -100,7 +100,10 @@ Key configuration options:
 | `allTeachersGetBypass` | `true` | Automatically grant bypass monitoring permission to all teachers |
 | `showNonEnterpriseDevices` | `false` | Show non-enterprise device catch-all option on index page |
 | `debug` | `true` | Write full request/response data to disk — disable in production |
-
+| `cacheCleanupOnStartup` | `false` | Clear browser cache, cookies and site data once per browser session, at the first check-in |
+| `cacheCleanupTime` | `0` | Also clear the cache (not cookies) every N seconds; `0` turns it off |
+| `cacheCleanupExclude` | `[]` | Origins whose cookies are kept by every cache clear, e.g. `["https://accounts.google.com"]` |
+| `cacheClearPendingTimeout` | `604800` | How long a clear from Clear User Cache waits for an offline user to check in (default 7 days) |
 | `filterViaServer` | `false` | Enable server-side URL filtering |
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
@@ -108,6 +111,22 @@ Key configuration options:
 
 > **Note:** `debug` defaults to `true` which is useful during initial setup to verify the extension is communicating correctly. Check `osm-data/clients/debug-in/` to inspect incoming data. **Disable debug mode before going to production** as it writes full request data including screenshots to disk.
 
+
+### Clearing User Cache
+
+Admins can clear the browser cache, cookies and site data (local storage, IndexedDB, service
+workers) of one or more users at Admin Tools ▸ **Clear User Cache** (`/?route=Admin\Clearcache`).
+Enter email addresses, or tick students when OneRoster is enabled.
+
+- Users who are online are cleared within seconds, on every device they are using.
+- Users who are not online are cleared once, at their next check-in, if it comes within
+  `cacheClearPendingTimeout`. The page lists these waiting requests and lets you cancel them.
+- Cookies of the origins in `cacheCleanupExclude` are kept, as with the Clear Cache link in the
+  monitor and `cacheCleanupOnStartup`; their other site data is still cleared.
+- Requests and deliveries are logged (`admin.clearCache`, `clearCache.delivered`).
+
+Clearing cookies signs users out of most websites. No extension update is needed: the
+extension already supports the command.
 
 ### Server-Side URL Filtering
 

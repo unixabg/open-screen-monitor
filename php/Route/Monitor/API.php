@@ -265,40 +265,9 @@ class API extends \OSM\Tools\Route {
 		$logTarget = \OSM\Tools\TempDB::get('email/'.$sessionID).' <=> '.\OSM\Tools\TempDB::get('deviceID/'.$sessionID);
 
 		if ($action == 'clearCache'){
-			$this->sendCommand($sessionID,[
-				'action'=>'removeBrowsingData',
-				'options'=>[
-					'since'=>0,
-					'originTypes'=>[
-						'unprotectedWeb'=>true,
-						'protectedWeb'=>true,
-					],
-					'excludeOrigins'=>\OSM\Tools\Config::get('cacheCleanupExclude')
-				],
-				'dataToRemove'=>[
-						'appcache'=>true,
-						'cache'=>true,
-						'cacheStorage'=>true,
-						'cookies'=>true,
-				],
-			]);
-			$this->sendCommand($sessionID,[
-				'action'=>'removeBrowsingData',
-				'options'=>[
-					'since'=>0,
-					'originTypes'=>[
-						'unprotectedWeb'=>true,
-						'protectedWeb'=>true,
-					],
-				],
-				'dataToRemove'=>[
-					'fileSystems'=>true,
-					'indexedDB'=>true,
-					'localStorage'=>true,
-					'serviceWorkers'=>true,
-					'webSQL'=>true,
-				],
-			]);
+			foreach (\OSM\Tools\ClearCache::commands() as $cmd){
+				$this->sendCommand($sessionID, $cmd);
+			}
 			$logData['text'] = $_POST['clearCache'] ?? '';
 			\OSM\Tools\Log::add('monitor.clearCache',$logTarget,$logData);
 			die();

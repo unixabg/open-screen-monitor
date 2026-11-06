@@ -150,6 +150,7 @@ class Index extends \OSM\Tools\Route {
 				echo '<li class="list-group-item"><a href="/?route=Admin\Bypass">Bypass</a></li>';
 			}
 			if ($_SESSION['admin']){
+				echo '<li class="list-group-item"><a href="/?route=Admin\Clearcache">Clear User Cache</a></li>';
 				echo '<li class="list-group-item"><a href="/?route=Admin\Config">Config Editor</a></li>';
 				echo '<li class="list-group-item"><a href="/?route=Admin\Buildextension">Build Extension</a></li>';
 				echo '<li class="list-group-item"><a href="/?route=Admin\Permissions">Permissions</a></li>';

@@ -138,6 +138,18 @@ class Upload extends \OSM\Tools\Route {
 			\OSM\Tools\TempDB::del($key);
 		}
 
+		//cache clear requested in Admin\Clearcache while this user was not online
+		if ($request = \OSM\Tools\ClearCache::takePending(strtolower($email))){
+			foreach (\OSM\Tools\ClearCache::commands() as $cmd){
+				$toReturn['commands'][] = $cmd;
+			}
+			\OSM\Tools\Log::add('clearCache.delivered', $email, [
+				'deviceID' => $deviceID,
+				'requestedBy' => $request['requestedBy'] ?? '',
+				'requested' => isset($request['requested']) ? date('Y-m-d H:i:s', $request['requested']) : '',
+			]);
+		}
+
 		//populate filtermessage
 		if (!array_key_exists('filtermessage',$data)){
 			$toReturn['commands'][] = ['action'=>'setData','key'=>'filtermessage','value'=>[
@@ -185,38 +197,9 @@ class Upload extends \OSM\Tools\Route {
 
 		//big clear the cache on startup (including cookies)
 		if (\OSM\Tools\Config::get('cacheCleanupOnStartup') && !isset($data['cacheClearedOnStartup'])){
-			$toReturn['commands'][] = ['action'=>'removeBrowsingData',
-				'options'=>[
-					'since'=>0,
-					'originTypes'=>[
-						'unprotectedWeb'=>true,
-						'protectedWeb'=>true,
-					],
-					'excludeOrigins'=>\OSM\Tools\Config::get('cacheCleanupExclude')
-				],
-				'dataToRemove'=>[
-					'appcache'=>true,
-					'cache'=>true,
-					'cacheStorage'=>true,
-					'cookies'=>true,
-				],
-			];
-			$toReturn['commands'][] = ['action'=>'removeBrowsingData',
-				'options'=>[
-					'since'=>0,
-					'originTypes'=>[
-						'unprotectedWeb'=>true,
-						'protectedWeb'=>true,
-					],
-				],
-				'dataToRemove'=>[
-					'fileSystems'=>true,
-					'indexedDB'=>true,
-					'localStorage'=>true,
-					'serviceWorkers'=>true,
-					'webSQL'=>true,
-				],
-			];
+			foreach (\OSM\Tools\ClearCache::commands() as $cmd){
+				$toReturn['commands'][] = $cmd;
+			}
 			$toReturn['commands'][] = ['action'=>'setData','key'=>'cacheClearedOnStartup','value'=>true];
 		}
 
