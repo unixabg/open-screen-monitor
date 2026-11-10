@@ -56,6 +56,9 @@ class Config {
 			self::$config['cacheCleanupExclude'] = [];
 			//how long a cache clear from Admin > Clear User Cache waits for an offline user to check in
 			self::$config['cacheClearPendingTimeout'] = 604800; //60*60*24*7
+			//log a denied extension check-in (allowedUserDomains) at most once per this many seconds
+			//for the same user, device and session; 0 logs every attempt
+			self::$config['uploadDeniedLogInterval'] = 3600;
 			self::$config['disableGroups'] = false;
 			self::$config['debug'] = true;
 			self::$config['oneRosterUserIgnore'] = [];

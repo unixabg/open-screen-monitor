@@ -55,7 +55,32 @@ class Upload extends \OSM\Tools\Route {
 			$domains = array_map('trim', explode(',', $allowedUserDomains));
 			$emailDomain = substr($email, strrpos($email, '@') + 1);
 			if ($email == 'unknown' || !in_array($emailDomain, $domains)) {
-				\OSM\Tools\Log::add('upload.denied', $email);
+				//log enough to find the device and why it was turned away, but at most once per
+				//uploadDeniedLogInterval for the same user, device and session: a denied
+				//extension keeps checking in every few seconds
+				$key = md5($email.'|'.$deviceID.'|'.$sessionID);
+				$interval = intval(\OSM\Tools\Config::get('uploadDeniedLogInterval'));
+				$attempts = intval(\OSM\Tools\TempDB::get('upload-denied-count/'.$key) ?? 0) + 1;
+				if ($interval <= 0 || \OSM\Tools\TempDB::get('upload-denied/'.$key) === null){
+					$details = [
+						'reason' => $email == 'unknown'
+							? 'no signed-in account (browser profile not signed in to Google)'
+							: 'domain not in allowedUserDomains: '.$emailDomain,
+						'deviceID' => $deviceID,
+						'device' => $deviceID == 'non-enterprise-device' ? '' : $this->niceName($deviceID),
+						'extensionVersion' => $data['manifestVersion'] ?? '',
+						'userAgent' => substr($data['userAgent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+						'sessionID' => $sessionID,
+					];
+					if ($attempts > 1){$details['attemptsSinceLastLogged'] = $attempts;}
+					\OSM\Tools\Log::add('upload.denied', $email, array_filter($details));
+					if ($interval > 0){
+						\OSM\Tools\TempDB::set('upload-denied/'.$key, '1', $interval);
+					}
+					\OSM\Tools\TempDB::del('upload-denied-count/'.$key);
+				} else {
+					\OSM\Tools\TempDB::set('upload-denied-count/'.$key, (string)$attempts, 86400);
+				}
 				http_response_code(403);
 				die();
 			}
