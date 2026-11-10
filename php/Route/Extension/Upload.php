@@ -16,9 +16,20 @@ class Upload extends \OSM\Tools\Route {
 
 		$dataDir = $GLOBALS['dataDir'];
 		$toReturn = [];
-		$data = json_decode($_POST['data'],true);
+		$data = \OSM\Tools\ExtensionData::decode($_POST['data'], $error);
 		if (is_null($data)){
-			\OSM\Tools\Log::add('upload.malformed', $_SERVER['REMOTE_ADDR'], ['raw'=>substr($_POST['data'],0,200)]);
+			//what can still be read, to find the device and why: the error, the size, and the
+			//end of the data (cut off in transit if it does not end in })
+			$raw = (string)$_POST['data'];
+			preg_match('/"email":"([^"\\\\]{1,255})"/', $raw, $email);
+			preg_match('/"deviceID":"([^"\\\\]{1,63})"/', $raw, $device);
+			$this->logThrottled('upload.malformed', $email[1] ?? $_SERVER['REMOTE_ADDR'], [
+				'error' => $error,
+				'bytes' => strlen($raw),
+				'deviceID' => $device[1] ?? '',
+				'start' => substr($raw, 0, 200),
+				'end' => strlen($raw) > 200 ? substr($raw, -100) : '',
+			], ($email[1] ?? '').'|'.$_SERVER['REMOTE_ADDR']);
 			http_response_code(400);
 			die();
 		}
@@ -55,32 +66,17 @@ class Upload extends \OSM\Tools\Route {
 			$domains = array_map('trim', explode(',', $allowedUserDomains));
 			$emailDomain = substr($email, strrpos($email, '@') + 1);
 			if ($email == 'unknown' || !in_array($emailDomain, $domains)) {
-				//log enough to find the device and why it was turned away, but at most once per
-				//uploadDeniedLogInterval for the same user, device and session: a denied
-				//extension keeps checking in every few seconds
-				$key = md5($email.'|'.$deviceID.'|'.$sessionID);
-				$interval = intval(\OSM\Tools\Config::get('uploadDeniedLogInterval'));
-				$attempts = intval(\OSM\Tools\TempDB::get('upload-denied-count/'.$key) ?? 0) + 1;
-				if ($interval <= 0 || \OSM\Tools\TempDB::get('upload-denied/'.$key) === null){
-					$details = [
-						'reason' => $email == 'unknown'
-							? 'no signed-in account (browser profile not signed in to Google)'
-							: 'domain not in allowedUserDomains: '.$emailDomain,
-						'deviceID' => $deviceID,
-						'device' => $deviceID == 'non-enterprise-device' ? '' : $this->niceName($deviceID),
-						'extensionVersion' => $data['manifestVersion'] ?? '',
-						'userAgent' => substr($data['userAgent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-						'sessionID' => $sessionID,
-					];
-					if ($attempts > 1){$details['attemptsSinceLastLogged'] = $attempts;}
-					\OSM\Tools\Log::add('upload.denied', $email, array_filter($details));
-					if ($interval > 0){
-						\OSM\Tools\TempDB::set('upload-denied/'.$key, '1', $interval);
-					}
-					\OSM\Tools\TempDB::del('upload-denied-count/'.$key);
-				} else {
-					\OSM\Tools\TempDB::set('upload-denied-count/'.$key, (string)$attempts, 86400);
-				}
+				//log enough to find the device and why it was turned away
+				$this->logThrottled('upload.denied', $email, [
+					'reason' => $email == 'unknown'
+						? 'no signed-in account (browser profile not signed in to Google)'
+						: 'domain not in allowedUserDomains: '.$emailDomain,
+					'deviceID' => $deviceID,
+					'device' => $deviceID == 'non-enterprise-device' ? '' : $this->niceName($deviceID),
+					'extensionVersion' => $data['manifestVersion'] ?? '',
+					'userAgent' => substr($data['userAgent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+					'sessionID' => $sessionID,
+				], $email.'|'.$deviceID.'|'.$sessionID);
 				http_response_code(403);
 				die();
 			}
@@ -321,5 +317,24 @@ class Upload extends \OSM\Tools\Route {
 		//send it back
 		header('Content-Type: application/json');
 		die(json_encode($toReturn));
+	}
+
+	//A refused extension keeps checking in every few seconds, so the same refusal is logged
+	//at most once per uploadDeniedLogInterval for the same $throttleKey (0 logs every attempt);
+	//the next entry says how many attempts there were since the last one.
+	private function logThrottled($type, $targetid, $details, $throttleKey){
+		$key = md5($type.'|'.$throttleKey);
+		$interval = intval(\OSM\Tools\Config::get('uploadDeniedLogInterval'));
+		$attempts = intval(\OSM\Tools\TempDB::get($type.'-count/'.$key) ?? 0) + 1;
+		if ($interval > 0 && \OSM\Tools\TempDB::get($type.'/'.$key) !== null){
+			\OSM\Tools\TempDB::set($type.'-count/'.$key, (string)$attempts, 86400);
+			return;
+		}
+		if ($attempts > 1){$details['attemptsSinceLastLogged'] = $attempts;}
+		\OSM\Tools\Log::add($type, $targetid, array_filter($details, fn($v) => $v !== '' && $v !== null));
+		if ($interval > 0){
+			\OSM\Tools\TempDB::set($type.'/'.$key, '1', $interval);
+		}
+		\OSM\Tools\TempDB::del($type.'-count/'.$key);
 	}
 }

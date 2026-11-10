@@ -11,7 +11,7 @@ class Screenscrape extends \OSM\Tools\Route {
 		$now = time();
 
 		//validate data
-		$post = json_decode($_POST['data'] ?? '[]',true);
+		$post = (\OSM\Tools\ExtensionData::decode($_POST['data'] ?? '[]') ?? []);
 		$data = [];
 		$fields = ['text','url','sessionID','email','deviceID'];
 		foreach($fields as $field){

@@ -7,7 +7,7 @@ class Uploadlegacy extends \OSM\Tools\Route {
 	public function action(){
 		ignore_user_abort(1);
 
-		$post = json_decode($_POST['data'] ?? '[]', true);
+		$post = (\OSM\Tools\ExtensionData::decode($_POST['data'] ?? '[]') ?? []);
 
 		// extract identifying fields from legacy 3.x POST format
 		$email    = $post['email'] ?? (($post['username']??'unknown').'@'.($post['domain']??'unknown'));

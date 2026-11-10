@@ -91,7 +91,7 @@ Key configuration options:
 | Key | Default | Description |
 |---|---|---|
 | `allowedUserDomains` | _(empty)_ | Comma-separated list of permitted email domains for extension uploads. Empty accepts all. Example: `example.com,anotherschool.org` |
-| `uploadDeniedLogInterval` | `3600` | A check-in refused by `allowedUserDomains` is logged as `upload.denied`, with the reason, device, extension version and browser, at most once per this many seconds for the same user, device and session (`0` logs every attempt) |
+| `uploadDeniedLogInterval` | `3600` | A refused check-in is logged at most once per this many seconds for the same user and device (`0` logs every attempt): `upload.denied` (refused by `allowedUserDomains`; with the reason, device, extension version and browser) and `upload.malformed` (unreadable data; with the error, size and the start and end of the data) |
 | `enableGoogleClassroom` | `false` | Enable Google Classroom integration on the index page |
 | `enableOneRoster` | `false` | Enable OneRoster roster sync and class monitoring |
 | `enableLab` | `true` | Enable device lab monitoring |

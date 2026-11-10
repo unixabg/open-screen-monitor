@@ -18,7 +18,7 @@ class Filter extends \OSM\Tools\Route {
 		}
 
 		//validate data
-		$post = json_decode($_POST['data'] ?? '[]',true);
+		$post = (\OSM\Tools\ExtensionData::decode($_POST['data'] ?? '[]') ?? []);
 		$data = [];
 		$fields = ['email','deviceID','sessionID','type','url','initiator','filterID'];
 		foreach($fields as $field){
