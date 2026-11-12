@@ -200,9 +200,40 @@ class Filterlog extends \OSM\Tools\Route {
 			$rows = [];
 			$totalMatches = 0;
 			if ($rangeError == ''){
-				$countRows = \OSM\Tools\DB::selectRaw('SELECT COUNT(*) AS c FROM tbl_filter_log'.($where != '' ? ' WHERE '.$where : ''),$bindings);
-				$totalMatches = intval($countRows[0]['c'] ?? 0);
-				$rows = \OSM\Tools\DB::select('tbl_filter_log',['where'=>$where,'bindings'=>$bindings,'order'=>'id desc','limit'=>$maxResults]);
+				//With a username and a date, match the username inside the (date, username) index.
+				//FORCE, not USE: with USE INDEX MariaDB may still choose a full table scan for a range.
+				//A device search is left alone: idx_deviceid_date is better for it.
+				//Left to itself MariaDB walks the date index newest first to satisfy ORDER BY id,
+				//which reads every row of the day when few of them match.
+				$from = 'tbl_filter_log';
+				if ($username != '' && $date != '' && $device == '' && $deviceid == '' && $devicesearch == '' && self::hasIndex('idx_date_username')){
+					$from .= ' FORCE INDEX (idx_date_username)';
+				}
+				$whereSql = $where != '' ? ' WHERE '.$where : '';
+				$timeout = max(1, intval(\OSM\Tools\Config::get('filterLogQueryTimeout')));
+				try {
+					$rows = \OSM\Tools\DB::selectRaw('SET STATEMENT max_statement_time='.$timeout.' FOR '
+						.'SELECT * FROM '.$from.$whereSql.' ORDER BY id DESC LIMIT '.$maxResults, $bindings);
+					//the count is only needed when the results were cut off
+					$totalMatches = count($rows);
+					if ($totalMatches >= $maxResults){
+						$countRows = \OSM\Tools\DB::selectRaw('SET STATEMENT max_statement_time='.$timeout.' FOR '
+							.'SELECT COUNT(*) AS c FROM '.$from.$whereSql, $bindings);
+						$totalMatches = intval($countRows[0]['c'] ?? 0);
+					}
+				} catch (\PDOException $e) {
+					//MariaDB 1969: max_statement_time exceeded
+					if (($e->errorInfo[1] ?? 0) != 1969){throw $e;}
+					if (empty($rows)){
+						$results .= '<p style="color:red;font-weight:bold;">This search took longer than '.$timeout
+							.' seconds and was stopped. Narrow it: add a username or device, or search a shorter date range.</p>';
+					} else {
+						//the results arrived, only counting them all took too long
+						$totalMatches = count($rows);
+						$results .= '<p style="color:#b00;font-weight:bold;">Showing the most recent '.number_format($maxResults)
+							.' matching entries; there are more, but counting them took too long. Narrow your search to see complete results.</p>';
+					}
+				}
 			}
 
 			if ($totalMatches > $maxResults){
@@ -315,5 +346,13 @@ class Filterlog extends \OSM\Tools\Route {
 		echo '</tbody>';
 		echo '</table>';
 		echo $results;
+	}
+
+	private static function hasIndex($name){
+		static $indexes = null;
+		if ($indexes === null){
+			$indexes = array_column(\OSM\Tools\DB::selectRaw('SHOW INDEX FROM tbl_filter_log'), 'Key_name');
+		}
+		return in_array($name, $indexes);
 	}
 }

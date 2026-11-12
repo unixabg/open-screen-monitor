@@ -9,7 +9,7 @@ class Upgrade extends \OSM\Tools\Route {
 	// 1. Increment DB_SCHEMA_VERSION below
 	// 2. Add a new entry to $migrations with the SQL to run
 	// 3. Update setup.sql for fresh installs
-	const DB_SCHEMA_VERSION = 6;
+	const DB_SCHEMA_VERSION = 7;
 
 	private static $migrations = [
 		1 => "INSERT INTO tbl_config (name, value) VALUES ('dbSchemaVersion', '1');",
@@ -18,6 +18,9 @@ class Upgrade extends \OSM\Tools\Route {
 		4 => "ALTER TABLE tbl_filter_log ADD INDEX idx_date_time_username (date, time, username);",
 		5 => "ALTER TABLE tbl_filter_log ADD INDEX idx_date_deviceid (date, deviceid, username, time);",
 		6 => "ALTER TABLE tbl_filter_log DROP INDEX idx_date_deviceid, ADD INDEX idx_deviceid_date (deviceid, date, username, time);",
+		//browsing history by user: lets a day's rows be matched on username inside the index
+		//instead of reading every row of that day; built online, the site keeps running
+		7 => "ALTER TABLE tbl_filter_log ADD INDEX IF NOT EXISTS idx_date_username (date, username), ALGORITHM=INPLACE, LOCK=NONE;",
 	];
 
 	public function action(){
@@ -44,6 +47,10 @@ class Upgrade extends \OSM\Tools\Route {
 				$updateEscaped = str_replace('"','\"',$updateSql);
 				echo '<h3>Migration to version '.$v.'</h3>';
 				echo '<pre style="background:#111;color:#0f0;padding:1em;">'.htmlentities($sql).'</pre>';
+				if (stripos($sql, 'tbl_filter_log') !== false){
+					echo '<p>tbl_filter_log can be very large: this can take a long time and needs free disk space of about '
+						.'a tenth of the table. Run it in screen or tmux so a dropped connection does not stop it.</p>';
+				}
 				echo '<p>Run from CLI (version is only stamped if migration succeeds):</p>';
 				echo '<pre style="background:#111;color:#0f0;padding:1em;">';
 				echo htmlentities('# As osm user:')."\n";

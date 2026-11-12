@@ -106,6 +106,7 @@ Key configuration options:
 | `cacheCleanupExclude` | `[]` | Origins whose cookies are kept by every cache clear, e.g. `["https://accounts.google.com"]` |
 | `cacheClearPendingTimeout` | `604800` | How long a clear from Clear User Cache waits for an offline user to check in (default 7 days) |
 | `filterViaServer` | `false` | Enable server-side URL filtering |
+| `filterLogQueryTimeout` | `120` | Browsing history searches are stopped after this many seconds, with a message to narrow the search, instead of running on in the database after the page has given up |
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
 | `userGroupTimeout` | `28800` | User group session timeout in seconds (default 8 hours) |

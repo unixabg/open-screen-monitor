@@ -43,6 +43,9 @@ class Config {
 			self::$config['showNonEnterpriseDevices'] = false;
 			self::$config['filterResourceTypes'] = ["main_frame","sub_frame","xmlhttprequest","trigger_exempt"];
 			self::$config['filterViaServer'] = false;
+			//browsing history searches stop after this many seconds instead of running on in the
+			//database after the page has given up (PHP stops the page after 300 seconds)
+			self::$config['filterLogQueryTimeout'] = 120;
 			self::$config['filterViaServerGroupIgnoreNonEnterprise'] = true;
 			self::$config['filterviaserverShowBlockPage'] = false;
 			self::$config['filterviaserverDefaultFilterTypes'] = ['main_frame','sub_frame'];
