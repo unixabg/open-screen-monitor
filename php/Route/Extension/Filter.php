@@ -204,7 +204,8 @@ class Filter extends \OSM\Tools\Route {
 						."\nDevice Address: ".str_replace(".",'-',$_SERVER['REMOTE_ADDR'])
 						."\nTriggered on keyword or url of: ".$data['url']
 						."\r\n\r\n";
-					$screenshot = \OSM\Tools\TempDB::get('screenshot/'.$data['sessionID']);
+					//the last screenshot this client uploaded (Upload stores it under the session key, not the bare sessionID)
+					$screenshot = \OSM\Tools\TempDB::get('screenshot/'.\OSM\Tools\ExtensionData::sessionKey($post['sessionID'] ?? '', $post['deviceID'] ?? '', $post['email'] ?? ''));
 					if ($screenshot != '') {
 						$raw .= "--".$uid."\r\n";
 						$raw .= "Content-Type: image/jpeg; name=\"screenshot.jpg\"\r\n";

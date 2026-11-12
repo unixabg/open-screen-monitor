@@ -28,6 +28,21 @@ class ExtensionData {
 		return null;
 	}
 
+	//Everything the extension uploads (screenshot, tabs, ...) is stored in TempDB under this key:
+	//the extension's sessionID plus a hash of the device and user, so two clients with the same
+	//sessionID do not collide. Upload stores with it; the filter and screenscrape requests of the
+	//same client use it to find that client's last screenshot for trigger emails.
+	//Returns '' when the request has no usable sessionID.
+	public static function sessionKey($sessionID, $deviceID, $email){
+		$sessionID = substr(preg_replace('/[^0-9a-z\-]/', '', is_string($sessionID) ? $sessionID : ''), 0, 36);
+		if ($sessionID == ''){return '';}
+		$deviceID = is_string($deviceID) ? $deviceID : '';
+		$email = is_string($email) ? $email : '';
+		if ($deviceID == ''){$deviceID = 'non-enterprise-device';}
+		if ($email == ''){$email = 'unknown';}
+		return $sessionID.'--'.md5($deviceID.$email);
+	}
+
 	//replace \uD800-\uDFFF escapes that are not part of a high+low pair with �;
 	//every backslash in JSON starts an escape, so matching escapes left to right keeps
 	//an escaped backslash (\\) followed by the text "ud83d" untouched

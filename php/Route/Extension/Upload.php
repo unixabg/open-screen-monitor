@@ -101,7 +101,7 @@ class Upload extends \OSM\Tools\Route {
 
 		//this is just to help keep collisions on the session id from happening
 		//if these values change it may cause issues
-		$sessionID .= '--'.md5($deviceID.$email);
+		$sessionID = \OSM\Tools\ExtensionData::sessionKey($sessionID, $deviceID, $email);
 
 		//this tells if client is active
 		\OSM\Tools\TempDB::set('ping-device/'.bin2hex($deviceID).'/'.$sessionID, '');
