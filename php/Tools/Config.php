@@ -54,6 +54,11 @@ class Config {
 			self::$config['enableOneRoster'] = false;
 			self::$config['enableLab'] = true;
 			self::$config['screenscrape'] = false;
+			//keep the first words of the page text in blank-type tabs (a cloaked tab shows about:blank)
+			//for these users only, as screenscrape.watch entries in the admin log; empty = off
+			self::$config['screenscrapeWatchUsers'] = [];
+			self::$config['screenscrapeWatchWords'] = 100;
+			self::$config['screenscrapeWatchURLs'] = ['about:','data:','blob:'];
 			self::$config['cacheCleanupOnStartup'] = false;
 			self::$config['cacheCleanupTime'] = 0;
 			self::$config['cacheCleanupExclude'] = [];

@@ -107,6 +107,9 @@ Key configuration options:
 | `cacheClearPendingTimeout` | `604800` | How long a clear from Clear User Cache waits for an offline user to check in (default 7 days) |
 | `filterViaServer` | `false` | Enable server-side URL filtering |
 | `filterLogQueryTimeout` | `120` | Browsing history searches are stopped after this many seconds, with a message to narrow the search, instead of running on in the database after the page has given up |
+| `screenscrapeWatchUsers` | `[]` | Users whose page text in blank-type tabs is kept, e.g. `["student@example.com"]`. A cloaked tab shows `about:blank` while a site (often a game or proxy) is loaded in a frame inside it; screenscrape reads every frame, so this shows what the tab really contains. Each new page is logged once an hour as `screenscrape.watch` in the admin log. Requires screenscrape for the user's group. List only students under investigation and remove them afterwards. |
+| `screenscrapeWatchWords` | `100` | How many words of the page text `screenscrapeWatchUsers` keeps |
+| `screenscrapeWatchURLs` | `["about:","data:","blob:"]` | Tab addresses (prefixes) treated as blank-type for `screenscrapeWatchUsers`; ordinary websites are never kept |
 | `sessionTimeout` | `28800` | Web session timeout in seconds (default 8 hours) |
 | `bypassTimeout` | `28800` | Bypass group timeout in seconds (default 8 hours) |
 | `userGroupTimeout` | `28800` | User group session timeout in seconds (default 8 hours) |

@@ -17,6 +17,7 @@ class Screenscrape extends \OSM\Tools\Route {
 		foreach($fields as $field){
 			$data[$field] = $post[$field] ?? '';
 		}
+		$rawText = (string)$data['text'];
 		$data['text'] = strtolower($data['text']);
 
 		// check allowed user domains
@@ -107,6 +108,8 @@ class Screenscrape extends \OSM\Tools\Route {
 		//send it back
 		$this->sendAndClose(json_encode($toReturn));
 
+		$this->watch($data, $rawText);
+
 		//log it
 		\OSM\Tools\DB::insert('tbl_filter_log',[
 			'date' => date('Y-m-d',$now),
@@ -187,5 +190,37 @@ class Screenscrape extends \OSM\Tools\Route {
 				}
 			}
 		}
+	}
+
+	//For the users in screenscrapeWatchUsers, keep the first screenscrapeWatchWords words of
+	//the text in a tab whose address is blank-type (screenscrapeWatchURLs, e.g. about:blank),
+	//as a screenscrape.watch entry in the admin log. A cloaked tab shows about:blank while a
+	//site is loaded in a frame inside it; the text includes every frame, so this shows what
+	//is really there. Only for listed users and only for those addresses, nothing else is kept.
+	private function watch($data, $rawText){
+		$users = array_map('strtolower', array_map('trim', (array)\OSM\Tools\Config::get('screenscrapeWatchUsers')));
+		if (empty($users) || !in_array(strtolower($data['email']), $users)){return;}
+
+		$blank = false;
+		foreach ((array)\OSM\Tools\Config::get('screenscrapeWatchURLs') as $prefix){
+			if ($prefix !== '' && stripos($data['url'], $prefix) === 0){$blank = true; break;}
+		}
+		if (!$blank){return;}
+
+		$words = preg_split('/\s+/u', trim($rawText), -1, PREG_SPLIT_NO_EMPTY);
+		if ($words === false){$words = preg_split('/\s+/', trim($rawText), -1, PREG_SPLIT_NO_EMPTY);}
+		if (empty($words)){return;}
+		$excerpt = implode(' ', array_slice($words, 0, max(1, intval(\OSM\Tools\Config::get('screenscrapeWatchWords')))));
+
+		//the same page is scanned again every few seconds; log it once an hour per session unless it changes
+		$key = 'screenscrape-watch/'.md5($data['sessionID'].'|'.$excerpt);
+		if (\OSM\Tools\TempDB::get($key) !== null){return;}
+		\OSM\Tools\TempDB::set($key, '1', 3600);
+
+		\OSM\Tools\Log::add('screenscrape.watch', $data['email'], [
+			'url' => substr($data['url'], 0, 200),
+			'deviceID' => $data['deviceID'],
+			'words' => $excerpt,
+		]);
 	}
 }
