@@ -240,6 +240,27 @@ class Filterlog extends \OSM\Tools\Route {
 				$results .= '<p style="color:#b00;font-weight:bold;">Showing the most recent '.number_format($maxResults).' of '.number_format($totalMatches).' matching entries. Narrow your search (add a username, URL filter, or device) to see complete results.</p>';
 			}
 
+			//trigger rows name the rule that fired (written by the server as rule:<id>); look up their comments
+			$ruleComments = [];
+			$ruleIDs = [];
+			foreach ($rows as $row){
+				if (in_array($row['action'], ['TRIGGER','TRIGGER_EXEMPT']) && preg_match('/^rule:(\d+)$/', $row['initiator'], $m)){
+					$ruleIDs[intval($m[1])] = true;
+				}
+			}
+			if (!empty($ruleIDs)){
+				$ids = array_keys($ruleIDs);
+				$placeholders = [];
+				$ruleBindings = [];
+				foreach ($ids as $i => $id){
+					$placeholders[] = ':rule'.$i;
+					$ruleBindings[':rule'.$i] = $id;
+				}
+				foreach (\OSM\Tools\DB::selectRaw('SELECT id, comment FROM tbl_filter_entry WHERE id IN ('.implode(',',$placeholders).')', $ruleBindings) as $rule){
+					$ruleComments[intval($rule['id'])] = $rule['comment'];
+				}
+			}
+
 			$results .= '<table class="w3-table-all results"><tbody>';
 			foreach ($rows as $row){
 				$results .= '<tr><td>';
@@ -248,6 +269,18 @@ class Filterlog extends \OSM\Tools\Route {
 				$results .= '<b>Time:</b> '.htmlentities($row['time']).'<br />';
 				$results .= '<b>User:</b> '.htmlentities($row['username']).'<br />';
 				$results .= '<b>Annotated Info:</b> '.htmlentities($deviceNames[$row['deviceid']] ?? $row['deviceid']);
+				if (in_array($row['action'], ['TRIGGER','TRIGGER_EXEMPT'])){
+					//written by the server from the rule, so shown without Show Advanced
+					$word = preg_replace('/^trigger word: /', '', $row['type']);
+					if ($word != ''){
+						$results .= '<br /><b>Trigger:</b> '.htmlentities($word);
+					}
+					if (preg_match('/^rule:(\d+)$/', $row['initiator'], $m)){
+						$id = intval($m[1]);
+						$comment = $ruleComments[$id] ?? null;
+						$results .= '<br /><b>Rule:</b> #'.$id.($comment === null ? ' (no longer exists)' : ($comment != '' ? ' '.htmlentities($comment) : ''));
+					}
+				}
 				if (isset($_POST['showadvanced'])) {
 					//type and initiator come from unauthenticated extension requests
 					$results .= '<br /><b>IP:</b> '.htmlentities($row['ip']);

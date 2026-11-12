@@ -153,6 +153,8 @@ class Screenscrape extends \OSM\Tools\Route {
 					'deviceid' => $data['deviceID'],
 					'action' => $entry['action'],
 					'type' => substr('trigger word: '.$word,0,63),
+					//which rule fired, shown with the rule's comment in the browsing history
+					'initiator' => 'rule:'.$entry['id'],
 					'url' => substr($data['url'],0,2047),
 				]);
 
