@@ -255,8 +255,10 @@ and passes the password through the environment rather than the command line. Wi
 - **Files:** `$ARCHIVE_DIR/YYYY/osm_history_YYYY-MM-DD.tsv.gz` (default
   `/var/backups/osm/history`), tab separated with a header line and one entry per line.
 - **Nothing is deleted before it is safely in a file:** a day is exported to a temporary
-  file, its row count is compared with the database, the gzip is tested and the file is
-  moved into place; only then are that day's rows deleted. Any failure (database down,
+  file, the gzip is tested, and the file is read back line by line: the first line must be
+  the column names, every other line a complete row of that day, and the number of rows
+  and the lowest and highest id the same as in the database. Only then is the file moved
+  into place and that day's rows deleted. Any failure (database down,
   full disk) stops the run with a non-zero exit and that day's rows still in the database.
 - **Safe to interrupt and to schedule:** a run that is stopped continues with the same
   day next time and does not export a day twice. Only one run at a time.
@@ -354,8 +356,10 @@ already there), so restore, look, and let the schedule tidy up.
 **Status:** tested on a scratch MariaDB 10.11 with about 216,000 rows over 72 days,
 including values with tabs, newlines, backslashes, quotes and non-ASCII text: report, dry
 run, `MAX_DAYS`, a run killed while deleting and then continued, wrong password, a second
-run at the same time, restoring every file and comparing each day with the original, and
-`OPTIMIZE TABLE` afterwards. Not yet timed on a production-size table.
+run at the same time, an export that writes the wrong content (refused, nothing deleted),
+restoring every file and comparing each day with the original, and `OPTIMIZE TABLE`
+afterwards; run both with and without a terminal attached. Not yet timed on a
+production-size table.
 
 ---
 

@@ -13,7 +13,8 @@
 # a gzip'd tab separated file with a header line and one row per line (tabs, newlines and
 # backslashes inside a value are written as \t \n \\, the format LOAD DATA reads back).
 # A day's rows are deleted from the database only after its file is complete: written to a
-# temporary file, row count compared with the database, gzip tested, then moved into place.
+# temporary file, gzip tested, then read back line by line (every line a full row of that
+# day; row count, lowest and highest id the same as in the database), then moved into place.
 # Rows are deleted in batches of BATCH (default 50000) with PAUSE seconds (default 0.2)
 # between batches, so the running site is never locked out for long.
 #
@@ -32,7 +33,9 @@ BATCH="${BATCH:-50000}"
 PAUSE="${PAUSE:-0.2}"
 DRY_RUN="${DRY_RUN:-}"
 TABLE="tbl_filter_log"
-COLUMNS="id,ip,username,deviceid,action,type,url,date,time,initiator"
+# not named COLUMNS: bash keeps the terminal width in that variable and overwrites it
+readonly FIELDS="id,ip,username,deviceid,action,type,url,date,time,initiator"
+readonly HEADER="${FIELDS//,/$'\t'}"
 
 fail(){ echo "osm-archive: ERROR: $*" >&2; exit 1; }
 isnum(){ case "$1" in ''|*[!0-9]*) return 1;; esac; }
@@ -88,9 +91,22 @@ isnum "$KEEP_DAYS" && [ "$KEEP_DAYS" -ge 1 ] || fail "KEEP_DAYS must be a number
 CUTOFF=$(date -d "-$KEEP_DAYS days" +%F)
 
 next_day(){ sql "SELECT IFNULL(MIN(date),'') FROM $TABLE WHERE date > '$1' AND date < '$CUTOFF'"; }
-count_day(){ sql "SELECT COUNT(*) FROM $TABLE WHERE date = '$1'"; }
-# rows in an archive file: its lines minus the header
-count_file(){ local n; n=$(gzip -dc "$1" | wc -l); echo $(( n > 0 ? n - 1 : 0 )); }
+# rows, lowest id and highest id of a day in the database, tab separated
+stat_day(){ sql "SELECT COUNT(*), IFNULL(MIN(id),0), IFNULL(MAX(id),0) FROM $TABLE WHERE date = '$1'"; }
+count_day(){ local n; read -r n _ < <(stat_day "$1"); echo "$n"; }
+# the same three numbers for an archive file, after reading every line of it: the header
+# must be the column names, and each row must have all ten columns, a numeric id and the
+# day the file is for. Prints "rows minid maxid", or fails with the reason.
+# (tabs inside a value are written as \t, so a tab always separates two columns)
+stat_file(){
+	gzip -dc "$1" | awk -F '\t' -v day="$2" -v header="$HEADER" '
+		NR == 1 { if ($0 != header) { print "first line is not the column names" > "/dev/stderr"; bad = 1; exit }; next }
+		NF != 10 || $1 !~ /^[0-9]+$/ || $8 != day {
+			print "line " NR " is not a history row of " day ": " substr($0, 1, 80) > "/dev/stderr"; bad = 1; exit
+		}
+		{ n++; id = $1 + 0; if (n == 1 || id < min) min = id; if (id > max) max = id }
+		END { if (bad || NR == 0) exit 1; printf "%d\t%d\t%d\n", n, min, max }'
+}
 
 if [ -n "$DRY_RUN" ]; then
 	report
@@ -131,24 +147,30 @@ while :; do
 
 	OUT="$ARCHIVE_DIR/${DAY%%-*}/osm_history_$DAY.tsv.gz"
 	mkdir -p "$(dirname "$OUT")"
-	IN_DB=$(count_day "$DAY")
+	read -r IN_DB DB_MIN DB_MAX < <(stat_day "$DAY") || fail "could not read $DAY from the database"
 
 	if [ -f "$OUT" ]; then
 		# an earlier run wrote this file and was stopped while deleting; the file is
-		# complete, so only the delete is left. More rows in the database than in the
-		# file means they did not come from that run (e.g. a restore), so stop
+		# complete, so only the delete is left. Rows in the database that are not in
+		# the file did not come from that run (e.g. a restore), so stop
 		gzip -t "$OUT" || fail "$OUT is damaged; move it aside and run again"
-		IN_FILE=$(count_file "$OUT")
-		[ "$IN_DB" -le "$IN_FILE" ] || fail "$DAY has $IN_DB rows in the database but $OUT holds $IN_FILE; move the file aside and run again"
+		read -r IN_FILE FILE_MIN FILE_MAX < <(stat_file "$OUT" "$DAY") \
+			|| fail "$OUT is not a complete archive of $DAY; move it aside and run again. Nothing was deleted"
+		[ "$IN_DB" -le "$IN_FILE" ] && [ "$DB_MIN" -ge "$FILE_MIN" ] && [ "$DB_MAX" -le "$FILE_MAX" ] \
+			|| fail "$DAY has rows in the database ($IN_DB, ids $DB_MIN-$DB_MAX) that $OUT does not hold ($IN_FILE, ids $FILE_MIN-$FILE_MAX); move the file aside and run again"
 		echo "$DAY: continuing an interrupted run, $IN_DB of $IN_FILE rows still to delete"
 	else
 		TMP="$OUT.tmp.$$"
-		dump "SELECT $COLUMNS FROM $TABLE WHERE date = '$DAY'" | gzip > "$TMP" \
+		dump "SELECT $FIELDS FROM $TABLE WHERE date = '$DAY'" | gzip > "$TMP" \
 			|| fail "export of $DAY failed; nothing was deleted"
 		gzip -t "$TMP" || fail "archive of $DAY did not verify; nothing was deleted"
-		IN_FILE=$(count_file "$TMP")
-		[ "$IN_FILE" = "$IN_DB" ] && [ "$IN_FILE" = "$(count_day "$DAY")" ] \
-			|| fail "$DAY: archive holds $IN_FILE rows but the database has $IN_DB; nothing was deleted"
+		# read the file back: every line must be a full row of this day, and the number
+		# of rows and the lowest and highest id must be the database's, before and after
+		read -r IN_FILE FILE_MIN FILE_MAX < <(stat_file "$TMP" "$DAY") \
+			|| fail "archive of $DAY does not hold the history rows (see above); nothing was deleted"
+		[ "$IN_FILE $FILE_MIN $FILE_MAX" = "$IN_DB $DB_MIN $DB_MAX" ] \
+			&& [ "$IN_FILE"$'\t'"$FILE_MIN"$'\t'"$FILE_MAX" = "$(stat_day "$DAY")" ] \
+			|| fail "$DAY: archive holds $IN_FILE rows (ids $FILE_MIN-$FILE_MAX) but the database has $IN_DB (ids $DB_MIN-$DB_MAX); nothing was deleted"
 		mv -f "$TMP" "$OUT"
 		TMP=""
 		# make sure the file is on disk before its rows leave the database
