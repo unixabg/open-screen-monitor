@@ -163,7 +163,7 @@ while :; do
 		sleep "$PAUSE"
 	done
 
-	echo "$DAY: $IN_FILE rows -> $OUT ($(du -h "$OUT" | cut -f1))"
+	echo "$DAY: $IN_FILE rows -> $OUT ($(du -h --apparent-size "$OUT" | cut -f1))"
 	DAYS_DONE=$((DAYS_DONE+1))
 	ROWS_DONE=$((ROWS_DONE+IN_FILE))
 done
