@@ -107,6 +107,7 @@ Key configuration options:
 | `cacheClearPendingTimeout` | `604800` | How long a clear from Clear User Cache waits for an offline user to check in (default 7 days) |
 | `filterViaServer` | `false` | Enable server-side URL filtering |
 | `filterLogQueryTimeout` | `120` | Browsing history searches are stopped after this many seconds, with a message to narrow the search, instead of running on in the database after the page has given up |
+| `filterLogWarnDays` | `90` | Admins see the size of the browsing history on the home page, with a reminder when it goes back more than this many days; `0` turns the reminder off. Old history is moved out of the database with `contrib/osm-archive.sh` (see `contrib/README.md`) |
 | `screenscrapeWatchUsers` | `[]` | Users whose page text in blank-type tabs is kept, e.g. `["student@example.com"]`. A cloaked tab shows `about:blank` while a site (often a game or proxy) is loaded in a frame inside it; screenscrape reads every frame, so this shows what the tab really contains. Each new page is logged once an hour as `screenscrape.watch` in the admin log. Requires screenscrape for the user's group. List only students under investigation and remove them afterwards. |
 | `screenscrapeWatchWords` | `100` | How many words of the page text `screenscrapeWatchUsers` keeps |
 | `screenscrapeWatchURLs` | `["about:","data:","blob:"]` | Tab addresses (prefixes) treated as blank-type for `screenscrapeWatchUsers`; ordinary websites are never kept |
@@ -422,6 +423,14 @@ Verify settings after reload:
 ```bash
 php-fpm8.4 -tt 2>&1 | grep "pm"
 ```
+
+### Browsing History Growth
+
+The browsing history table `tbl_filter_log` gains a row for every filtered request and OSM
+never trims it, so it becomes by far the largest part of the database (tens of gigabytes
+a month on a busy server). Admins see its size and how far back it goes on the home page.
+Schedule `contrib/osm-archive.sh` to move old days out of the database into compressed
+files; see [contrib/README.md](contrib/README.md).
 
 ### MariaDB Tuning
 

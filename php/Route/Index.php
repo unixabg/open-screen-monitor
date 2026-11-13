@@ -8,13 +8,19 @@ class Index extends \OSM\Tools\Route {
 			$this->css = '
 				.columns {display:flex;justify-content:space-around;}
 				.columns ul li {width:500px;}
-				.welcome {padding-bottom:50px;}
+				.welcome {padding-bottom:20px;}
+				.historysize {padding:0 0 30px 0;}
+				.historysize .warn {color:#b00;font-weight:bold;}
 			';
 			echo '<h2 class="welcome">Hello '.htmlentities($_SESSION['name'].' ('.$_SESSION['email'].')').'</h2>';
 
 			//session expires while the page sits open, so bounce to login at that moment
 			//rather than letting the user click stale links
 			echo '<script>setTimeout(function(){window.location="/";},'.(($validuntil - time()) * 1000).');</script>';
+
+			if ($_SESSION['admin'] ?? false){
+				echo \OSM\Tools\FilterLogStats::html();
+			}
 
 			echo '<div class="columns">';
 

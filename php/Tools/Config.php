@@ -46,6 +46,9 @@ class Config {
 			//browsing history searches stop after this many seconds instead of running on in the
 			//database after the page has given up (PHP stops the page after 300 seconds)
 			self::$config['filterLogQueryTimeout'] = 120;
+			//admins see a reminder on the home page when browsing history in the database goes back
+			//more than this many days (archive it with contrib/osm-archive.sh); 0 = no reminder
+			self::$config['filterLogWarnDays'] = 90;
 			self::$config['filterViaServerGroupIgnoreNonEnterprise'] = true;
 			self::$config['filterviaserverShowBlockPage'] = false;
 			self::$config['filterviaserverDefaultFilterTypes'] = ['main_frame','sub_frame'];

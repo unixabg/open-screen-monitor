@@ -231,6 +231,134 @@ extension ID.
 
 ---
 
+### osm-archive.sh — move old browsing history out of the database
+
+`tbl_filter_log` (the browsing history) gains a row for every filtered request and is
+never trimmed by OSM itself, so on a busy server it grows by gigabytes a week. This script
+moves the days older than `KEEP_DAYS` out of the database into compressed files, one per
+day, and deletes them from the table. Admins see the size of the history and the day it
+goes back to on the home page, with a reminder once that is more than `filterLogWarnDays`
+days (default 90; `0` turns the reminder off).
+
+```bash
+./osm-archive.sh                              # report only: size and oldest day; changes nothing
+KEEP_DAYS=60 DRY_RUN=1 ./osm-archive.sh       # list the days that would be archived
+KEEP_DAYS=60 ./osm-archive.sh                 # archive every day older than 60 days
+KEEP_DAYS=60 MAX_DAYS=10 ./osm-archive.sh     # stop after 10 days; run again to continue
+ARCHIVE_DIR=/mnt/nas/osm-history KEEP_DAYS=60 ./osm-archive.sh
+```
+
+Writes, so run it as `root`. It reads the database connection from `osm-data/db.json`
+and passes the password through the environment rather than the command line. Without
+`KEEP_DAYS` it only reports.
+
+- **Files:** `$ARCHIVE_DIR/YYYY/osm_history_YYYY-MM-DD.tsv.gz` (default
+  `/var/backups/osm/history`), tab separated with a header line and one entry per line.
+- **Nothing is deleted before it is safely in a file:** a day is exported to a temporary
+  file, its row count is compared with the database, the gzip is tested and the file is
+  moved into place; only then are that day's rows deleted. Any failure (database down,
+  full disk) stops the run with a non-zero exit and that day's rows still in the database.
+- **Safe to interrupt and to schedule:** a run that is stopped continues with the same
+  day next time and does not export a day twice. Only one run at a time.
+- **Gentle on the running site:** rows are deleted in batches (`BATCH`, default 50000)
+  with a pause between them (`PAUSE`, default 0.2 seconds), each its own short
+  transaction. Raise `PAUSE` or lower `BATCH` if the site slows down while it runs.
+- **Archived days leave the web interface:** View Browsing History and the usage reports
+  only see what is still in the database. Choose `KEEP_DAYS` to cover how far back staff
+  normally look.
+- **Sensitive:** the files are students' browsing history. The directory is created
+  `700 root` and each file `600`. The script never deletes archive files; remove them
+  yourself when your retention period for this data ends.
+- Each run that archives something adds a `history.archive` entry to the admin log
+  (View Log).
+
+#### The first run
+
+The first run on a server with months of history has a lot to move and can take hours.
+Run it outside school hours, inside `screen` or `tmux`, and look at the size of the first
+few files to see how much space the archive directory needs. `MAX_DAYS` spreads the work
+over several nights; a scheduled run with `MAX_DAYS` set works through the backlog by
+itself.
+
+#### Disk space
+
+Deleting rows does not make the table's file smaller. MariaDB keeps the freed space
+inside the file and fills it with new rows, so the table stops growing until that space
+is used up; the report and the admin home page show it as free for new history. With a
+scheduled run the table settles at about the size of `KEEP_DAYS` days.
+
+To give the freed space back to the disk, rebuild the table once after the first
+archive: `OPTIMIZE TABLE tbl_filter_log;` (MariaDB answers "doing recreate + analyze
+instead", which is the rebuild). This rewrites what is left, so it needs free disk of
+about the size of the remaining history and takes a while on a large table; run it in
+`screen` or `tmux`, outside school hours.
+
+#### Scheduling with a systemd timer
+
+```bash
+install -m 755 contrib/osm-archive.sh /usr/local/sbin/osm-archive
+
+cat > /etc/systemd/system/osm-archive.service <<'EOF'
+[Unit]
+Description=Open Screen Monitor browsing history archive
+After=mariadb.service
+
+[Service]
+Type=oneshot
+Environment=KEEP_DAYS=60
+# Environment=ARCHIVE_DIR=/mnt/nas/osm-history MAX_DAYS=10
+ExecStart=/usr/local/sbin/osm-archive
+EOF
+
+cat > /etc/systemd/system/osm-archive.timer <<'EOF'
+[Unit]
+Description=Nightly Open Screen Monitor browsing history archive
+
+[Timer]
+OnCalendar=*-*-* 01:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now osm-archive.timer
+journalctl -u osm-archive.service      # what each run did
+```
+
+With cron instead: `30 1 * * * KEEP_DAYS=60 /usr/local/sbin/osm-archive`.
+
+#### Searching and restoring archived history
+
+The files are plain text once unpacked, so they can be searched where they are:
+
+```bash
+cd /var/backups/osm/history/2026
+zcat osm_history_2026-09-01.tsv.gz | head -1                       # the column names
+zgrep -h 'student@example.com' osm_history_2026-09-*.tsv.gz        # one user, one month
+zgrep -h 'student@example.com' osm_history_2026-09-*.tsv.gz | grep -i 'youtube'
+```
+
+To put a day back into the database, where it shows in View Browsing History again:
+
+```bash
+zcat osm_history_2026-09-01.tsv.gz | mysql --local-infile=1 --default-character-set=utf8mb4 osm -e \
+  "LOAD DATA LOCAL INFILE '/dev/stdin' INTO TABLE tbl_filter_log CHARACTER SET utf8mb4 IGNORE 1 LINES
+   (id,ip,username,deviceid,action,type,url,date,time,initiator)"
+```
+
+The next archive run removes a restored day from the database again (its file is
+already there), so restore, look, and let the schedule tidy up.
+
+**Status:** tested on a scratch MariaDB 10.11 with about 216,000 rows over 72 days,
+including values with tabs, newlines, backslashes, quotes and non-ASCII text: report, dry
+run, `MAX_DAYS`, a run killed while deleting and then continued, wrong password, a second
+run at the same time, restoring every file and comparing each day with the original, and
+`OPTIMIZE TABLE` afterwards. Not yet timed on a production-size table.
+
+---
+
 ## Adding your own
 
 These scripts are deliberately simple — a few shell variables and a SQL query.
