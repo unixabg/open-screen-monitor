@@ -363,6 +363,51 @@ production-size table.
 
 ---
 
+### osm-history-rebuild.sh — rebuild the browsing history table
+
+Copies the rows of `tbl_filter_log` into a fresh table and swaps the two. Use it when
+MariaDB reports `Index for table 'tbl_filter_log' is corrupt`, when an index build on the
+table keeps failing, or to hand the space of archived history back to the disk. The new
+table has every index of the current schema and takes only the disk its rows need.
+
+```bash
+./osm-history-rebuild.sh status     # where things stand; changes nothing
+./osm-history-rebuild.sh copy       # 1. copy the rows into tbl_filter_log_new, build its indexes
+./osm-history-rebuild.sh swap       # 2. copy the last rows, swap the tables, compare them
+./osm-history-rebuild.sh abandon    # drop tbl_filter_log_new and start over
+```
+
+Run it as `root`, inside `screen` or `tmux`.
+
+- **`copy` only reads the live table**, through its primary key, so damaged indexes are
+  not used. It works in batches (`BATCH`, default 200000 ids; `PAUSE`, default 0.1
+  seconds between them) while the site keeps running, and takes hours on a large table.
+  It can be stopped and run again; it continues after the last row it copied. A row that
+  a damaged table returns twice is kept once and reported.
+- **Index build:** after the rows, all four indexes are built in one pass. If MariaDB's
+  temporary directory is too small for the sort files, give another with
+  `TMP_DIR=/var/lib/mysql-tmp` (owned by `mysql`, outside the data directory).
+- **`swap` takes seconds**, plus a comparison that reads both tables. Rows the site
+  writes during the swap are not lost: the two renames are one step, and the last rows of
+  the old table are copied afterwards. Run it at a quiet moment.
+- **The old table is kept** as `tbl_filter_log_old` until you drop it, which is what
+  returns its disk space: `mysql osm -e "DROP TABLE tbl_filter_log_old"`.
+- **Disk:** the new table sits next to the old one until then, so there must be room for
+  both, plus the sort files during the index build.
+- **If a batch cannot be read** the script stops and names the ids. Running it again
+  retries; `SKIP_TO=<id>` steps over that range, and the comparison after the swap then
+  shows that many rows fewer.
+- Do not run `osm-archive.sh` while a rebuild is in progress.
+
+**Status:** tested on a scratch MariaDB 10.11 with about 370,000 rows while a second
+process kept inserting rows as the site does: a copy killed and continued, the index
+build with and without `TMP_DIR`, the swap, a batch that fails and is stepped over, and
+the refusals. After the swap every original row was identical, and every row inserted
+during the run was present exactly once. Not yet run on MariaDB 11.8 or on a damaged or
+production-size table.
+
+---
+
 ## Adding your own
 
 These scripts are deliberately simple — a few shell variables and a SQL query.
