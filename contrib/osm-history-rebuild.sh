@@ -203,7 +203,7 @@ swap)
 	sql "ALTER TABLE $NEW AUTO_INCREMENT = $(( $(max_id "$LIVE") + ID_GAP ))"
 	FIRST_NEW_ID=$(( $(max_id "$LIVE") + 1 ))
 	# both renames happen as one step: there is no moment without a $LIVE table
-	sql "RENAME TABLE $LIVE TO $OLD, $NEW TO $LIVE" || fail "the swap did not happen; both tables are as they were"
+	sql "SET SESSION lock_wait_timeout = 30; RENAME TABLE $LIVE TO $OLD, $NEW TO $LIVE" || fail "the swap did not happen; both tables are as they were"
 	echo "Swapped: the rebuilt table is now $LIVE, the previous one is $OLD"
 
 	# rows that reached the old table between the last copy and the rename. From here
